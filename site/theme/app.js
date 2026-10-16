@@ -322,6 +322,87 @@ function contactTags(mem, keys, cls) {
   return box;
 }
 
+/* 词条关系图：内联 SVG，四向布局（上=相关词条，左=关联文章，右=相关项目，下=标签）。
+   只用 「连谁」 这一个事实画图 —— 没有数据时不画，不做装饰性图表。 */
+function relGraph(t, m) {
+  const rel = (t.related || []).map(id => (m.topics || []).find(x => x.id === id)).filter(Boolean);
+  const arts = (t.resolved || []).map(s => (m.posts || []).find(p => p.slug === s)).filter(Boolean);
+  const projs = (m.projects || []).filter(p => arts.some(a => (a.topics || []).indexOf(p.id) >= 0));
+  const tags = t.tags || [];
+  if (!rel.length && !arts.length && !projs.length && !tags.length) return null;
+
+  const W = 760, H = 320, CX = W / 2, CY = H / 2, NW = 190, NH = 40;
+  const doc = document.createElementNS ? document.createElementNS('http://www.w3.org/2000/svg', 'svg') : el('svg');
+  const NS = 'http://www.w3.org/2000/svg';
+  const mk = (tag) => (document.createElementNS ? document.createElementNS(NS, tag) : el(tag));
+  const txt = (x, y, s, opt) => {
+    const n = mk('text');
+    n.setAttribute('x', x); n.setAttribute('y', y);
+    n.setAttribute('text-anchor', 'middle');
+    n.setAttribute('font-size', (opt && opt.size) || 13);
+    n.setAttribute('fill', (opt && opt.fill) || 'var(--ink)');
+    n.textContent = s;
+    return n;
+  };
+  const box = (x, y, w, h, stroke) => {
+    const r = mk('rect');
+    r.setAttribute('x', x - w / 2); r.setAttribute('y', y - h / 2);
+    r.setAttribute('width', w); r.setAttribute('height', h);
+    r.setAttribute('rx', 8);
+    r.setAttribute('fill', 'var(--surface)');
+    r.setAttribute('stroke', stroke || 'var(--line)');
+    return r;
+  };
+  const edge = (x1, y1, x2, y2, dashed) => {
+    const p = mk('path');
+    const mx = (x1 + x2) / 2;
+    p.setAttribute('d', 'M' + x1 + ' ' + y1 + ' C' + mx + ' ' + y1 + ' ' + mx + ' ' + y2 + ' ' + x2 + ' ' + y2);
+    p.setAttribute('fill', 'none');
+    p.setAttribute('stroke', 'var(--line-strong)');
+    p.setAttribute('stroke-width', '1.5');
+    if (dashed) p.setAttribute('stroke-dasharray', '5 4');
+    return p;
+  };
+  const clip = (s, n) => (String(s).length > n ? String(s).slice(0, n - 1) + '…' : String(s));
+
+  const slots = [
+    { items: tags.map(x => ({ label: '#' + x, href: '#/library' })), x: CX, y: 44, dashed: true },
+    { items: rel.map(x => ({ label: x.title, href: '#/topic/' + x.id })), x: CX, y: H - 44, dashed: false },
+    { items: arts.map(x => ({ label: x.title, href: '#/post/' + x.slug })), x: 140, y: CY, dashed: true },
+    { items: projs.map(x => ({ label: x.name, href: '#/projects' })), x: W - 140, y: CY, dashed: false },
+  ];
+
+  doc.setAttribute('class', 'graph');
+  doc.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  doc.setAttribute('role', 'img');
+  doc.setAttribute('aria-label', '关系图：' + t.title
+    + '；相关词条 ' + rel.length + '，关联文章 ' + arts.length + '，标签 ' + tags.length);
+
+  slots.forEach(sl => {
+    const n = Math.min(sl.items.length, 2);
+    for (let i = 0; i < n; i += 1) {
+      const it = sl.items[i];
+      const offset = n === 1 ? 0 : (i === 0 ? -1 : 1);
+      const x = sl.x === CX ? CX + offset * 150 : sl.x;
+      const y = sl.y === CY ? CY + offset * 46 : sl.y;
+      doc.appendChild(edge(CX, CY, x, y, sl.dashed));
+      const g = mk('a');
+      if (document.createElementNS) g.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', it.href);
+      g.setAttribute('href', it.href);
+      g.appendChild(box(x, y, NW, NH));
+      g.appendChild(txt(x, y + 5, clip(it.label, 14)));
+      doc.appendChild(g);
+    }
+    if (sl.items.length > 2) {
+      doc.appendChild(txt(sl.x, sl.y + (sl.y === CY ? 78 : 30), '+' + (sl.items.length - 2) + ' 个', { size: 11, fill: 'var(--ink-mute)' }));
+    }
+  });
+
+  doc.appendChild(box(CX, CY, 230, 52, 'var(--accent)'));
+  doc.appendChild(txt(CX, CY + 5, clip(t.title, 16), { size: 15 }));
+  return doc;
+}
+
 function memberCard(x) {
   const c = el('article', 'person');
   c.appendChild(avatarImg(x, 'avatar'));
@@ -1154,6 +1235,26 @@ async function viewService(id, anchor) {
   scrollToAnchor(anchor);
 }
 
+/* 站文档的左栏：文档树 + 本页小节。与 render_() 默认的站点导航互斥（各自负责自己的路由）。 */
+function sidebarDoc(toc) {
+  const box = $('#sidebar');
+  if (!box) return;
+  box.textContent = '';
+  const head = el('div', 'side-head');
+  const h = el('p', 'nav-kicker', '站文档');
+  head.appendChild(h);
+  box.appendChild(head);
+  const panel = el('div');
+  panel.appendChild(docsTree(route()[1] || null));
+  if (toc && toc.length) {
+    panel.appendChild(el('h3', 'side-h', '本页小节'));
+    const t = el('div', 'tree toc');
+    toc.forEach(x => t.appendChild(link('#/page/' + (route()[1] || '') + '/' + x.id, x.text, 'leaf lv' + x.level)));
+    panel.appendChild(t);
+  }
+  box.appendChild(panel);
+}
+
 async function viewTopics() {
   const m = M.manifest;
   const main = $('#main');
@@ -1165,14 +1266,23 @@ async function viewTopics() {
     return;
   }
   const g = el('div', 'cards');
+  g.style.marginTop = 'var(--sp-5)';
   m.topics.forEach(t => {
     const c = el('article', 'card');
-    c.appendChild(link('#/topic/' + t.id, t.title, 'card-title'));
-    c.appendChild(el('p', 'muted', t.summary));
-    (t.resolved || []).slice(0, 5).forEach(s => {
-      const p = m.posts.find(x => x.slug === s);
-      if (p) c.appendChild(link('#/post/' + p.slug, p.title, 'leaf'));
-    });
+    const h = el('div', 'row');
+    h.appendChild(link('#/topic/' + t.id, t.title, 'card-title'));
+    const n = (t.resolved || []).length;
+    h.appendChild(el('span', 'badge', n + ' 篇'));
+    c.appendChild(h);
+    if (t.summary) c.appendChild(el('p', 'muted', t.summary));
+    const meta = el('div', 'meta');
+    (t.tags || []).forEach(x => meta.appendChild(link('#/library?tag=' + encodeURIComponent(x), '#' + x, 'tag')));
+    const rd = (t.related || []).map(id => (m.topics || []).find(x => x.id === id)).filter(Boolean);
+    if (rd.length) {
+      meta.appendChild(el('span', 'muted', '相关：'));
+      rd.forEach(x => meta.appendChild(link('#/topic/' + x.id, x.title, 'tag')));
+    }
+    if (meta.children.length) c.appendChild(meta);
     g.appendChild(c);
   });
   main.appendChild(g);
@@ -1186,66 +1296,275 @@ async function viewTopic(id, anchor) {
   const t = (m.topics || []).find(v => v.id === id);
   if (!t) { main.appendChild(el('p', 'muted', '词条不存在。')); return; }
   document.title = t.title + ' · ' + m.site.title;
-  main.appendChild(el('p', 'muted', '文章知识 / 主题词条'));
-  main.appendChild(el('h1', '', t.title));
-  if (t.summary) main.appendChild(el('p', 'lead', t.summary));
-  const tags = el('div', 'tags');
-  (t.tags || []).forEach(x => tags.appendChild(el('span', 'tag', x)));
-  main.appendChild(tags);
+
+  const crumb = el('nav', 'breadcrumb');
+  crumb.setAttribute('aria-label', '面包屑');
+  crumb.appendChild(link('#/topics', '主题词条'));
+  crumb.appendChild(el('span', '', ' / '));
+  crumb.appendChild(el('span', '', t.title));
+  main.appendChild(crumb);
+
+  const h = el('div', 'row');
+  h.appendChild(el('h1', '', t.title));
+  const nPosts = (t.resolved || []).length;
+  if (nPosts) h.appendChild(el('span', 'badge', nPosts + ' 篇关联文章'));
+  main.appendChild(h);
+
+  /* 定义置顶：词条的读者是来「确认一个概念」的，所以一句话定义必须最先看到 */
+  const def = el('div', 'define');
+  def.appendChild(el('p', 'term-name', '定义'));
+  def.appendChild(el('p', 'def', t.summary || '（这个词条还没有写定义 —— 欢迎补一句。）'));
+  main.appendChild(def);
+
+  if (t.tags && t.tags.length) {
+    const tags = el('div', 'tags');
+    t.tags.forEach(x => tags.appendChild(el('span', 'tag', x)));
+    main.appendChild(tags);
+  }
+
+  const graph = relGraph(t, m);
+  if (graph) {
+    main.appendChild(el('h2', 'section-h', '关系图'));
+    main.appendChild(graph);
+  }
 
   const body = el('div', 'body');
+  body.style.maxWidth = '38rem';
   body.innerHTML = await fragment(t.html);
   main.appendChild(body);
 
-  const related = (t.resolved || []).map(s => m.posts.find(p => p.slug === s)).filter(Boolean);
+  const related = (t.resolved || []).map(s => (m.posts || []).find(p => p.slug === s)).filter(Boolean);
   if (related.length) {
-    main.appendChild(el('h2', '', '相关文章（' + related.length + '）'));
-    related.forEach(p => main.appendChild(postCard(p)));
-  }
-  const rd = (t.related || []).map(r => (m.topics || []).find(x => x.id === r)).filter(Boolean);
-  if (rd.length) {
-    main.appendChild(el('h2', '', '相关词条'));
-    const box = el('div', 'tags');
-    rd.forEach(x => box.appendChild(link('#/topic/' + x.id, x.title, 'tag')));
+    main.appendChild(el('h2', 'section-h', '相关文章（' + related.length + '）'));
+    const box = el('div', 'cards');
+    related.slice(0, 4).forEach(p => box.appendChild(postCard(p)));
     main.appendChild(box);
+  } else {
+    main.appendChild(el('h2', 'section-h', '相关文章（0）'));
+    main.appendChild(el('p', 'muted', '还没有文章归入这个词条 —— 给文章加上同样的标签即可自动归入。'));
   }
+
+  const rd = (t.related || []).map(r => (m.topics || []).find(x => x.id === r)).filter(Boolean);
+  main.appendChild(el('h2', 'section-h', '相关'));
+  const relList = el('ul', 'rel-list');
+  relList.appendChild(relRow('关联文章', related.map(p => ['#/post/' + p.slug, p.title])));
+  relList.appendChild(relRow('相关词条', rd.map(x => ['#/topic/' + x.id, x.title])));
+  relList.appendChild(relRow('标签', (t.tags || []).map(x => ['#/library?tag=' + encodeURIComponent(x), '#' + x])));
+  main.appendChild(relList);
+
+  const tip = el('div', 'adm tip');
+  const tipT = el('p', 'adm-t', '想补充这个词条？');
+  tip.appendChild(tipT);
+  const tipP = el('p');
+  tipP.appendChild(el('span', '', '词条写在 '));
+  const code = el('code', '', 'site/content/topics/');
+  tipP.appendChild(code);
+  tipP.appendChild(el('span', '', ' 下，同标签的文章会自动归入；改动走 PR，见 '));
+  tipP.appendChild(link('#/page/contribute', '投稿指南'));
+  tipP.appendChild(el('span', '', '。'));
+  tip.appendChild(tipP);
+  main.appendChild(tip);
+
   sidebar(['topic', id], t.toc);
   scrollToAnchor(anchor);
+}
+
+/* 关系清单的一行：左边是关系名，右边是链接列表（没有就显示 —） */
+function relRow(label, pairs) {
+  const li = el('li');
+  li.appendChild(el('span', 'rel-k', label));
+  const box = el('span');
+  if (!pairs.length) box.appendChild(el('span', 'muted', '—'));
+  pairs.forEach((pr, i) => {
+    if (i) box.appendChild(el('span', 'muted', ' · '));
+    box.appendChild(link(pr[0], pr[1]));
+  });
+  li.appendChild(box);
+  return li;
 }
 
 async function viewWeekly(id) {
   const m = M.manifest;
   const main = $('#main');
   main.textContent = '';
+  const list = (m.weekly || []).slice().sort((a, b) => String(b.period).localeCompare(String(a.period)));
+
   if (!id) {
-    main.appendChild(el('h1', '', '周报 / 月刊'));
-    m.weekly.forEach(w => main.appendChild(link('#/weekly/' + w.id, w.period + ' · ' + w.title, 'tag')));
+    const head = el('div', 'page-head');
+    head.appendChild(el('h1', '', '周报 / 月刊'));
+    head.appendChild(el('span', 'muted', list.length + ' 期'));
+    main.appendChild(head);
+    main.appendChild(el('p', 'muted', '按期记录群里发生了什么：新增文章、合并的 PR、新词条与下期预告。'));
+    if (!list.length) { main.appendChild(el('p', 'muted', '还没有周报。')); return; }
+    main.appendChild(el('div', 'service-list'));
+    const box = main.children[main.children.length - 1];
+    box.style.marginTop = 'var(--sp-5)';
+    list.forEach(w => {
+      const c = el('article', 'card');
+      const row = el('div', 'row');
+      row.appendChild(link('#/weekly/' + w.id, w.title, 'card-title'));
+      row.appendChild(el('span', 'badge', w.period));
+      c.appendChild(row);
+      if ((w.highlights || []).length) {
+        const ul = el('ul', 'kb-list');
+        (w.highlights || []).slice(0, 3).forEach(x => ul.appendChild(el('li', '', x)));
+        c.appendChild(ul);
+      }
+      const meta = el('div', 'meta');
+      if ((w.merged || []).length) meta.appendChild(el('span', '', '合并 ' + w.merged.length + ' 篇'));
+      if ((w.contributors || []).length) meta.appendChild(el('span', '', '参与 ' + w.contributors.length + ' 人'));
+      if (meta.children.length) c.appendChild(meta);
+      box.appendChild(c);
+    });
     return;
   }
-  const w = m.weekly.find(v => v.id === id);
+
+  const w = list.find(v => v.id === id) || (m.weekly || []).find(v => v.id === id);
   if (!w) { main.appendChild(el('p', 'muted', '不存在。')); return; }
-  main.appendChild(el('h1', '', w.period + ' · ' + w.title));
+  document.title = w.period + ' · ' + w.title + ' · ' + m.site.title;
+
+  const crumb = el('nav', 'breadcrumb');
+  crumb.setAttribute('aria-label', '面包屑');
+  crumb.appendChild(link('#/weekly', '周报'));
+  crumb.appendChild(el('span', '', ' / '));
+  crumb.appendChild(el('span', '', w.period));
+  main.appendChild(crumb);
+
+  const hero = el('div', 'weekly-hero');
+  const per = el('span', 'period', w.period);
+  hero.appendChild(per);
+  hero.appendChild(el('h1', '', w.title));
+  if ((w.highlights || []).length) {
+    const lede = el('p', 'lede');
+    lede.appendChild(el('span', '', w.highlights[0]));
+    hero.appendChild(lede);
+  }
+  main.appendChild(hero);
+
+  /* 本期数据：只统计站内可核对的量（合并文章数 / 高亮条数 / 参与人数） */
+  const digest = el('div', 'digest');
+  const cell = (v, k) => {
+    const c = el('div', 'card');
+    c.appendChild(el('b', '', String(v)));
+    c.appendChild(el('span', '', k));
+    digest.appendChild(c);
+  };
+  cell((w.merged || []).length, '合并文章');
+  cell((w.highlights || []).length, '本期要点');
+  cell((w.contributors || []).length, '参与成员');
+  main.appendChild(digest);
+
+  if ((w.highlights || []).length) {
+    main.appendChild(el('h2', 'section-h', '本期要点'));
+    const tl = el('ul', 'timeline');
+    w.highlights.forEach(x => {
+      const li = el('li', 'hot');
+      const whenT = el('span', 'when-t', w.period);
+      li.appendChild(whenT);
+      li.appendChild(el('p', 'what', x));
+      tl.appendChild(li);
+    });
+    main.appendChild(tl);
+  }
+
+  const merged = (w.merged || []).map(s => (m.posts || []).find(p => p.slug === s)).filter(Boolean);
+  if (merged.length) {
+    main.appendChild(el('h2', 'section-h', '本期合并的文章'));
+    const box = el('div', 'cards');
+    merged.forEach(p => box.appendChild(postCard(p)));
+    main.appendChild(box);
+  }
+
+  if ((w.contributors || []).length) {
+    main.appendChild(el('h2', 'section-h', '参与成员'));
+    const box = el('div', 'tags');
+    w.contributors.forEach(cid => {
+      const mem = (m.members || []).find(x => x.id === cid);
+      box.appendChild(mem ? link('#/member/' + mem.id, mem.name, 'tag') : el('span', 'tag', cid));
+    });
+    main.appendChild(box);
+  }
+
   const b = el('div', 'body');
+  b.style.maxWidth = '38rem';
   b.innerHTML = await fragment(w.html);
   main.appendChild(b);
+
+  const idx = list.findIndex(v => v.id === w.id);
+  const prev = list[idx + 1], next = list[idx - 1];
+  if (prev || next) {
+    const nav = el('nav', 'series-nav');
+    if (prev) nav.appendChild(linkDate('#/weekly/' + prev.id, '← 上一期', prev.period + ' · ' + prev.title));
+    if (next) {
+      const a = linkDate('#/weekly/' + next.id, '下一期 →', next.period + ' · ' + next.title);
+      a.className = 'next';
+      nav.appendChild(a);
+    }
+    main.appendChild(nav);
+  }
+
   sidebar(['weekly', id], w.toc);
+}
+
+/* 上一期/下一期卡片（series-nav 复用） */
+function linkDate(href, k, text) {
+  const a = el('a');
+  a.href = href;
+  a.appendChild(el('span', 'k', k));
+  a.appendChild(el('span', '', text));
+  return a;
+}
+
+/* 文档树：左栏用（分组的 sticky 列表）。树的内容只来自 pages 的 group/order。 */
+function docsTree(cur) {
+  const ul = el('ul', 'docs-tree');
+  const groups = {};
+  (M.manifest.pages || []).forEach(d => {
+    const g = d.group || '其它';
+    (groups[g] = groups[g] || []).push(d);
+  });
+  Object.keys(groups).forEach(g => {
+    ul.appendChild(el('li', 'g', g));
+    groups[g]
+      .slice()
+      .sort((a, b) => (a.order || 999) - (b.order || 999))
+      .forEach(d => {
+        const li = el('li');
+        const a = link('#/page/' + d.id, d.title, d.id === cur ? 'cur' : '');
+        if (d.id === cur) a.setAttribute('aria-current', 'page');
+        li.appendChild(a);
+        ul.appendChild(li);
+      });
+  });
+  return ul;
 }
 
 async function viewPages() {
   const m = M.manifest;
   const main = $('#main');
   main.textContent = '';
-  main.appendChild(el('h1', '', '站文档'));
-  main.appendChild(el('p', 'muted', '站点自身的说明：投稿与创作制度、写作速查、附件规则、内容契约、部署方案。'));
+  const head = el('div', 'page-head');
+  head.appendChild(el('h1', '', '站文档'));
+  head.appendChild(el('span', 'muted', (m.pages || []).length + ' 篇'));
+  main.appendChild(head);
+  main.appendChild(el('p', 'muted', '站点自身的说明：投稿与创作制度、写作速查、附件规则、内容契约。'));
   const groups = {};
   (m.pages || []).forEach(d => {
     const g = d.group || '其它';
     (groups[g] = groups[g] || []).push(d);
   });
   Object.keys(groups).forEach(g => {
-    main.appendChild(el('h2', '', g));
-    const box = el('div', 'tree docs-tree');
-    groups[g].forEach(d => box.appendChild(link('#/page/' + d.id, d.title, 'leaf sec')));
+    main.appendChild(el('h2', 'section-h', g));
+    const box = el('div', 'cards');
+    box.style.gridTemplateColumns = 'repeat(auto-fill, minmax(240px, 1fr))';
+    groups[g].slice().sort((a, b) => (a.order || 999) - (b.order || 999)).forEach(d => {
+      const a = el('a', 'scenario');
+      a.href = '#/page/' + d.id;
+      a.appendChild(el('span', 'k', g));
+      a.appendChild(el('b', '', d.title));
+      if (d.text) a.appendChild(el('span', '', String(d.text).slice(0, 46) + '…'));
+      box.appendChild(a);
+    });
     main.appendChild(box);
   });
 }
@@ -1258,18 +1577,38 @@ async function viewPage(id, anchor) {
   const d = (m.pages || []).find(v => v.id === id);
   if (!d) { main.appendChild(el('p', 'muted', '不存在。')); return; }
   document.title = d.title + ' · ' + m.site.title;
-  main.appendChild(el('p', 'muted', '站文档 / ' + (d.group || '')));
-  main.appendChild(el('h1', '', d.title));
+
+  /* 两栏：左文档树（sticky）+ 右长文（限宽 38rem） */
+  const wrap = el('div', 'docs');
+  wrap.appendChild(docsTree(id));
+  const col = el('div');
+  const crumb = el('nav', 'breadcrumb');
+  crumb.setAttribute('aria-label', '面包屑');
+  crumb.appendChild(link('#/pages', '站文档'));
+  crumb.appendChild(el('span', '', ' / '));
+  crumb.appendChild(el('span', '', d.group || '其它'));
+  col.appendChild(crumb);
+  col.appendChild(el('h1', '', d.title));
+  const byline = el('p', 'byline');
+  byline.appendChild(el('span', '', d.group || '其它'));
+  if (d.toc && d.toc.length) {
+    byline.appendChild(el('span', 'dot'));
+    byline.appendChild(el('span', '', d.toc.length + ' 个小节'));
+  }
+  col.appendChild(byline);
   if (d.group_link) {
     const b = link(d.group_link, '点击链接加入群聊【' + (m.site.group.name || '') + '】', 'btn');
     b.target = '_blank';
     b.rel = 'noopener';
-    main.appendChild(b);
+    col.appendChild(b);
   }
-  const b = el('div', 'body');
-  b.innerHTML = await fragment(d.html);
-  main.appendChild(b);
-  sidebar(['page', id], d.toc);
+  const body = el('div', 'body');
+  body.style.maxWidth = '38rem';
+  body.innerHTML = await fragment(d.html);
+  col.appendChild(body);
+  wrap.appendChild(col);
+  main.appendChild(wrap);
+  sidebarDoc(d.toc);
   scrollToAnchor(anchor);
 }
 
@@ -1365,7 +1704,7 @@ async function render_() {
   else if (seg[0] === 'services') await viewServices();
   else if (seg[0] === 'service') await viewService(seg[1], seg[2]);
   else if (seg[0] === 'weekly') await viewWeekly(seg[1]);
-  else if (seg[0] === 'pages') await viewPages();
+  else if (seg[0] === 'pages') { sidebarDoc(null); await viewPages(); }
   else if (seg[0] === 'page') await viewPage(seg[1], seg[2]);
   else if (seg[0] === 'join') await viewJoin();
   else if (seg[0] === 'search') await viewSearch(seg[1] || '');

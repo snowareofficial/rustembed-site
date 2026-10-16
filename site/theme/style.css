@@ -606,3 +606,58 @@ dfn { font-style: normal; font-weight: 600; border-bottom: 1px dotted var(--ink-
 .service .side h2 { font-size: 10.5px; letter-spacing: .12em; color: var(--ink-mute); margin: var(--sp-3) 0 4px; }
 .service .contact, .panel .contact { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
 @media (max-width: 860px) { .service { grid-template-columns: 1fr; } }
+
+/* ===== S4 词条 / 周报 / 站文档 ===== */
+
+/* 词条定义卡：全站唯一"标题级"装饰（左侧强调线）——因为定义是这一页的核心 */
+.define { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent);
+  border-radius: var(--radius); padding: var(--sp-4) var(--sp-5); margin: var(--sp-5) 0; }
+.define .term-name { font-size: 10.5px; letter-spacing: .14em; color: var(--ink-mute);
+  font-weight: 700; margin: 0; }
+.define .def { margin: 6px 0 0; color: var(--ink-soft); font-size: 1.02rem; line-height: 1.8; }
+
+/* 关系图：内联 SVG，节点可点；宽度随容器，高度按 viewBox */
+.graph { width: 100%; height: auto; margin: var(--sp-4) 0; border: 1px solid var(--line);
+  border-radius: var(--radius); background: var(--surface); }
+
+/* 关系清单：左关系名 + 右链接 */
+.rel-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.rel-list li { display: grid; grid-template-columns: 5.5rem 1fr; gap: var(--sp-3); font-size: 13.5px; }
+.rel-list .rel-k { color: var(--ink-mute); font-size: 12px; }
+
+/* 周报：头部 + 数据格 + 时间线 */
+.weekly-hero { border-bottom: 1px solid var(--line); padding-bottom: var(--sp-4); margin-bottom: var(--sp-4); }
+.weekly-hero .period { font-size: 11.5px; letter-spacing: .12em; color: var(--ink-mute); }
+.weekly-hero h1 { margin: 6px 0 0; }
+.digest { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin: var(--sp-5) 0; }
+.digest .card { text-align: left; }
+.digest .card b { display: block; font-size: 1.4rem; font-weight: 700; line-height: 1.2; }
+.digest .card span { font-size: 12px; color: var(--ink-mute); }
+
+.timeline { list-style: none; margin: var(--sp-5) 0; padding: 0 0 0 var(--sp-5);
+  border-left: 1px solid var(--line); }
+.timeline li { position: relative; padding: 0 0 var(--sp-5) var(--sp-3); }
+.timeline li::before { content: ""; position: absolute; left: calc(-1 * var(--sp-5) - 4px); top: 8px;
+  width: 7px; height: 7px; border-radius: 50%; background: var(--paper); border: 2px solid var(--line-strong); }
+.timeline li.hot::before { border-color: var(--accent); }
+.timeline .when-t { font-size: 11.5px; letter-spacing: .06em; color: var(--ink-mute); }
+.timeline .what { font-size: 1rem; color: var(--ink); margin: 2px 0 0; }
+.timeline .why { font-size: 13px; color: var(--ink-mute); margin: 2px 0 0; }
+
+/* 站文档：左树 + 右长文 */
+.docs { display: grid; gap: var(--sp-6); grid-template-columns: 200px minmax(0, 1fr); align-items: start; }
+.docs-tree { list-style: none; margin: 0; padding: 0; font-size: 12.5px; position: sticky; top: 64px; }
+.docs-tree .g { font-size: 10.5px; letter-spacing: .12em; color: var(--ink-mute);
+  font-weight: 700; margin: var(--sp-4) 0 4px; }
+.docs-tree a { display: block; padding: 3px 8px; color: var(--ink-mute); text-decoration: none;
+  border-left: 2px solid transparent; margin-left: -1px; }
+.docs-tree a:hover { color: var(--ink-soft); }
+.docs-tree a.cur { color: var(--ink); border-left-color: var(--accent); font-weight: 600; }
+.kb-list { margin: 6px 0 0; padding-left: 18px; font-size: 13.5px; color: var(--ink-soft); }
+
+@media (max-width: 860px) {
+  .docs { grid-template-columns: 1fr; }
+  .docs-tree { position: static; }
+  .rel-list li { grid-template-columns: 1fr; gap: 0; }
+}
