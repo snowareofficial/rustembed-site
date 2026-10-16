@@ -220,6 +220,44 @@ function sidebar(seg, toc) {
 
 /* ---------- 通用片段 ---------- */
 
+/* 文章元信息：作者在前（带头像），其余用 · 分隔；字号 12.5px、不加粗（内容至上） */
+function readingMinutes(words) {
+  return Math.max(1, Math.round((words || 0) / 260));
+}
+
+function bylineAuthor(p) {
+  const m = M.manifest;
+  const mem = m.members.find(x => x.id === p.author);
+  if (!mem) return p.author ? el('span', 'who', p.author) : null;
+  const a = link('#/member/' + mem.id, '', 'who');
+  const img = el('img');
+  img.alt = '';
+  img.width = 16;
+  img.height = 16;
+  img.loading = 'lazy';
+  img.src = mem.avatar || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Crect width=%2216%22 height=%2216%22 rx=%228%22 fill=%22%23cfc7ba%22/%3E%3C/svg%3E';
+  a.appendChild(img);
+  a.appendChild(el('span', '', mem.name));
+  return a;
+}
+
+function bylineLine(p) {
+  const line = el('div', 'byline');
+  const who = bylineAuthor(p);
+  if (who) line.appendChild(who);
+  const dot = () => line.appendChild(el('span', 'dot'));
+  if (who) dot();
+  line.appendChild(el('time', '', p.date));
+  line.appendChild(el('span', 'dot'));
+  line.appendChild(el('span', '', (p.words || 0) + ' 字 · 约 ' + readingMinutes(p.words) + ' 分钟'));
+  if (p.updated && p.updated !== p.date) {
+    line.appendChild(el('span', 'dot'));
+    line.appendChild(el('span', '', '更新于 ' + p.updated));
+  }
+  return line;
+}
+
+/* 概览/列表页仍用紧凑的元信息行（日期 / 作者 / 字数 / 标签） */
 function metaLine(p) {
   const m = M.manifest;
   const mem = m.members.find(x => x.id === p.author);
@@ -437,16 +475,24 @@ async function viewPost(slug, anchor) {
   if (!p) { main.appendChild(el('p', 'muted', '文章不存在。')); return; }
   document.title = p.title + ' · ' + m.site.title;
   const art = el('article', 'post');
-  art.appendChild(el('h1', '', p.title));
-  art.appendChild(metaLine(p));
-  if (p.topics && p.topics.length) {
-    const tp = el('div', 'tags');
-    p.topics.forEach(id => {
-      const t = (m.topics || []).find(x => x.id === id);
-      tp.appendChild(link('#/topic/' + id, '词条：' + (t ? t.title : id), 'tag'));
-    });
-    art.appendChild(tp);
+  const head = el('header', 'post-head');
+  const crumb = el('nav', 'breadcrumb');
+  crumb.setAttribute('aria-label', '面包屑');
+  crumb.appendChild(link('#/library', '文章库'));
+  crumb.appendChild(el('span', '', ' / '));
+  if (p.series) {
+    const s = m.series.find(x => x.id === p.series);
+    if (s) {
+      crumb.appendChild(el('span', '', s.title));
+      crumb.appendChild(el('span', '', ' / '));
+    }
   }
+  crumb.appendChild(el('span', '', p.year + ' 年'));
+  head.appendChild(crumb);
+  head.appendChild(el('h1', '', p.title));
+  head.appendChild(bylineLine(p));
+  art.appendChild(head);
+  if (p.summary) art.appendChild(el('p', 'lede', p.summary));
   if (p.video) {
     const d = el('div', 'video');
     const f = el('iframe');
@@ -471,7 +517,26 @@ async function viewPost(slug, anchor) {
     });
     art.appendChild(box);
   }
-  if (p.license) art.appendChild(el('p', 'muted', '许可：' + p.license));
+  const tagbox = el('div', 'tags');
+  let tagCount = 0;
+  (p.tags || []).forEach(t => {
+    tagbox.appendChild(link('#/library?tag=' + encodeURIComponent(t), '#' + t, 'tag'));
+    tagCount += 1;
+  });
+  if (p.topics && p.topics.length) {
+    p.topics.forEach(id => {
+      const t = (m.topics || []).find(x => x.id === id);
+      tagbox.appendChild(link('#/topic/' + id, '词条：' + (t ? t.title : id), 'tag'));
+      tagCount += 1;
+    });
+  }
+  if (tagCount) art.appendChild(tagbox);
+
+  const lic = el('p', 'license');
+  lic.appendChild(el('span', '', '许可：' + (p.license || m.site.license || '见文章内 license 字段')));
+  lic.appendChild(el('span', 'dot'));
+  lic.appendChild(el('span', '', '讨论请回到 QQ 群'));
+  art.appendChild(lic);
   if (p.series) {
     const s = m.series.find(x => x.id === p.series);
     if (s) {
@@ -482,7 +547,6 @@ async function viewPost(slug, anchor) {
       art.appendChild(nav);
     }
   }
-  art.appendChild(el('p', 'muted', '讨论请回到 QQ 群。'));
   main.appendChild(art);
   sidebar(['post', slug], p.toc);
   scrollToAnchor(anchor);
