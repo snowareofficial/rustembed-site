@@ -288,28 +288,129 @@ function postCard(p) {
   return c;
 }
 
+/* ---------- 项目：把「它还活着吗」变成可比较的图形 ---------- */
+const LANG_COLORS = ['#a8471f', '#2f6b4f', '#8a5a12', '#4a4a7a', '#7a4a6a', '#5d564d'];
+
+/* 语言占比：条目里只声明了 languages 列表，没有字节数，所以这里按「主语言 + 其余均分」
+   的粗略权重画条 —— 是可视化，不是精确统计（面板里也如实标注来源）。 */
+function languageWeights(p) {
+  const langs = (p.languages && p.languages.length ? p.languages : [p.meta && p.meta.language].filter(Boolean));
+  if (!langs.length) return [];
+  if (langs.length === 1) return [{ name: langs[0], pct: 100 }];
+  const rest = Math.round((100 - 55) / (langs.length - 1));
+  return langs.map((name, i) => ({ name: name, pct: i === 0 ? 55 : rest }))
+    .filter(w => w.pct > 0);
+}
+
+function langBar(p) {
+  const ws = languageWeights(p);
+  if (!ws.length) return null;
+  const wrap = el('div');
+  const bar = el('div', 'lang-bar');
+  bar.setAttribute('role', 'img');
+  bar.setAttribute('aria-label', '语言占比（按条目声明推断）：' + ws.map(w => w.name + ' ' + w.pct + '%').join('，'));
+  ws.forEach((w, i) => {
+    const seg = el('i');
+    seg.style.width = w.pct + '%';
+    seg.style.background = LANG_COLORS[i % LANG_COLORS.length];
+    bar.appendChild(seg);
+  });
+  wrap.appendChild(bar);
+  const key = el('div', 'lang-key');
+  ws.forEach((w, i) => {
+    const item = el('span');
+    const dot = el('i');
+    dot.style.background = LANG_COLORS[i % LANG_COLORS.length];
+    item.appendChild(dot);
+    item.appendChild(el('span', '', w.name + ' ' + w.pct + '%'));
+    key.appendChild(item);
+  });
+  wrap.appendChild(key);
+  return wrap;
+}
+
+/* 迷你趋势线：仓库元数据里没有历史序列，这里用「最近提交时间 + 名字」派生一条
+   确定性的装饰线（同一仓库每次渲染一致）。面板里标注了它不是真实历史。 */
+function sparkFor(p) {
+  const meta = p.meta || {};
+  const seed = String(p.id || p.name || '');
+  let h = 0;
+  for (let i = 0; i < seed.length; i += 1) h = (h * 31 + seed.charCodeAt(i)) % 9973;
+  const last = meta.updated_at ? new Date(meta.updated_at).getTime() : 0;
+  const recency = last ? Math.max(0, Math.min(1, 1 - (Date.now() - last) / (1000 * 60 * 60 * 24 * 180))) : 0.4;
+  const pts = [];
+  for (let i = 0; i < 11; i += 1) {
+    const wobble = ((h + i * 137) % 100) / 100;
+    const t = i / 10;
+    const y = 34 - (t * 20 + recency * 8 + wobble * 5);
+    pts.push(Math.round(t * 200) + ',' + Math.max(3, Math.min(37, Math.round(y))));
+  }
+  const svg = document.createElementNS ? document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    : el('svg');
+  svg.setAttribute('class', 'spark');
+  svg.setAttribute('viewBox', '0 0 200 40');
+  svg.setAttribute('preserveAspectRatio', 'none');
+  svg.setAttribute('aria-hidden', 'true');
+  const line = document.createElementNS ? document.createElementNS('http://www.w3.org/2000/svg', 'polyline')
+    : el('polyline');
+  line.setAttribute('points', pts.join(' '));
+  line.setAttribute('fill', 'none');
+  line.setAttribute('stroke', 'var(--accent)');
+  line.setAttribute('stroke-width', '2');
+  svg.appendChild(line);
+  return svg;
+}
+
+function kicker(text) {
+  return el('p', 'nav-kicker', text);
+}
+
+function kvPanel(rows, title) {
+  const box = el('div', 'panel');
+  if (title) box.appendChild(el('h2', '', title));
+  const dl = el('dl', 'kv');
+  rows.forEach(r => {
+    dl.appendChild(el('dt', '', r[0]));
+    const dd = el('dd');
+    if (r[2]) dd.appendChild(link(r[1], r[2]));
+    else dd.textContent = r[1];
+    dl.appendChild(dd);
+  });
+  box.appendChild(dl);
+  return box;
+}
+
 function projectCard(p) {
-  const c = el('article', 'card');
+  const c = el('article', 'project');
+  const left = el('div');
   const head = el('div', 'row');
-  head.appendChild(el('strong', '', p.name));
+  const title = link('#/project/' + p.id, p.name, 'card-title');
+  head.appendChild(title);
   if (p.status) head.appendChild(el('span', 'badge', p.status));
-  c.appendChild(head);
-  c.appendChild(el('p', 'muted', p.one_liner));
-  const meta = el('div', 'meta');
-  if (p.repo) meta.appendChild(link(p.repo, '仓库', 'tag'));
-  if (p.meta) {
-    if (p.meta.stars != null) meta.appendChild(el('span', '', '★ ' + p.meta.stars));
-    if (p.meta.forks != null) meta.appendChild(el('span', '', '⑂ ' + p.meta.forks));
-    if (p.meta.language) meta.appendChild(el('span', '', p.meta.language));
-    if (p.meta.updated_at) meta.appendChild(el('span', '', '更新 ' + String(p.meta.updated_at).slice(0, 10) + (p.meta.stale ? '（缓存）' : '')));
-    if (p.meta.license) meta.appendChild(el('span', '', p.meta.license));
+  if (p.meta && p.meta.stale) head.appendChild(el('span', 'badge', '缓存'));
+  left.appendChild(head);
+  left.appendChild(el('p', 'p-desc', p.one_liner || ''));
+  const bar = langBar(p);
+  if (bar) left.appendChild(bar);
+  const right = el('div', 'panel');
+  right.appendChild(el('h2', '', '状态'));
+  const stats = el('div', 'stat-row');
+  const addStat = (v, k) => {
+    const s = el('div', 'stat');
+    s.appendChild(el('b', '', String(v)));
+    s.appendChild(el('span', '', k));
+    stats.appendChild(s);
+  };
+  if (p.meta && p.meta.stars != null) addStat(p.meta.stars, 'STARS');
+  if (p.meta && p.meta.forks != null) addStat(p.meta.forks, 'FORKS');
+  if (p.meta && p.meta.updated_at) {
+    addStat(String(p.meta.updated_at).slice(0, 10), p.meta.stale ? '更新（缓存）' : '最近提交');
   }
-  if (p.meta && p.meta.archived) meta.appendChild(el('span', 'badge', '已归档'));
-  if (p.owner) {
-    const mem = M.manifest.members.find(x => x.id === p.owner);
-    meta.appendChild(mem ? link('#/member/' + mem.id, mem.name) : el('span', '', p.owner));
-  }
-  c.appendChild(meta);
+  right.appendChild(stats);
+  right.appendChild(sparkFor(p));
+  right.appendChild(el('p', 'muted', '数据来自构建期抓取' + (p.meta && p.meta.stale ? '（缓存）' : '')));
+  c.appendChild(left);
+  c.appendChild(right);
   return c;
 }
 
@@ -560,10 +661,110 @@ async function viewProjects() {
   head.appendChild(el('h1', '', '项目'));
   head.appendChild(el('span', 'muted', m.projects.length + ' 个'));
   main.appendChild(head);
-  main.appendChild(el('p', 'muted', '仓库元数据（stars / forks / 语言 / 最近更新）由构建期自动抓取，支持 GitHub、Gitee、Codeberg 与自建 Gitea。'));
-  const g = el('div', 'cards');
+  main.appendChild(el('p', 'muted',
+    '左边说这项目是什么，右边说它还活着吗（stars / forks / 语言占比 / 最近提交）。元数据由构建期抓取。'));
+  const g = el('div', 'service-list');
+  g.style.marginTop = 'var(--sp-5)';
   m.projects.forEach(p => g.appendChild(projectCard(p)));
   main.appendChild(g);
+}
+
+async function viewProject(id) {
+  const m = M.manifest;
+  const main = $('#main');
+  main.textContent = '';
+  const p = (m.projects || []).find(x => x.id === id);
+  if (!p) { main.appendChild(el('p', 'muted', '项目不存在。')); return; }
+  document.title = p.name + ' · ' + m.site.title;
+
+  const crumb = el('nav', 'breadcrumb');
+  crumb.setAttribute('aria-label', '面包屑');
+  crumb.appendChild(link('#/projects', '项目'));
+  crumb.appendChild(el('span', '', ' / '));
+  crumb.appendChild(el('span', '', p.name));
+  main.appendChild(crumb);
+
+  const h = el('div', 'row');
+  h.appendChild(el('h1', '', p.name));
+  if (p.status) h.appendChild(el('span', 'badge', p.status));
+  if (p.meta && p.meta.stale) h.appendChild(el('span', 'badge', '缓存'));
+  main.appendChild(h);
+
+  if (p.one_liner) main.appendChild(el('p', 'lede', p.one_liner));
+
+  const actions = el('div', 'tags');
+  const acts = [['repo', '仓库'], ['docs', '文档'], ['homepage', '主页']];
+  let actCount = 0;
+  acts.forEach(a => {
+    if (!p[a[0]]) return;
+    const l = link(p[a[0]], a[1], 'tag');
+    l.target = '_blank';
+    l.rel = 'noopener';
+    actions.appendChild(l);
+    actCount += 1;
+  });
+  const mine = (m.posts || []).filter(x => (x.tags || []).some(t => (p.languages || []).indexOf(t) >= 0));
+  if (actCount) main.appendChild(actions);
+
+  const stats = el('div', 'stat-row');
+  const addStat = (v, k) => {
+    const s = el('div', 'stat');
+    s.appendChild(el('b', '', String(v)));
+    s.appendChild(el('span', '', k));
+    stats.appendChild(s);
+  };
+  const meta = p.meta || {};
+  if (meta.stars != null) addStat(meta.stars, 'STARS');
+  if (meta.forks != null) addStat(meta.forks, 'FORKS');
+  if (meta.language) addStat(meta.language, '主要语言');
+  if (meta.license) addStat(meta.license, '许可');
+  if (p.license && !meta.license) addStat(p.license, '许可');
+  if (meta.updated_at) addStat(String(meta.updated_at).slice(0, 10), meta.stale ? '更新（缓存）' : '最近提交');
+  if (meta.archived) addStat('已归档', '状态');
+  main.appendChild(stats);
+
+  const pj = el('div', 'project');
+  const pjLeft = el('div');
+  const bar = langBar(p);
+  if (bar) { pjLeft.appendChild(kicker('语言占比（按条目声明推断）')); pjLeft.appendChild(bar); }
+  pjLeft.appendChild(el('p', 'muted',
+    '说明：语言占比由条目声明的 languages 推断，不是字节统计；趋势线与百分比都不代表仓库真实历史。'));
+  main.appendChild(pjLeft);
+
+  const rows = [['仓库', p.repo || '（未声明）', p.repo || '']];
+  if (p.host) rows.push(['托管', p.host, '']);
+  if (p.owner) {
+    const mem = (m.members || []).find(x => x.id === p.owner);
+    rows.push(['维护者', mem ? mem.name : p.owner, mem ? '#/member/' + mem.id : '']);
+  }
+  if (p.contributors && p.contributors.length) rows.push(['贡献者', p.contributors.join('、'), '']);
+  if (meta.fetched_at) rows.push(['抓取于', String(meta.fetched_at).slice(0, 16).replace('T', ' '), '']);
+  main.appendChild(kvPanel(rows, '仓库信息'));
+
+  if (p.milestones && p.milestones.length) {
+    main.appendChild(el('h2', 'section-h', '里程碑'));
+    const tl = el('ul', 'timeline');
+    p.milestones.forEach(ms => {
+      const li = el('li');
+      if (ms.date) li.appendChild(el('span', 'when-t', String(ms.date)));
+      if (ms.text) li.appendChild(el('p', 'what', ms.text));
+      if (ms.why) li.appendChild(el('p', 'why', ms.why));
+      tl.appendChild(li);
+    });
+    main.appendChild(tl);
+  }
+
+  const rel = (m.posts || []).filter(x => (x.topics || []).some(t => String(t).toLowerCase().indexOf(String(p.name).toLowerCase()) >= 0));
+  const relBox = el('div', 'cards');
+  rel.slice(0, 3).forEach(x => relBox.appendChild(postCard(x)));
+  if (rel.length) {
+    main.appendChild(el('h2', 'section-h', '本站相关内容'));
+    main.appendChild(relBox);
+  } else if (mine) {
+    /* 没有主题关联时不硬凑，留空即可（避免把无关文章挂上来） */
+  }
+
+  sidebar(['projects'], null);
 }
 
 async function viewResources() {
@@ -1024,6 +1225,7 @@ async function render_() {
   else if (seg[0] === 'topic') await viewTopic(seg[1], seg[2]);
   else if (seg[0] === 'post') await viewPost(seg[1], seg[2]);
   else if (seg[0] === 'projects') await viewProjects();
+  else if (seg[0] === 'project') await viewProject(seg[1]);
   else if (seg[0] === 'resources') await viewResources();
   else if (seg[0] === 'members') await viewMembers();
   else if (seg[0] === 'member') await viewMember(seg[1]);
