@@ -21,6 +21,50 @@
   attachments: [Attachment] optional
   co_authors: [str] optional
   body: any optional      # SML 写法的正文块数组（Markdown 走 front matter + 正文）
+  # 结构化块（可选，单对象）。Markdown 用 :::panel / :::steps / :::shot / :::gallery /
+  # :::term / :::when 写法，SML 用对应裸块；渲染器统一按单对象处理，故契约也声明为单对象。
+  panel: Panel optional
+  steps: Steps optional
+  shot: Shot optional
+  gallery: Gallery optional
+  term: Term optional
+  when: When optional
+}
+
+@contract Panel {
+  loose
+  title: str optional      # 面板标题
+  text: str optional       # 正文内容
+}
+
+@contract Steps {
+  loose
+  items: [Para] optional   # 步骤项
+}
+
+@contract Shot {
+  loose
+  src: str                 # 图片路径
+  alt: str optional        # 替代文本
+  caption: str optional    # 图注
+  full: bool optional      # 是否全宽出血
+}
+
+@contract Gallery {
+  loose
+  cols: int optional       # 列数
+  items: [Para] optional   # 图片项
+}
+
+@contract Term {
+  loose
+  text: str                # 终端输出文本
+}
+
+@contract When {
+  loose
+  date: str                # 日期
+  text: str                # 事件内容
 }
 
 @contract Series {
@@ -99,6 +143,21 @@
   github: url optional
   gitee: url optional
   email: str optional     # 由本人提供并授权展示；不想公开就删掉这一行
+}
+
+# 能力与合作黄页：成员自愿登记、纯展示的条目。
+# 性质：本站只做信息展示，不参与交易、不担保、不抽成、不经手资金、不介入纠纷，
+#       也不为任何个人或服务背书；条目由 owner 本人提供并自负其责。
+@contract Service {
+  name: str               # 条目名称（能力/服务一句话名）
+  owner: str              # 成员 id，必须存在于 content/members/<id>.sml
+  skills: [str]           # 技能标签，至少一个
+  wants: [str] optional   # 想找什么（合作方向，自由列举）
+  contact: [str]          # 联系方式：只能引用成员档案 links 里本人已公开的键（blog/homepage/github/gitee/email）
+  rate: str optional      # 费用/方式说明，自由文本；本站不经手资金，具体由双方自行约定
+  status: enum [ active paused ]  # active = 可接洽；paused = 暂停
+  updated: date           # 最近更新日期
+  body: any optional      # 详细介绍（SML 块 / Markdown 正文）
 }
 
 @contract Weekly {

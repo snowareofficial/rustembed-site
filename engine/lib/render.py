@@ -7,12 +7,42 @@
 
 import html
 import re
+import sys
 
 QUOTE_ENT = "&quot;"
 
 
 def esc(s):
     return html.escape("" if s is None else str(s), quote=True)
+
+
+# 语言名只允许这些字符、最长 20；其余一律退化为 text（防止把作者输入塞进
+# class / 文本造成意外，例如 <script> 之类）。与 markdown.py 共用，保证两端一致。
+_LANG_RE = re.compile(r"^[A-Za-z0-9_+#-]{1,20}$")
+
+
+def code_block(lang, code):
+    """带语言标签与复制按钮的代码块外壳。
+
+    lang：作者可控输入，仅取 [A-Za-z0-9_+#-]{1,20}，否则显示 text；
+    code：代码正文，统一在此 esc。
+    产出 <div class="code"> 外壳，<pre><code> 的层级关系不变（<code> 仍在 <pre> 内）。
+    markdown.py 与 render.py 共用本函数，确保两个渲染器对同段代码逐字节一致。
+    """
+    code = esc(code)
+    label = ("" if lang is None else str(lang)).strip()
+    if label.lower().startswith("language-"):
+        label = label[len("language-"):].strip()
+    if not _LANG_RE.match(label):
+        label = "text"
+    cls = "language-" + label
+    return (
+        '<div class="code">\n'
+        '<div class="code-head"><span>%s</span>'
+        '<button class="copy" type="button" aria-label="复制代码">复制</button></div>\n'
+        '<pre><code class="%s">%s</code></pre>\n'
+        '</div>\n'
+    ) % (esc(label), esc(cls), code)
 
 
 def _unquote(arg):
@@ -24,6 +54,11 @@ def _unquote(arg):
 
 
 def _role(inner):
+    """inner 取自 apply_roles 传入的**已转义**文本，这里只管套标签。
+
+    不要再 esc() —— 那会把已经转义的 & 变成 &amp;amp;，
+    页面就会把 {math:a < b} 显示成字面量 "a &lt; b"、把带参数的链接写坏。
+    """
     if ":" not in inner:
         return None
     name, arg = inner.split(":", 1)
@@ -34,22 +69,22 @@ def _role(inner):
             target, text = arg.split("|", 1)
         else:
             target = text = arg
-        return '<a class="ref" href="#%s">%s</a>' % (esc(target.strip()), esc(text.strip()))
+        return '<a class="ref" href="#%s">%s</a>' % (target.strip(), text.strip())
     if name == "term":
-        return "<dfn>%s</dfn>" % esc(arg)
+        return "<dfn>%s</dfn>" % arg
     if name == "math":
-        return '<span class="math">\\(%s\\)</span>' % esc(arg)
+        return '<span class="math">\\(%s\\)</span>' % arg
     if name == "em":
-        return "<em>%s</em>" % esc(arg)
+        return "<em>%s</em>" % arg
     if name == "strong":
-        return "<strong>%s</strong>" % esc(arg)
+        return "<strong>%s</strong>" % arg
     if name == "link":
         if "|" in arg:
             url, text = arg.split("|", 1)
         else:
             url = text = arg
         return '<a href="%s" target="_blank" rel="nofollow noopener">%s</a>' % (
-            esc(url.strip()), esc(text.strip()))
+            url.strip(), text.strip())
     return None
 
 
@@ -156,7 +191,7 @@ def render(v, ctx=None, level=0):
     if t == "code":
         lang = v.get("lang") or v.get("language") or ""
         code = v.get("text") or v.get("code") or ""
-        return '<pre><code class="language-%s">%s</code></pre>\n' % (esc(lang), esc(code))
+        return code_block(lang, code)
 
     if t in ("ul", "ol"):
         items = _children(v) or []
@@ -221,6 +256,66 @@ def render(v, ctx=None, level=0):
         kids = _children(v)
         inner = render(kids, ctx, level) if kids is not None else "<p>%s</p>\n" % inline(_text_of(v))
         return '<aside class="admonition %s">%s</aside>\n' % (kind, inner)
+
+    if t == "panel":
+        title = _text_of(v)
+        kids = _children(v)
+        inner = render(kids, ctx, level) if kids is not None else ""
+        head = '<p class="panel-t">%s</p>\n' % inline(title) if title else ""
+        return '<aside class="panel">%s%s</aside>\n' % (head, inner)
+
+    if t == "steps":
+        items = _children(v) or []
+        lis = "".join("<li>%s</li>\n" % render(item, ctx, level) for item in items)
+        return "<ol class=\"steps\">\n%s</ol>\n" % lis
+
+    if t == "shot":
+        src = v.get("src") or v.get("url") or ""
+        alt = v.get("alt") or ""
+        cap = v.get("caption")
+        full = bool(v.get("full"))
+        img = '<img src="%s" alt="%s" loading="lazy">' % (esc(src), esc(alt))
+        open_tag = '<figure class="full">' if full else "<figure>"
+        if isinstance(cap, str) and cap:
+            result = "%s\n%s<figcaption>%s</figcaption>\n</figure>\n" % (open_tag, img, inline(cap))
+        else:
+            result = "%s\n%s\n</figure>\n" % (open_tag, img)
+        return result
+
+    if t == "gallery":
+        cols = v.get("cols") or "2"
+        items = _children(v) or []
+        figs = []
+        for item in items:
+            if isinstance(item, dict) and item.get("__type") == "img":
+                src = item.get("src") or item.get("url") or ""
+                alt = item.get("alt") or ""
+                cap = item.get("caption")
+                img = '<img src="%s" alt="%s" loading="lazy">' % (esc(src), esc(alt))
+                if isinstance(cap, str) and cap:
+                    figs.append('<figure>%s<figcaption>%s</figcaption></figure>\n' % (img, inline(cap)))
+                else:
+                    figs.append('<figure>%s</figure>\n' % img)
+        if not figs:
+            print("警告：gallery 没有可用图片，已跳过空图集", file=sys.stderr)
+            return ""
+        return '<div class="gallery cols-%s">\n%s</div>\n' % (esc(str(cols)), "".join(figs))
+
+    if t == "term":
+        kids = _children(v)
+        if kids is not None:
+            inner = render(kids, ctx, level)
+            # 去掉块级 <p> 包裹，用 <br> 连接各行，保持与 Markdown 一致
+            inner = re.sub(r"</?p>\s*", "", inner)
+            inner = inner.replace("\n", "<br>\n").strip()
+        else:
+            inner = esc(_text_of(v))
+        return '<div class="term">\n%s\n</div>\n' % inner
+
+    if t == "when":
+        text = _text_of(v)
+        date = v.get("date") or v.get("datetime") or ""
+        return '<li class="when">\n<span class="when-t">%s</span>\n%s\n</li>\n' % (inline(date), inline(text))
 
     kids = _children(v)
     if kids is not None:

@@ -10,6 +10,7 @@
 """
 
 import re
+import sys
 
 import render as R
 
@@ -116,7 +117,8 @@ def md_inline(s):
     def img(m):
         alt, src = m.group(1), m.group(2)
         cap = m.group(3)
-        tag = '<img src="%s" alt="%s" loading="lazy">' % (R.esc(src, ), alt)
+        # src/alt 都来自本函数开头已整体转义过的 s，这里再 esc 一次会把 & 变成 &amp;amp;
+        tag = '<img src="%s" alt="%s" loading="lazy">' % (src, alt)
         if cap:
             return '<figure>%s<figcaption>%s</figcaption></figure>' % (tag, cap)
         return tag
@@ -145,26 +147,36 @@ def _list_html(lines, ctx):
         return ""
 
     def build(idx, indent):
+        """返回 (若干 <li> 拼成的 html, 下一个待处理下标)。
+
+        早期版本返回的是 list 却按 str 使用：一层嵌套会把 Python 的
+        ['<li>…'] 直接打印到页面，缩进错位则抛 TypeError 崩掉构建。
+        子列表由本层补上 <ul>/<ol> 外壳，避免产出没有列表容器的裸 <li>。
+        """
         out = []
         while idx < len(items):
             ind, ordered, texts = items[idx]
             if ind < indent:
                 break
             if ind > indent:
+                child_tag = "ol" if ordered else "ul"
                 sub, idx = build(idx, ind)
                 if out:
-                    out[-1] = out[-1].replace("</li>\n", sub + "</li>\n")
+                    out[-1] = out[-1].replace(
+                        "</li>\n", "<%s>\n%s</%s>\n</li>\n" % (child_tag, sub, child_tag))
                 continue
             idx += 1
             nested = ""
             if idx < len(items) and items[idx][0] > indent:
-                nested, idx = build(idx, items[idx][0])
+                child_tag = "ol" if items[idx][1] else "ul"
+                sub, idx = build(idx, items[idx][0])
+                nested = "<%s>\n%s</%s>\n" % (child_tag, sub, child_tag)
             out.append("<li>%s%s</li>\n" % (md_inline(" ".join(texts)), nested))
-        return out, idx
+        return "".join(out), idx
 
     tag = "ol" if items[0][1] else "ul"
     body, _ = build(0, items[0][0])
-    return "<%s>\n%s</%s>\n" % (tag, "".join(body), tag)
+    return "<%s>\n%s</%s>\n" % (tag, body, tag)
 
 
 def render(text, ctx=None, level=1):
@@ -189,8 +201,7 @@ def render(text, ctx=None, level=1):
                 buf.append(lines[i])
                 i += 1
             i += 1
-            out.append('<pre><code class="language-%s">%s</code></pre>\n'
-                       % (R.esc(lang), R.esc("\n".join(buf))))
+            out.append(R.code_block(lang, "\n".join(buf)))
             continue
 
         m = re.match(r"^:::(note|tip|warn|warning)\s*(.*)$", line)
@@ -207,6 +218,117 @@ def render(text, ctx=None, level=1):
             head = '<p class="adm-title">%s</p>\n' % md_inline(title) if title else ""
             out.append('<aside class="admonition %s">%s%s</aside>\n' % (kind, head, inner))
             continue
+
+        m = re.match(r"^:::panel\s+(.+)$", line)
+        if m:
+            title = m.group(1).strip()
+            i += 1
+            buf = []
+            while i < n and not lines[i].strip().startswith(":::"):
+                buf.append(lines[i])
+                i += 1
+            i += 1
+            inner, _ = render("\n".join(buf), ctx, level)
+            head = '<p class="panel-t">%s</p>\n' % md_inline(title)
+            out.append('<aside class="panel">%s%s</aside>\n' % (head, inner))
+            continue
+
+        m = re.match(r"^:::steps\s*$", line)
+        if m:
+            i += 1
+            buf = []
+            while i < n and not lines[i].strip().startswith(":::"):
+                buf.append(lines[i])
+                i += 1
+            i += 1
+            # steps 内部直接解析为 <li>，外层 <ol class="steps">，不再套一层 <ol>/<ul>
+            items = []
+            for sl in buf:
+                s = sl.strip()
+                if not s:
+                    continue
+                mm = re.match(r"^(\d+[.)]|[-*+])\s+(.*)$", s)
+                text = mm.group(2) if mm else s
+                items.append("<li>%s</li>\n" % md_inline(text))
+            out.append('<ol class="steps">\n%s</ol>\n' % "".join(items))
+            continue
+
+        m = re.match(r"^:::(shot|gallery|term|when)\s*(.*)$", line)
+        if m:
+            block_type = m.group(1)
+            param = m.group(2).strip()
+            i += 1
+            buf = []
+            while i < n and not lines[i].strip().startswith(":::"):
+                buf.append(lines[i])
+                i += 1
+            i += 1
+
+            if block_type == "shot":
+                full = "full" in param
+                img_line = buf[0].strip() if buf else ""
+                img_match = re.match(r"^!\[([^\]]*)\]\(([^)\s]+)(?:\s+\"([^\"]*)\")?\)\s*$", img_line)
+                if img_match:
+                    alt, src, caption = img_match.groups()
+                    caption = caption or ""
+                    img = '<img src="%s" alt="%s" loading="lazy">' % (R.esc(src), R.esc(alt))
+                    open_tag = '<figure class="full">' if full else "<figure>"
+                    if caption:
+                        out.append("%s\n%s<figcaption>%s</figcaption>\n</figure>\n"
+                                   % (open_tag, img, md_inline(caption)))
+                    else:
+                        out.append("%s\n%s\n</figure>\n" % (open_tag, img))
+                else:
+                    # 非图片语法：降级为普通段落 + 告警；页面里不出现「错误：」文案
+                    print("警告：shot 块内容不是图片语法，已降级为普通段落：%r" % img_line,
+                          file=sys.stderr)
+                    inner, _ = render("\n".join(buf), ctx, level)
+                    out.append(inner)
+                continue
+
+            if block_type == "gallery":
+                cols = "1"
+                if re.match(r"^\d+$", param):
+                    cols = param
+                elif not param:
+                    cols = "2"
+                img_lines = [l.strip() for l in buf if l.strip()]
+                figs = []
+                for img_line in img_lines:
+                    img_match = re.match(r"^!\[([^\]]*)\]\(([^)\s]+)(?:\s+\"([^\"]*)\")?\)\s*$", img_line)
+                    if img_match:
+                        alt, src, caption = img_match.groups()
+                        caption = caption or ""
+                        img = '<img src="%s" alt="%s" loading="lazy">' % (R.esc(src), R.esc(alt))
+                        if caption:
+                            figs.append('<figure>%s<figcaption>%s</figcaption></figure>\n'
+                                        % (img, md_inline(caption)))
+                        else:
+                            figs.append('<figure>%s</figure>\n' % img)
+                    else:
+                        print("警告：gallery 跳过非图片行：%r" % img_line, file=sys.stderr)
+                if not figs:
+                    # 空图集：不输出空 div、不留垃圾，仅告警
+                    print("警告：gallery 没有可用图片，已跳过空图集", file=sys.stderr)
+                else:
+                    out.append('<div class="gallery cols-%s">\n%s</div>\n' % (cols, "".join(figs)))
+                continue
+
+            if block_type == "term":
+                # 逐行原样保留，用 <br> 连接；内部不得出现 <p>
+                inner = "<br>\n".join(R.esc(line) for line in buf)
+                out.append('<div class="term">\n%s\n</div>\n' % inner)
+                continue
+
+            if block_type == "when":
+                date_match = re.match(r"^(\d{4}-\d{2}-\d{2})\s+(.+)$", param)
+                if date_match:
+                    date = date_match.group(1)
+                    text = date_match.group(2)
+                    out.append('<li class="when">\n<span class="when-t">%s</span>\n%s\n</li>\n' % (md_inline(date), md_inline(text)))
+                else:
+                    out.append('<li class="when">\n%s\n</li>\n' % md_inline(param))
+                continue
 
         m = re.match(r"^(#{1,6})\s+(.*?)\s*#*\s*$", line)
         if m:
@@ -263,7 +385,7 @@ def render(text, ctx=None, level=1):
             while i < n and (lines[i].strip() == "" or re.match(r"^(\t| {4,})", lines[i])):
                 buf.append(lines[i][4:] if lines[i].startswith("    ") else lines[i].lstrip("\t"))
                 i += 1
-            out.append("<pre><code>%s</code></pre>\n" % R.esc("\n".join(buf).rstrip()))
+            out.append(R.code_block("", "\n".join(buf).rstrip()))
             continue
 
         buf = [line]

@@ -29,6 +29,24 @@ def need(cond, msg):
         fails.append(msg)
 
 
+# 合法生成的行内/块级标签，从标签内文本里剔除后再判断是否有「裸」< 或非法 &
+_BENIGN = re.compile(
+    r"</?(?:strong|em|code|span|a|b|i|u|del|s|dfn|sub|sup|kbd|mark|abbr|q|cite|small)\b[^>]*>"  # 行内标签
+    r"|</?figure>|</?figcaption>|<br\s*/?>|<img\b[^>]*>"  # 图片 / 换行
+    r"|<svg\b.*?</svg>|<!--.*?-->",                      # svg / 注释
+    re.I | re.S)
+
+
+def _unwanted_raw(text):
+    """标签内文本里是否存在未转义的裸 < 或非法 &（能真正失败，而非空操作）。"""
+    t = _BENIGN.sub("", text)
+    if "<" in t:
+        return True
+    if re.search(r"&(?!amp;|lt;|gt;|quot;|apos;|#\d+;|#x[0-9a-fA-F]+;)", t):
+        return True
+    return False
+
+
 need(DIST.exists(), "dist/ 不存在，先跑 tools/build.py")
 if not DIST.exists():
     print("\n".join(fails))
@@ -80,6 +98,19 @@ for p in m["posts"]:
     need("<script" not in body.lower(), "文章 %s 片段里出现了 script（投稿内容不应带脚本）" % p["slug"])
     need(not re.search(r"<p>[^<]*(^|\n)\s*#{1,6}\s", body), "文章 %s 疑似有未渲染的 Markdown 标题" % p["slug"])
     need(not re.search(r"<p>[^<]*\*\*", body), "文章 %s 疑似有未渲染的 Markdown 粗体" % p["slug"])
+    # 新增块：确保没有未转义的 HTML 特殊字符
+    # 检查每个段落、列表项、图注标签内的文本
+    for tag in ("p", "li", "figcaption"):
+        for text in re.findall(r'<%s>(.*?)</%s>' % (tag, tag), body, re.DOTALL):
+            if _unwanted_raw(text):
+                fails.append("文章 %s 在 <%s> 标签内发现未转义内容" % (p["slug"], tag))
+                break
+    # 防回归断言（缺陷 3 / 4）
+    need("错误：" not in body, "文章 %s 包含字面量错误：文案" % p["slug"])
+    for mg in re.finditer(r'<div class="gallery cols-[^"]*">(.*?)</div>', body, re.DOTALL):
+        need("<figure" in mg.group(1), "文章 %s 的 gallery 块缺少 <figure>" % p["slug"])
+    for mt in re.finditer(r'<div class="term">(.*?)</div>', body, re.DOTALL):
+        need("<p" not in mt.group(1), "文章 %s 在 term 块内发现 <p> 标签" % p["slug"])
     for toc in p["toc"]:
         need(('id="%s"' % toc["id"]) in body, "文章 %s 的章节锚点缺失：%s" % (p["slug"], toc["id"]))
 
@@ -95,6 +126,29 @@ for mem in m["members"]:
     src = (ROOT / mem["file"]).read_text(encoding="utf-8")
     if "&" in src and not mem["links"]:
         fails.append("成员 %s 的 links 为空：片段（&引用）可能没展开" % mem["id"])
+
+# 能力与合作黄页不变量：owner 必须存在；contact 只能引用该成员已公开的 links 字段；
+# 每条片段都要带免责声明（性质声明：本站只展示，不交易、不担保、不抽成、不经手资金、不介入纠纷）。
+member_ids = {x["id"] for x in m["members"]}
+for s in m.get("services", []):
+    need(s.get("name"), "黄页条目 %s 缺少 name" % s.get("id"))
+    need(s.get("owner"), "黄页条目 %s 必须有 owner（成员 id）" % s["id"])
+    need(s.get("owner") in member_ids,
+         "黄页条目 %s 的 owner `%s` 不在成员档案里（content/members/）" % (s["id"], s.get("owner")))
+    need(s.get("status") in ("active", "paused"), "黄页条目 %s 的 status 非法：%s" % (s["id"], s.get("status")))
+    need(s.get("contact"), "黄页条目 %s 缺少 contact" % s["id"])
+    need((DIST / s["html"]).exists(), "黄页片段缺失 %s" % s["html"])
+    need((DIST / s["map"]).exists(), "黄页导图缺失 %s" % s["map"])
+    body = (DIST / s["html"]).read_text(encoding="utf-8")
+    need("不参与交易" in body and "不担保" in body and "不抽成" in body
+         and "不经手资金" in body and "不介入纠纷" in body,
+         "黄页片段缺少免责声明（不交易/不担保/不抽成/不经手资金/不介入纠纷）%s" % s["id"])
+    need("<script" not in body.lower(), "黄页片段 %s 里出现了 script" % s["id"])
+    mem = next((x for x in m["members"] if x["id"] == s.get("owner")), None)
+    if mem:
+        for c in s.get("contact") or []:
+            need(c in (mem.get("links") or {}),
+                 "黄页条目 %s 的联系方式 `%s` 不是成员 %s 已公开的 links 字段" % (s["id"], c, mem["id"]))
 
 for d in m["pages"] + m["weekly"]:
     need((DIST / d["html"]).exists(), "片段缺失 %s" % d["html"])
@@ -113,10 +167,16 @@ if contracts_page:
     body = (DIST / contracts_page[0]["html"]).read_text(encoding="utf-8")
     need(body.count("<table>") >= 1, "契约文档页没有表格")
     need("E-CONTRACT" not in body, "契约文档页里出现了错误码字样（说明契约本身有问题）")
+    # 契约名是自由文本，会被拼进 id 属性与导图；这里把转义失效变成硬失败。
+    # 只查「有没有形成标签」：事件属性必须依附标签，所以标签检查已足够；
+    # 单查 on*= 会在正文合法提到 "onerror=" 这类字样时误报。
+    need(not re.search(r"<(script|img|svg|iframe|object|embed)\b", body, re.I),
+         "契约文档页出现裸标签（契约名未转义？）")
 
-print("文章 %d / 项目 %d / 成员 %d / 资源 %d / 周报 %d / 文档 %d"
+print("文章 %d / 项目 %d / 成员 %d / 资源 %d / 周报 %d / 文档 %d / 黄页 %d"
       % (len(m["posts"]), len(m["projects"]), len(m["members"]),
-         len(m["resources"]), len(m["weekly"]), len(m["pages"])))
+         len(m["resources"]), len(m["weekly"]), len(m["pages"]),
+         len(m.get("services", []))))
 if fails:
     print("失败 %d 项：" % len(fails))
     for f in fails:
