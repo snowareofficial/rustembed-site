@@ -177,6 +177,20 @@ print("文章 %d / 项目 %d / 成员 %d / 资源 %d / 周报 %d / 文档 %d / �
       % (len(m["posts"]), len(m["projects"]), len(m["members"]),
          len(m["resources"]), len(m["weekly"]), len(m["pages"]),
          len(m.get("services", []))))
+
+# 构建期产生的告警（gallery 形状非法等）持久化在 dist/build-warnings.json，
+# 这里复核并显式呈现：仅提示、不影响 ALL PASS（告警不阻断发布）。
+_warn_file = DIST / "build-warnings.json"
+if _warn_file.exists():
+    try:
+        _warns = json.loads(_warn_file.read_text(encoding="utf-8"))
+    except Exception:                       # noqa: BLE001
+        _warns = []
+    if _warns:
+        print("构建告警（%d 条，构建期产生，不阻断发布）：" % len(_warns))
+        for _w in _warns:
+            print("  [warn] %s" % _w)
+
 if fails:
     print("失败 %d 项：" % len(fails))
     for f in fails:

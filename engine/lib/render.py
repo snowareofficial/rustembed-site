@@ -136,6 +136,7 @@ class Ctx:
     def __init__(self):
         self.used = set()
         self.toc = []
+        self.warnings = []   # 渲染期告警（如 gallery 子块形状非法），由 build.py 抽走登记
 
 
 def _text_of(v):
@@ -152,6 +153,39 @@ def _children(v):
         if c is not None:
             return c
     return None
+
+
+def _term_inner(v, ctx, level):
+    """term 块内部文本：逐行保留，行间用 <br>\\n 连接（与 Markdown 完全一致）。
+
+    两种写法都必须逐行保留换行，不允许出现 line1line2 这种行被吞掉的结果：
+      - text 字段：按 \\n 拆行，逐行 esc 后 <br>\\n 连接；
+      - children 子块：每个子块取纯文本（str 直接 esc、dict 优先取 text 字段，
+        否则渲染后去掉外层 <p> 包裹），逐行 <br>\\n 连接。
+    与 Markdown 的 :::term 一样不做内联角色替换（仅 esc），保证两端逐字节相等。
+    """
+    kids = _children(v)
+    if kids is not None:
+        if not isinstance(kids, list):
+            kids = [kids]
+        lines = []
+        for child in kids:
+            if isinstance(child, str):
+                lines.append(esc(child))
+            elif isinstance(child, dict):
+                t = child.get("text")
+                if isinstance(t, str):
+                    lines.extend(esc(line) for line in t.split("\n"))
+                else:
+                    html = render(child, ctx, level)
+                    m = re.match(r"^<p>(.*)</p>\n?$", html, re.S)
+                    lines.append(m.group(1) if m else html.rstrip("\n"))
+            else:
+                lines.append(esc(str(child)))
+        inner = "<br>\n".join(lines)
+    else:
+        inner = "<br>\n".join(esc(line) for line in _text_of(v).split("\n"))
+    return inner
 
 
 def render(v, ctx=None, level=0):
@@ -266,7 +300,8 @@ def render(v, ctx=None, level=0):
 
     if t == "steps":
         items = _children(v) or []
-        lis = "".join("<li>%s</li>\n" % render(item, ctx, level) for item in items)
+        # 每个 <li> 内不得套 <p>（复用 _li，与 Markdown 的 :::steps 一致）
+        lis = "".join("<li>%s</li>\n" % _li(item, ctx, level) for item in items)
         return "<ol class=\"steps\">\n%s</ol>\n" % lis
 
     if t == "shot":
@@ -296,25 +331,37 @@ def render(v, ctx=None, level=0):
                     figs.append('<figure>%s<figcaption>%s</figcaption></figure>\n' % (img, inline(cap)))
                 else:
                     figs.append('<figure>%s</figure>\n' % img)
+            else:
+                # 形状不对（例如裸 {src: …}）：登记告警并跳过该子块，不静默丢弃
+                msg = "gallery 子块不是 img 形状，已跳过：%r" % (item,)
+                if ctx is not None and hasattr(ctx, "warnings"):
+                    ctx.warnings.append(msg)
+                else:
+                    print("警告：" + msg, file=sys.stderr)
         if not figs:
-            print("警告：gallery 没有可用图片，已跳过空图集", file=sys.stderr)
+            msg = "gallery 没有可用图片，已跳过空图集"
+            if ctx is not None and hasattr(ctx, "warnings"):
+                ctx.warnings.append(msg)
+            else:
+                print("警告：" + msg, file=sys.stderr)
             return ""
         return '<div class="gallery cols-%s">\n%s</div>\n' % (esc(str(cols)), "".join(figs))
 
     if t == "term":
-        kids = _children(v)
-        if kids is not None:
-            inner = render(kids, ctx, level)
-            # 去掉块级 <p> 包裹，用 <br> 连接各行，保持与 Markdown 一致
-            inner = re.sub(r"</?p>\s*", "", inner)
-            inner = inner.replace("\n", "<br>\n").strip()
-        else:
-            inner = esc(_text_of(v))
-        return '<div class="term">\n%s\n</div>\n' % inner
+        return '<div class="term">\n%s\n</div>\n' % _term_inner(v, ctx, level)
 
     if t == "when":
-        text = _text_of(v)
         date = v.get("date") or v.get("datetime") or ""
+        kids = _children(v)
+        if kids is not None:
+            text = render(kids, ctx, level).strip()
+            m = re.match(r"^<p>(.*)</p>$", text, re.S)
+            text = m.group(1) if m else text
+        else:
+            # 事件正文的唯一来源：优先取 text 字段，缺失时回退 _text_of
+            text = v.get("text")
+            if not isinstance(text, str) or not text:
+                text = _text_of(v)
         return '<li class="when">\n<span class="when-t">%s</span>\n%s\n</li>\n' % (inline(date), inline(text))
 
     kids = _children(v)

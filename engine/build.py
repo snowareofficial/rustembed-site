@@ -206,13 +206,23 @@ def docs_in(directory, pattern="*"):
     return out
 
 
-def render_body(d, ctx, level=1):
-    """SML body / Markdown body 统一出口，返回 (html, toc)。"""
+def render_body(d, ctx, level=1, rep=None, where=""):
+    """SML body / Markdown body 统一出口，返回 (html, toc)。
+
+    渲染期产生的告警（如 gallery 子块形状非法）收集在 ctx.warnings，
+    若传入 rep/where 则登记进构建报告；仅告警、不阻断构建。
+    """
     body = d.get("__md_body")
     if body is not None:
-        return md.render(body, ctx, level)
-    html = render.render(pick(d, ["body", "children"], []), ctx, level)
-    return html, ctx.toc
+        html, toc = md.render(body, ctx, level)
+    else:
+        html = render.render(pick(d, ["body", "children"], []), ctx, level)
+        toc = ctx.toc
+    if rep is not None and where:
+        for w in getattr(ctx, "warnings", []):
+            rep.warn(where, w)
+        ctx.warnings = []
+    return html, toc
 
 
 def as_list(v):
@@ -246,7 +256,7 @@ def build_posts(rep, cache, offline):
         date = sml.as_str(d.get("date")).strip()
         ctx = render.Ctx()
         video_html = render.video_embed(sml.as_str(d.get("video", "")))
-        html_body, toc = render_body(d, ctx, 1)
+        html_body, toc = render_body(d, ctx, 1, rep, where)
         if video_html:
             html_body = video_html + html_body
         for m in re.finditer(r'src="(assets/[^"]+)"', html_body):
@@ -441,7 +451,7 @@ def build_topics(rep):
         if not apply_contract(rep, where, d, "topic"):
             check_req(rep, "topic", where, d)
         ctx = render.Ctx()
-        html_body, toc = render_body(d, ctx, 1)
+        html_body, toc = render_body(d, ctx, 1, rep, where)
         out.append({
             "id": f.stem,
             "title": sml.as_str(d.get("title")),
@@ -474,7 +484,7 @@ def build_services(rep, members):
         if not apply_contract(rep, where, d, "service"):
             check_req(rep, "service", where, d)
         ctx = render.Ctx()
-        html_body, toc = render_body(d, ctx, 1)
+        html_body, toc = render_body(d, ctx, 1, rep, where)
         owner = sml.as_str(d.get("owner", "")).strip()
         mem = by_id.get(owner)
         if not owner:
@@ -893,7 +903,8 @@ def main():
         (out / p["html"]).write_text(p["_html"] or "<p>（空）</p>", encoding="utf-8")
         (out / p["map"]).write_text(p["_map"], encoding="utf-8")
     for base, d, ctx, f in weekly_raw + pages_raw:
-        html_body, toc = render_body(d, ctx, 1)
+        where = f.relative_to(ROOT).as_posix()
+        html_body, toc = render_body(d, ctx, 1, rep, where)
         (out / base["html"]).parent.mkdir(parents=True, exist_ok=True)
         (out / base["html"]).write_text(html_body or "<p>（空）</p>", encoding="utf-8")
         base["toc"] = toc
@@ -1181,6 +1192,14 @@ def main():
         print("  [warn] %s" % w)
     for e in rep.errors:
         print("  [error] %s" % e)
+    # 持久化构建告警，供 check.py 复核（仅告警、不影响产物与退出码）
+    try:
+        import json as _json
+        (_warn_file) = out / "build-warnings.json"
+        _warn_file.write_text(_json.dumps(rep.warnings, ensure_ascii=False, indent=1),
+                              encoding="utf-8")
+    except Exception:                       # noqa: BLE001 —— 写告警文件失败不阻断构建
+        pass
     if rep.errors and not args.warn_only:
         print("构建失败：%d 个错误" % len(rep.errors))
         return 1

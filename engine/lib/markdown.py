@@ -321,13 +321,23 @@ def render(text, ctx=None, level=1):
                 continue
 
             if block_type == "when":
-                date_match = re.match(r"^(\d{4}-\d{2}-\d{2})\s+(.+)$", param)
+                param_s = param.strip()
+                date_match = re.match(r"^(\d{4}-\d{2}-\d{2})\s+(.+)$", param_s)
                 if date_match:
                     date = date_match.group(1)
-                    text = date_match.group(2)
-                    out.append('<li class="when">\n<span class="when-t">%s</span>\n%s\n</li>\n' % (md_inline(date), md_inline(text)))
+                    text = date_match.group(2).strip()
+                elif re.match(r"^\d{4}-\d{2}-\d{2}$", param_s):
+                    date = param_s
+                    # 围栏头只有日期：事件正文取围栏头之后的正文（与 SML 的 text 字段对齐）
+                    text = "\n".join(l.rstrip() for l in buf if l.strip())
                 else:
-                    out.append('<li class="when">\n%s\n</li>\n' % md_inline(param))
+                    date = ""
+                    text = param_s
+                if date:
+                    out.append('<li class="when">\n<span class="when-t">%s</span>\n%s\n</li>\n'
+                               % (md_inline(date), md_inline(text)))
+                else:
+                    out.append('<li class="when">\n%s\n</li>\n' % md_inline(text))
                 continue
 
         m = re.match(r"^(#{1,6})\s+(.*?)\s*#*\s*$", line)
