@@ -288,6 +288,64 @@ function postCard(p) {
   return c;
 }
 
+/* ---------- 成员 / 黄页 共用的零件 ---------- */
+function statRow(items) {
+  const row = el('div', 'stat-row');
+  items.forEach(it => {
+    if (it[0] === null || it[0] === undefined || it[0] === '') return;
+    const s = el('div', 'stat');
+    s.appendChild(el('b', '', String(it[0])));
+    s.appendChild(el('span', '', it[1]));
+    row.appendChild(s);
+  });
+  return row;
+}
+
+/* 贡献计数：文章（作者或合著）+ 项目（owner 或贡献者） */
+function contributions(id) {
+  const m = M.manifest;
+  return {
+    posts: (m.posts || []).filter(p => p.author === id || (p.co_authors || []).indexOf(id) >= 0).length,
+    projects: (m.projects || []).filter(p => p.owner === id || (p.contributors || []).indexOf(id) >= 0).length,
+  };
+}
+
+function contactTags(mem, keys, cls) {
+  const box = el('div', cls || 'tags');
+  (keys || []).forEach(k => {
+    const url = (mem.links || {})[k];
+    if (!url) return;
+    const a = link(url, CONTACT_LABEL[k] || k, 'tag');
+    if (k !== 'email') { a.target = '_blank'; a.rel = 'noopener'; }
+    box.appendChild(a);
+  });
+  return box;
+}
+
+function memberCard(x) {
+  const c = el('article', 'person');
+  c.appendChild(avatarImg(x, 'avatar'));
+  const box = el('div');
+  const h = el('div', 'row');
+  h.appendChild(link('#/member/' + x.id, x.name, 'p-name'));
+  if (x.role) h.appendChild(el('span', 'badge', x.role));
+  box.appendChild(h);
+  if (x.signature) box.appendChild(el('p', 'p-sig', x.signature));
+  if (x.skills && x.skills.length) {
+    const st = el('div', 'skills');
+    x.skills.forEach(k => st.appendChild(el('span', 'skill', k)));
+    box.appendChild(st);
+  }
+  const n = contributions(x.id);
+  const meta = el('div', 'meta');
+  if (n.posts) meta.appendChild(el('span', '', '文章 ' + n.posts));
+  if (n.projects) meta.appendChild(el('span', '', '项目 ' + n.projects));
+  if (x.joined) meta.appendChild(el('span', '', '加入 ' + x.joined));
+  box.appendChild(meta);
+  c.appendChild(box);
+  return c;
+}
+
 /* ---------- 项目：把「它还活着吗」变成可比较的图形 ---------- */
 const LANG_COLORS = ['#a8471f', '#2f6b4f', '#8a5a12', '#4a4a7a', '#7a4a6a', '#5d564d'];
 
@@ -426,28 +484,50 @@ function serviceDisclaimer() {
   return box;
 }
 
+/* 黄页条目：固定三段式（能做什么 / 想找什么 / 怎么联系），状态用最左边框表达 */
 function serviceCard(s) {
   const m = M.manifest;
-  const c = el('article', 'card');
+  const mem = (m.members || []).find(x => x.id === s.owner);
+  const c = el('article', 'service' + (s.status === 'active' ? ' has-side' : ' is-paused'));
+  const left = el('div');
   const h = el('div', 'row');
   h.appendChild(link('#/service/' + s.id, s.name, 'card-title'));
   h.appendChild(el('span', 'badge', s.status === 'active' ? '可接洽' : '暂停'));
-  c.appendChild(h);
-  const mem = m.members.find(x => x.id === s.owner);
-  const meta = el('div', 'meta');
-  meta.appendChild(mem ? link('#/member/' + mem.id, mem.name) : el('span', '', s.owner));
-  if (s.updated) meta.appendChild(el('span', '', '更新 ' + s.updated));
-  if (s.rate) meta.appendChild(el('span', '', s.rate));
-  c.appendChild(meta);
+  left.appendChild(h);
+  const who = el('p', 'who');
+  who.appendChild(el('span', '', '登记人 '));
+  who.appendChild(mem ? link('#/member/' + mem.id, mem.name) : el('span', '', s.owner));
+  if (s.updated) who.appendChild(el('span', '', ' · 更新于 ' + s.updated));
+  left.appendChild(who);
   if (s.skills && s.skills.length) {
-    const st = el('div', 'tags');
-    s.skills.forEach(k => st.appendChild(el('span', 'tag', k)));
-    c.appendChild(st);
+    const st = el('div', 'skills');
+    s.skills.forEach(k => st.appendChild(el('span', 'skill', k)));
+    left.appendChild(st);
   }
-  if (s.wants && s.wants.length) c.appendChild(el('p', 'muted', '想找：' + s.wants.join('、')));
+  if (s.wants && s.wants.length) {
+    const w = el('p', 'offer');
+    w.appendChild(el('b', '', '想找：'));
+    w.appendChild(el('span', '', s.wants.join('、')));
+    left.appendChild(w);
+  }
+  c.appendChild(left);
+
+  const side = el('div', 'side');
+  const dl = el('dl', 'kv');
+  if (s.rate) {
+    dl.appendChild(el('dt', '', '费用 / 方式'));
+    dl.appendChild(el('dd', '', s.rate));
+  }
+  dl.appendChild(el('dt', '', '结算'));
+  dl.appendChild(el('dd', '', '站外自行约定（本站不经手）'));
+  side.appendChild(dl);
+  if (mem && s.contact && s.contact.length) {
+    side.appendChild(el('div', 'contact-h', '联系方式'));
+    side.appendChild(contactTags(mem, s.contact, 'contact'));
+  }
+  c.appendChild(side);
   return c;
 }
-
 /* ---------- 视图 ---------- */
 async function viewLibrary() {
   const m = M.manifest;
@@ -830,10 +910,10 @@ async function viewMembers() {
   q.type = 'search';
   q.placeholder = '按昵称 / 签名 / 技能筛选…';
   q.value = state.memberQ || '';
-  q.oninput = () => { state.memberQ = q.value; renderList(); };
   main.appendChild(q);
 
-  const g = el('div', 'cards');
+  const g = el('div', 'members');
+  g.style.marginTop = 'var(--sp-5)';
   main.appendChild(g);
 
   function renderList() {
@@ -843,37 +923,10 @@ async function viewMembers() {
       || x.name.toLowerCase().includes(s)
       || (x.signature || '').toLowerCase().includes(s)
       || (x.skills || []).join(' ').toLowerCase().includes(s));
-    list.forEach(x => {
-      const c = el('article', 'card member');
-      const h = el('div', 'row');
-      h.appendChild(avatarImg(x, 'avatar'));
-      h.appendChild(link('#/member/' + x.id, x.name, 'card-title'));
-      if (x.role) h.appendChild(el('span', 'badge', x.role));
-      c.appendChild(h);
-      if (x.signature) c.appendChild(el('p', 'muted', x.signature));
-      if (x.skills && x.skills.length) {
-        const st = el('div', 'tags');
-        x.skills.forEach(k => st.appendChild(el('span', 'tag', k)));
-        c.appendChild(st);
-      }
-      const meta = el('div', 'meta');
-      const np = m.posts.filter(p => p.author === x.id || p.co_authors.includes(x.id)).length;
-      const npr = m.projects.filter(p => p.owner === x.id || p.contributors.includes(x.id)).length;
-      if (np) meta.appendChild(el('span', '', '文章 ' + np));
-      if (npr) meta.appendChild(el('span', '', '项目 ' + npr));
-      if (x.joined) meta.appendChild(el('span', '', '加入 ' + x.joined));
-      Object.keys(x.links || {}).forEach(k => {
-        const a = link(x.links[k], CONTACT_LABEL[k] || k, 'tag');
-        a.target = '_blank';
-        a.rel = 'noopener';
-        meta.appendChild(a);
-      });
-      c.appendChild(meta);
-      c.appendChild(link('#/member/' + x.id, '查看个人主页 →', 'leaf sec'));
-      g.appendChild(c);
-    });
+    list.forEach(x => g.appendChild(memberCard(x)));
     if (!list.length) g.appendChild(el('p', 'muted', '没有匹配的成员。'));
   }
+  q.oninput = () => { state.memberQ = q.value; renderList(); };
   renderList();
 }
 
@@ -884,33 +937,86 @@ async function viewMember(id) {
   main.textContent = '';
   if (!x) { main.appendChild(el('p', 'muted', '成员不存在。')); return; }
   document.title = x.name + ' · ' + m.site.title;
-  const c = el('article', 'post');
-  const head = el('div', 'row');
-  head.appendChild(avatarImg(x, 'avatar big'));
-  head.appendChild(el('h1', '', x.name));
-  if (x.role) head.appendChild(el('span', 'badge', x.role));
-  c.appendChild(head);
-  if (x.signature) c.appendChild(el('p', 'lead', x.signature));
-  const links = el('div', 'tags');
-  Object.keys(x.links || {}).forEach(k => {
-    const a = link(x.links[k], CONTACT_LABEL[k] || k, 'tag');
-    if (k !== 'email') { a.target = '_blank'; a.rel = 'noopener'; }
-    links.appendChild(a);
-  });
-  c.appendChild(links);
-  if (x.joined) c.appendChild(el('p', 'muted', '加入时间：' + x.joined));
 
-  const posts = m.posts.filter(p => p.author === id || p.co_authors.includes(id));
+  const crumb = el('nav', 'breadcrumb');
+  crumb.setAttribute('aria-label', '面包屑');
+  crumb.appendChild(link('#/members', '成员'));
+  crumb.appendChild(el('span', '', ' / '));
+  crumb.appendChild(el('span', '', x.name));
+  main.appendChild(crumb);
+
+  const n = contributions(id);
+  const hero = el('div', 'member-hero');
+  hero.appendChild(avatarImg(x, 'avatar'));
+  const who = el('div');
+  const h = el('div', 'row');
+  h.appendChild(el('h1', '', x.name));
+  if (x.role) h.appendChild(el('span', 'badge', x.role));
+  who.appendChild(h);
+  if (x.signature) who.appendChild(el('p', 'p-sig', x.signature));
+  if (x.skills && x.skills.length) {
+    const st = el('div', 'skills');
+    st.style.marginTop = '8px';
+    x.skills.forEach(k => st.appendChild(el('span', 'skill', k)));
+    who.appendChild(st);
+  }
+  hero.appendChild(who);
+  const counts = statRow([[n.posts, '文章'], [n.projects, '项目'], [x.joined, '加入']]);
+  counts.className = 'counts';
+  hero.appendChild(counts);
+  main.appendChild(hero);
+
+  const posts = (m.posts || []).filter(p => p.author === id || (p.co_authors || []).indexOf(id) >= 0);
   if (posts.length) {
-    c.appendChild(el('h2', '', '文章'));
-    posts.forEach(p => c.appendChild(link('#/post/' + p.slug, p.title + '（' + p.date + '）', 'tag')));
+    main.appendChild(el('h2', 'section-h', '文章（' + posts.length + '）'));
+    const box = el('div', 'service-list');
+    posts.forEach(p => {
+      const row = el('article', 'card');
+      row.style.padding = 'var(--sp-3) var(--sp-4)';
+      const line = el('div', 'row');
+      line.appendChild(link('#/post/' + p.slug, p.title, 'card-title'));
+      line.appendChild(el('span', 'muted', p.date + ' · ' + (p.words || 0) + ' 字'));
+      row.appendChild(line);
+      box.appendChild(row);
+    });
+    main.appendChild(box);
   }
-  const projs = m.projects.filter(p => p.owner === id || p.contributors.includes(id));
+
+  const projs = (m.projects || []).filter(p => p.owner === id || (p.contributors || []).indexOf(id) >= 0);
   if (projs.length) {
-    c.appendChild(el('h2', '', '参与项目'));
-    projs.forEach(p => c.appendChild(link(p.repo || '#/projects', p.name, 'tag')));
+    main.appendChild(el('h2', 'section-h', '参与项目（' + projs.length + '）'));
+    const box = el('div', 'cards');
+    projs.forEach(p => {
+      const a = el('a', 'scenario');
+      a.href = '#/project/' + p.id;
+      const role = p.owner === id ? '维护者' : '贡献者';
+      a.appendChild(el('span', 'k', role));
+      a.appendChild(el('b', '', p.name));
+      a.appendChild(el('span', '', p.one_liner || ''));
+      box.appendChild(a);
+    });
+    main.appendChild(box);
   }
-  main.appendChild(c);
+
+  const svcs = (m.services || []).filter(s => s.owner === id);
+  if (svcs.length) {
+    main.appendChild(el('h2', 'section-h', '黄页条目（' + svcs.length + '）'));
+    const box = el('div', 'service-list');
+    svcs.forEach(s => box.appendChild(serviceCard(s)));
+    main.appendChild(box);
+  }
+
+  const linkKeys = Object.keys(x.links || {});
+  main.appendChild(el('h2', 'section-h', '联系方式'));
+  if (linkKeys.length) {
+    main.appendChild(el('p', 'muted',
+      '以下字段由本人提供并授权展示；不想公开时删掉档案里的对应行即可。'));
+    main.appendChild(contactTags(x, linkKeys, 'tags'));
+  } else {
+    main.appendChild(el('p', 'muted', '这位成员没有公开联系方式（档案里 links 为空，或全部设为不公开）。'));
+  }
+
+  sidebar(['members'], null);
 }
 
 async function viewServices() {
@@ -945,7 +1051,8 @@ async function viewServices() {
   q.oninput = () => { state.svcQ = q.value; renderList(); };
   main.appendChild(q);
 
-  const g = el('div', 'cards');
+  const g = el('div', 'service-list');
+  g.style.marginTop = 'var(--sp-4)';
   main.appendChild(g);
 
   function renderList() {
@@ -972,47 +1079,73 @@ async function viewService(id, anchor) {
   const s = (m.services || []).find(v => v.id === id);
   if (!s) { main.appendChild(el('p', 'muted', '条目不存在。')); return; }
   document.title = s.name + ' · ' + m.site.title;
-  main.appendChild(el('p', 'muted', '能力与合作 / 黄页'));
+
+  const crumb = el('nav', 'breadcrumb');
+  crumb.setAttribute('aria-label', '面包屑');
+  crumb.appendChild(link('#/services', '能力与合作'));
+  crumb.appendChild(el('span', '', ' / '));
+  crumb.appendChild(el('span', '', s.name));
+  main.appendChild(crumb);
+
   const c = el('article', 'post');
   const head = el('div', 'row');
   head.appendChild(el('h1', '', s.name));
   head.appendChild(el('span', 'badge', s.status === 'active' ? '可接洽' : '暂停'));
   c.appendChild(head);
 
-  const mem = m.members.find(x => x.id === s.owner);
+  const mem = (m.members || []).find(x => x.id === s.owner);
   if (mem) {
     const who = el('div', 'row');
     who.appendChild(avatarImg(mem, 'avatar'));
     who.appendChild(link('#/member/' + mem.id, mem.name, 'tag'));
     if (mem.role) who.appendChild(el('span', 'badge', mem.role));
+    if (s.updated) who.appendChild(el('span', 'muted', '更新于 ' + s.updated));
     c.appendChild(who);
   }
 
-  const tags = el('div', 'tags');
-  (s.skills || []).forEach(x => tags.appendChild(el('span', 'tag', x)));
-  c.appendChild(tags);
-  if (s.wants && s.wants.length) c.appendChild(el('p', 'lead', '想找：' + s.wants.join('、')));
-  if (s.rate) c.appendChild(el('p', 'muted', '费用 / 方式：' + s.rate));
-
-  if (mem && s.contact && s.contact.length) {
-    const box = el('div', 'tags');
-    s.contact.forEach(k => {
-      const url = (mem.links || {})[k];
-      if (!url) return;
-      const a = link(url, CONTACT_LABEL[k] || k, 'tag');
-      if (k !== 'email') { a.target = '_blank'; a.rel = 'noopener'; }
-      box.appendChild(a);
-    });
-    if (box.childNodes.length) {
-      c.appendChild(el('h2', '', '联系方式（成员本人公开档案里的字段）'));
-      c.appendChild(box);
-    }
+  if (s.skills && s.skills.length) {
+    const tags = el('div', 'tags');
+    s.skills.forEach(x => tags.appendChild(el('span', 'tag', x)));
+    c.appendChild(tags);
   }
-  if (s.updated) c.appendChild(el('p', 'muted', '更新于 ' + s.updated));
+
+  /* 三段式：能做什么（正文）→ 想找什么 → 怎么联系 */
+  if (s.wants && s.wants.length) {
+    const w = el('p', 'lede');
+    w.appendChild(el('b', '', '想找：'));
+    w.appendChild(el('span', '', s.wants.join('、')));
+    c.appendChild(w);
+  }
 
   const body = el('div', 'body');
   body.innerHTML = await fragment(s.html);
   c.appendChild(body);
+
+  const side = el('div', 'panel');
+  side.appendChild(el('h2', '', '怎么联系'));
+  const dl = el('dl', 'kv');
+  dl.appendChild(el('dt', '', '登记人'));
+  const ddOwner = el('dd');
+  ddOwner.appendChild(mem ? link('#/member/' + mem.id, mem.name) : el('span', '', s.owner));
+  dl.appendChild(ddOwner);
+  if (s.rate) {
+    dl.appendChild(el('dt', '', '费用 / 方式'));
+    dl.appendChild(el('dd', '', s.rate));
+  }
+  dl.appendChild(el('dt', '', '结算'));
+  dl.appendChild(el('dd', '', '站外自行约定（本站不经手资金）'));
+  side.appendChild(dl);
+  if (mem && s.contact && s.contact.length) {
+    const contact = contactTags(mem, s.contact, 'contact');
+    if (contact.children.length) {
+      side.appendChild(el('h2', '', '联系方式'));
+      side.appendChild(el('p', 'muted', '仅引用成员本人公开档案里的字段。'));
+      side.appendChild(contact);
+    }
+  }
+  c.appendChild(side);
+
+  c.appendChild(serviceDisclaimer());
 
   const pol = (m.pages || []).find(v => v.id === 'yellow-pages');
   if (pol) c.appendChild(link('#/page/yellow-pages', '收录标准、审核与申诉 →', 'leaf sec'));
