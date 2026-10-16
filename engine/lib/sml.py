@@ -1,7 +1,30 @@
-"""SML 子集解析器（rec-blog 专用）。
+"""SML 子集解析器（rec-blog 专用）；下方另有原生后端说明。
 
 支持：# / -- / // 行注释、/* */ 与 _* *_ 块注释、引号串（\\n \\t \\u{} 等转义）、
 裸词、int/float/bool/null、对象块、数组、裸块（`name arg { }`）、同名键合并为数组。
+
+SML 解析器：原生后端（优先）+ 内置子集（兜底）。
+
+两个后端对本站内容产出**同一数据模型**，渲染 / 契约 / 导图层无感：
+
+  - 裸块 `topic 标题 { }` → {__type: "topic", __name: "标题", __args?: [...]}
+  - 同名键重复出现 → 合并为数组，保持书写顺序
+  - 片段 `@frag { }` 定义、`&frag` 值引用展开
+  - `@contract` / `@is` 由 rec-blog 侧契约引擎处理（解析前剥离，见 _strip_directives）
+
+后端选择（默认 auto）：
+
+  - **native**：swsml 的 Python 绑定（`_swsml.py`，ctypes → Rust cdylib），
+    完整 SML v4 能力 —— include / $env / @when / @for / 顶层数组、
+    富错误（行号 + 列号 + 稳定错误码）。库发现顺序：
+    `$SML_LIB` / `$REC_BLOG_SML_LIB` → `engine/native/` → 同级 sml checkout
+    （含 cargo `target-dir` 重定向）→ PATH。找不到就自动退到 builtin，
+    CI 不装 Rust 也能构建。
+  - **builtin**：纯 Python 子集解析器，零第三方依赖。
+
+特性开关：环境变量 `REC_BLOG_SML_FEATURES`（逗号/空格分隔，默认
+`bareword-string,include,fragment`；`all` 全开）。未知特性名直接报错，
+避免打字错误静默失效。`$env` 默认关闭 —— 它会把环境变量内联进产物。
 
 约定（与本项目内容格式绑定）：
   - 裸词遇空白或 `} ] , {` 结束；含空格的文本必须加引号。
@@ -10,6 +33,7 @@
 """
 
 import copy
+import os
 import re
 
 _WS = " \t\r\n"
@@ -301,8 +325,340 @@ def _expand(node, frags):
     return node
 
 
+# ---------------------------------------------------------------------------
+# 原生后端：swsml Python 绑定（engine/lib/_swsml.py，ctypes → Rust cdylib）
+# ---------------------------------------------------------------------------
+
+# 特性位（与 swsml c/sml_rs.h 逐位一致，v4 全集）。
+_FEATURE_BITS = {
+    "bareword-string": 1 << 0,
+    "include": 1 << 1,
+    "env": 1 << 2,
+    "contract": 1 << 3,
+    "fragment": 1 << 4,
+    "top-level-array": 1 << 5,
+    "namespace": 1 << 6,
+    "implicit-ns": 1 << 7,
+    "multi-include": 1 << 8,
+    "glob-include": 1 << 9,
+    "regex-include": 1 << 10,
+    "ext-rewrite": 1 << 11,
+    "when": 1 << 12,
+    "for": 1 << 13,
+    "typed-block": 1 << 14,
+    "case-insensitive": 1 << 15,
+    "block-name": 1 << 16,
+}
+
+# 默认开启 = 上游基线（SML_F_BASIC：裸词 / include / 片段）。
+# 其余（env / when / for / 顶层数组 / 命名空间与 glob include …）按需用
+# REC_BLOG_SML_FEATURES 开。$env 默认必须关：会把环境变量内联进公开产物。
+_DEFAULT_FEATURES = ("bareword-string", "include", "fragment")
+
+_LIB_NAMES = (["sml.dll", "libsml.dll"] if os.name == "nt"
+              else ["libsml.so", "libsml.dylib", "sml"])
+
+# @contract / @is：后面必须跟 空白/冒号/引号/{/行尾，防误伤 @island、@contractor
+_DIRECTIVE_RE = re.compile(r"@(contract|is)(?=[\s:\"'{]|$)")
+
+_native_cache = None      # None=未探测；False=不可用；module=可用
+_FLAGS = None             # 特性位缓存（None=未计算）
+_BACKEND = "auto"         # auto | native | builtin（测试用 set_backend）
+
+
+def _cargo_target_dirs(project):
+    """cargo 可能把 target-dir 重定向到别处（`.cargo/config.toml` 的
+    `[build] target-dir`）。零依赖正则解析；相对路径按 project 解析。"""
+    dirs = []
+    home = os.path.expanduser(os.path.join("~", ".cargo"))
+    cfgs = [os.path.join(project, ".cargo", "config.toml"),
+            os.path.join(project, ".cargo", "config"),
+            os.path.join(home, "config.toml"),
+            os.path.join(home, "config")]
+    for cfg in cfgs:
+        try:
+            with open(cfg, "r", encoding="utf-8") as fh:
+                m = re.search(r'^\s*target-dir\s*=\s*"([^"]+)"', fh.read(), re.M)
+        except OSError:
+            continue
+        if not m:
+            continue
+        d = os.path.expanduser(os.path.expandvars(m.group(1)))
+        if not os.path.isabs(d):
+            d = os.path.join(project, d)
+        dirs.append(d)
+    return dirs
+
+
+def _candidate_libs():
+    """原生库候选（全路径或目录），按优先级返回。"""
+    here = os.path.dirname(os.path.abspath(__file__))     # engine/lib
+    engine = os.path.dirname(here)                        # engine
+    repo = os.path.dirname(engine)                        # 仓库根
+    out = []
+    for env in ("SML_LIB", "REC_BLOG_SML_LIB"):
+        v = os.environ.get(env)
+        if v:
+            out.append(v)
+    native_dir = os.path.join(engine, "native")           # 自带库放 engine/native/
+    # 目录候选必须展开成具体文件名：_native_mod() 用 os.path.isfile() 过滤，
+    # 只给目录会被整条跳过（曾导致「按文档把库放进 engine/native/」却仍走 builtin）。
+    for name in _LIB_NAMES:
+        out.append(os.path.join(native_dir, name))
+    out.append(native_dir)
+    sibling = os.path.join(repo, os.pardir, "sml")        # 本机开发布局：../sml
+    dirs = [os.path.join(sibling, "rust", "target", "release"),
+            os.path.join(sibling, "target", "release")]
+    # cargo 的 target-dir 重定向指向 <dir>，release 产物实际在 <dir>/release/ 下；
+    # 两种都放进来，免得有人把 target-dir 直接指到 release 目录时又找不到。
+    for d in _cargo_target_dirs(os.path.join(sibling, "rust")):
+        dirs.append(d)
+        dirs.append(os.path.join(d, "release"))
+    for d in dirs:
+        for name in _LIB_NAMES:
+            out.append(os.path.join(d, name))
+    return out
+
+
+def _native_mod():
+    """原生绑定模块；加载失败返回 None（结果缓存，不反复试探）。"""
+    global _native_cache
+    if _native_cache is not None:
+        return _native_cache or None
+    try:
+        import _swsml as mod
+    except Exception:                                    # noqa: BLE001 —— 缺文件/语法错都当不可用
+        _native_cache = False
+        return None
+    for cand in _candidate_libs():
+        if not os.path.isfile(cand):
+            continue
+        try:
+            mod.load_library(cand)
+        except Exception:                                # noqa: BLE001 —— 旧库缺符号等
+            continue
+        _native_cache = mod
+        return mod
+    _native_cache = False
+    return None
+
+
+def set_backend(name):
+    """强制后端：`native` / `builtin` / `auto`（默认 auto；测试与排查用）。"""
+    global _BACKEND
+    _BACKEND = name if name in ("auto", "native", "builtin") else "auto"
+
+
+def _use_native():
+    if _BACKEND == "builtin":
+        return False
+    return _native_mod() is not None
+
+
+def backend():
+    """当前生效的后端名：`native` / `builtin`。"""
+    return "native" if _use_native() else "builtin"
+
+
+def backend_info():
+    """给人看的一行后端说明（构建日志用）。"""
+    if not _use_native():
+        return "builtin（内置子集解析器，零依赖）"
+    try:
+        return "native（swsml %s，特性 %s）" % (_native_mod().version(), _features_text())
+    except Exception:                                    # noqa: BLE001
+        return "native"
+
+
+def _parse_features(spec):
+    """特性名列表 → 位掩码。空 = 默认集；`all` = 0（上游语义：全开）。"""
+    spec = (spec or "").strip()
+    if not spec:
+        bits = 0
+        for n in _DEFAULT_FEATURES:
+            bits |= _FEATURE_BITS[n]
+        return bits
+    if spec.lower() in ("all", "*"):
+        return 0
+    bits = 0
+    for name in re.split(r"[,\s]+", spec):
+        if name not in _FEATURE_BITS:
+            raise SmlError("未知 SML 特性 `%s`（可用：%s）"
+                           % (name, " ".join(sorted(_FEATURE_BITS))))
+        bits |= _FEATURE_BITS[name]
+    return bits
+
+
+def feature_flags():
+    """当前特性位（首次计算后缓存；REC_BLOG_SML_FEATURES 覆盖默认）。"""
+    global _FLAGS
+    if _FLAGS is None:
+        _FLAGS = _parse_features(os.environ.get("REC_BLOG_SML_FEATURES", ""))
+    return _FLAGS
+
+
+def set_features(spec):
+    """编程式设置特性（spec 同环境变量：逗号/空格分隔的名字，或 all）。测试用。"""
+    global _FLAGS
+    _FLAGS = _parse_features(spec or "")
+
+
+def _features_text():
+    bits = feature_flags()
+    on = [n for n, b in _FEATURE_BITS.items() if bits and (bits & b)]
+    return "/".join(on) if on else "all"
+
+
+def _blank(buf, a, b):
+    """把 [a, b) 的非换行字符换成空格 —— 等长回填，上游错误行号不漂。"""
+    for k in range(a, b):
+        if buf[k] != "\n":
+            buf[k] = " "
+
+
+def _read_is_arg(p):
+    """`@is` 后跟 [:] 裸词或引号串（对齐内置 entry() 的取值）。读不到值返回 None。"""
+    p.skip()
+    if p.i < p.n and p.s[p.i] == ":":
+        p.i += 1
+        p.skip()
+    if p.i >= p.n:
+        return None
+    c = p.s[p.i]
+    if c in _WS or c in _STOP or c in "#:":
+        return None
+    val = p.string() if c == '"' else _scalar(p.bare())
+    return val.strip() if isinstance(val, str) else str(val)
+
+
+def _strip_directives(text):
+    """剥掉 rec-blog 侧契约指令，返回 (干净文本, 契约表, __is 值)。
+
+    `@contract 名 { ... }` / `@is 名` 必须由内置契约引擎处理（默认映射、
+    loose、文档页、错误码文案都在 Python 侧），不能让上游解析期消费 ——
+    上游的契约表只有「本文件内定义」，且校验后不进结果。其余 @ 指令
+    （@frag、@when…）原样留给上游。剥掉的区间用等长空格回填（保留换行），
+    上游错误报告的行号才不会漂。
+    """
+    p = _Parser(text)
+    buf = list(text)
+    contracts = {}
+    is_name = ""
+    i = 0
+    n = p.n
+    while i < n:
+        c = text[i]
+        if c == '"':                       # 串内的 @ 不是指令
+            p.i = i
+            p.string()
+            i = p.i
+            continue
+        if c == "#" or text.startswith("//", i) or text.startswith("--", i):
+            j = text.find("\n", i)
+            i = n if j < 0 else j + 1
+            continue
+        if text.startswith("/*", i) or text.startswith("_*", i):
+            end = "*/" if text.startswith("/*", i) else "*_"
+            j = text.find(end, i + 2)
+            i = n if j < 0 else j + 2
+            continue
+        if c == "@":
+            m = _DIRECTIVE_RE.match(text, i)
+            if m and m.group(1) == "is":
+                p.i = m.end()
+                name = _read_is_arg(p)
+                if name is not None:
+                    is_name = name
+                    _blank(buf, i, p.i)
+                    i = p.i
+                    continue
+            elif m:                        # @contract
+                p.i = m.end()
+                args, is_block = p.scan_tokens()
+                if is_block:
+                    name = args[0] if args else ""
+                    contracts[name] = _parse_contract_body(p.raw_block(), name)
+                _blank(buf, i, p.i)
+                i = p.i
+                continue
+        i += 1
+    return "".join(buf), contracts, is_name
+
+
+def _map_native_error(e, path, text):
+    """上游富错误 → rec-blog 的 SmlError（`path:line: [码] 人话`）。
+    EOF 类错误上游 line=0，退回文档末行。"""
+    line = getattr(e, "line", 0) or (text.count("\n") + 1)
+    code = getattr(e, "code_str", "") or "E-PARSE"
+    msg = getattr(e, "text", "") or str(e)
+    return SmlError("%s:%d: [%s] %s" % (path, line, code, msg))
+
+
+def _include_guard(val, path, hint):
+    """内置解析器与文本入口都不展开 include（上游 loads 同样不展开）——
+    内容里写了 include 就明确报错，避免正文静默变成垃圾字段。"""
+    if isinstance(val, dict):
+        for k in ("include", "import"):
+            v = val.get(k)
+            if isinstance(v, str) and v.endswith((".sml", ".conf")):
+                raise SmlError("%s: `%s \"%s\"` —— %s" % (path, k, v, hint))
+    return val
+
+
+_BUILTIN_INCLUDE_HINT = "内置解析器不展开 include（要 include 请构建 swsml cdylib，见 engine/README.md）"
+_TEXT_INCLUDE_HINT = "文本入口不展开 include，请用文件入口 load_doc()/load()"
+
+
+def _native_parse_doc(text, path):
+    mod = _native_mod()
+    clean, contracts, is_name = _strip_directives(text)
+    try:
+        val = mod.loads(clean, flags=feature_flags())
+    except mod.SmlError as e:
+        raise _map_native_error(e, path, text)
+    _include_guard(val, path, _TEXT_INCLUDE_HINT)
+    if is_name and isinstance(val, dict):
+        val["__is"] = is_name
+    return val, contracts
+
+
+def _native_load_doc(path):
+    """文件入口：剥离指令后写**同目录**临时文件再 load_file —— include 的
+    相对路径以内容文件所在目录为基准（上游 loads 没有基准路径参数）。
+    临时文件带 `_` 前缀，docs_in 与文章 glob 都不会收录。"""
+    mod = _native_mod()
+    p = os.path.abspath(path)
+    with open(p, "r", encoding="utf-8") as fh:
+        text = fh.read()
+    clean, contracts, is_name = _strip_directives(text)
+    stem, ext = os.path.splitext(os.path.basename(p))
+    tmp = os.path.join(os.path.dirname(p), "_%s.native-%d%s" % (stem, os.getpid(), ext))
+    try:
+        with open(tmp, "w", encoding="utf-8") as fh:
+            fh.write(clean)
+        try:
+            val = mod.load_file(tmp, flags=feature_flags())
+        except mod.SmlError as e:
+            raise _map_native_error(e, path, text)
+    finally:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+    if is_name and isinstance(val, dict):
+        val["__is"] = is_name
+    return val, contracts
+
+
 def parse_doc(text, path="<sml>"):
-    """返回 (值, 契约表)。契约表来自文件内的 `@contract 名 { ... }` 定义。"""
+    """返回 (值, 契约表)。优先原生后端；库不可用时自动用内置子集解析器。"""
+    if _use_native():
+        return _native_parse_doc(text, path)
+    val, contracts = _builtin_parse_doc(text, path)
+    return _include_guard(val, path, _BUILTIN_INCLUDE_HINT), contracts
+
+
+def _builtin_parse_doc(text, path="<sml>"):
     p = _Parser(text, path)
     p.skip()
     if p.i < p.n and p.s[p.i] == "{":
