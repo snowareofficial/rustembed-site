@@ -9,7 +9,7 @@
     "updated_at": "2026-10-15T22:39:21Z",
     "description": "A debugging toolset and library for debugging embedded ARM and RISC-V targets on a separate host",
     "archived": false,
-    "fetched_at": "2026-10-16T07:54:19+00:00",
+    "fetched_at": "2026-10-16T12:25:23+00:00",
     "stale": false
   },
   "https://gitee.com/rustembed/site": {
@@ -22,7 +22,7 @@
     "updated_at": "2026-09-19T07:12:18+08:00",
     "description": "群页面",
     "archived": false,
-    "fetched_at": "2026-10-16T07:54:13+00:00",
+    "fetched_at": "2026-10-16T12:25:22+00:00",
     "stale": false
   },
   "https://gitee.com/snoware/sml-sitegen": {
@@ -35,7 +35,7 @@
     "updated_at": "2026-09-19T07:12:28+08:00",
     "description": "基于sml的网页构建系统",
     "archived": false,
-    "fetched_at": "2026-10-16T07:54:19+00:00",
+    "fetched_at": "2026-10-16T12:25:22+00:00",
     "stale": false
   }
 }
