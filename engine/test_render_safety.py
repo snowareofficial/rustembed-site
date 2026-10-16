@@ -271,6 +271,41 @@ def test_new_blocks_equality():
     case("空 gallery 不输出 div", '<div class="gallery' not in html_md, html_md)
     case("空 gallery 不留注释垃圾", "<!--" not in html_md, html_md)
 
+    # MD ↔ SML 逐字节一致性（与 engine/verify_parity.py 同一张对照表）：
+    # 每个块给出 (Markdown 源码, SML 值) 两条等价输入，比对逐字节 HTML。
+    _parity = [
+        ("panel", ":::panel 结论先行\n正文内容\n:::",
+         {"__type": "panel", "title": "结论先行", "children": ["正文内容"]}),
+        ("shot 普通带图注", ':::shot\n![接线](assets/a.png "图注")\n:::',
+         {"__type": "shot", "src": "assets/a.png", "alt": "接线", "caption": "图注"}),
+        ("shot full 带图注", ':::shot full\n![接线](assets/a.png "图注")\n:::',
+         {"__type": "shot", "src": "assets/a.png", "alt": "接线", "caption": "图注", "full": True}),
+        ("gallery 2 张", ":::gallery 2\n![](a.png)\n![](b.png)\n:::",
+         {"__type": "gallery", "cols": "2",
+          "children": [{"__type": "img", "src": "a.png"}, {"__type": "img", "src": "b.png"}]}),
+        ("gallery 1 张", ":::gallery\n![](a.png)\n:::",
+         {"__type": "gallery", "children": [{"__type": "img", "src": "a.png"}]}),
+        ("gallery 0 张", ":::gallery 2\n:::",
+         {"__type": "gallery", "children": []}),
+        ("term text 多行", ":::term\n$ cargo build\nFinished\n:::",
+         {"__type": "term", "text": "$ cargo build\nFinished"}),
+        ("term children 多行", ":::term\n$ cargo build\nFinished\n:::",
+         {"__type": "term", "children": ["$ cargo build", "Finished"]}),
+        ("steps 短横", ":::steps\n- 装工具链\n- 配环境\n:::",
+         {"__type": "steps", "items": ["装工具链", "配环境"]}),
+        ("steps 数字", ":::steps\n1. 装工具链\n2. 配环境\n:::",
+         {"__type": "steps", "items": ["装工具链", "配环境"]}),
+        ("when 单行", ":::when 2026-10-16 围栏落地\n:::",
+         {"__type": "when", "date": "2026-10-16", "text": "围栏落地"}),
+        ("when 多行", ":::when 2026-10-16\n围栏落地 补齐渲染。\n:::",
+         {"__type": "when", "date": "2026-10-16", "text": "围栏落地 补齐渲染。"}),
+    ]
+    for _name, _md_text, _sml_value in _parity:
+        _h_md, _ = md.render(_md_text)
+        _h_sml = R.render(_sml_value)
+        case("MD↔SML 逐字节一致：%s" % _name, _h_md == _h_sml,
+             "\n  MD : %s\n  SML: %s" % (repr(_h_md), repr(_h_sml)))
+
 
 # ------------------------------------------------- 6. 图片尺寸解析（纯 stdlib）
 def test_image_size():
@@ -391,6 +426,103 @@ def test_unescaped_check():
     case("裸 & 被抓出", _unwanted_raw_under_test("AT&T 公司"), "AT&T")
 
 
+# ----------------------------------------- 9. assets 生成器（cli.py）
+def test_assets_generator():
+    print("[9] assets 生成器（cli.py）")
+
+    # 1) _is_full 阈值边界：宽 1600、宽高比 1.8
+    case("_is_full 1599x1000 -> False", C._is_full(1599, 1000) is False, C._is_full(1599, 1000))
+    case("_is_full 1600x1000 -> True", C._is_full(1600, 1000) is True, C._is_full(1600, 1000))
+    case("_is_full 1000x600 -> False", C._is_full(1000, 600) is False, C._is_full(1000, 600))
+    case("_is_full 1001x600 -> False", C._is_full(1001, 600) is False, C._is_full(1001, 600))
+    # 1.8 宽高比边界（宽 < 1600，仅由比例决定，避免被宽度阈值覆盖）
+    case("_is_full 1500x834 -> False", C._is_full(1500, 834) is False, C._is_full(1500, 834))
+    case("_is_full 1500x833 -> True", C._is_full(1500, 833) is True, C._is_full(1500, 833))
+    case("_is_full 尺寸缺失 -> False",
+         C._is_full(0, 100) is False and C._is_full(100, 0) is False)
+    # 用户报障专项：1600×800 横图必须判为 full（宽 >= 1600 触发），与 MD/SML 一致
+    case("_is_full 1600x800 -> True", C._is_full(1600, 800) is True, C._is_full(1600, 800))
+
+    # 造三张真 PNG 到临时文章目录（纯 stdlib，与 _read_image_size 互验）
+    import struct as _s, zlib as _z, tempfile as _tf, io as _io, re as _re
+    from pathlib import Path as _P
+    def _mk_png(p, w, h):
+        raw = bytearray()
+        row = b"\x00" + b"\x88\x99\xaa" * w
+        for _ in range(h):
+            raw += row
+        def _ck(t, d):
+            c = t + d
+            return _s.pack(">I", len(d)) + c + _s.pack(">I", _z.crc32(c) & 0xffffffff)
+        sig = b"\x89PNG\r\n\x1a\n"
+        ihdr = _s.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)
+        with open(p, "wb") as f:
+            f.write(sig + _ck(b"IHDR", ihdr)
+                    + _ck(b"IDAT", _z.compress(bytes(raw), 9)) + _ck(b"IEND", b""))
+    # 不同宽高比 -> 不会合并成图集，便于逐张比对 full
+    specs = [("a-wide.png", 2000, 600), ("b-tall.png", 700, 700), ("c-small.png", 400, 300)]
+    d = _P(_tf.mkdtemp()) / "post" / "assets"
+    d.mkdir(parents=True)
+    for name, w, h in specs:
+        _mk_png(d / name, w, h)
+
+    class _A:
+        pass
+    def _run(style):
+        a = _A()
+        a.post_dir = str(d.parent); a.style = style; a.ratio = "2"; a.write = None
+        buf = _io.StringIO()
+        old = sys.stdout
+        try:
+            sys.stdout = buf
+            C.cmd_assets(a)
+        finally:
+            sys.stdout = old
+        return buf.getvalue()
+
+    out_md = _run("md")
+    out_sml = _run("sml")
+
+    # 2) 输出里的图片引用必须带 assets/ 前缀，且不得出现未加前缀的裸路径
+    for name, _, _ in specs:
+        case("MD 引用带 assets/ 前缀：%s" % name, ("assets/" + name) in out_md, out_md)
+        case("SML 引用带 assets/ 前缀：%s" % name, ("assets/" + name) in out_sml, out_sml)
+        case("MD 无裸路径 %s" % name, ("](%s)" % name) not in out_md, out_md)
+        case("SML 无裸路径 %s" % name, ('src: "%s"' % name) not in out_sml, out_sml)
+
+    # 缺陷 1 边界：直接传 assets 目录，仍输出 assets/，不得 assets/assets/
+    a2 = _A()
+    a2.post_dir = str(d); a2.style = "md"; a2.ratio = "2"; a2.write = None
+    buf = _io.StringIO()
+    old = sys.stdout
+    try:
+        sys.stdout = buf
+        C.cmd_assets(a2)
+    finally:
+        sys.stdout = old
+    edge = buf.getvalue()
+    case("直接传 assets 目录仍输出 assets/ 前缀", ("assets/" + specs[0][0]) in edge, edge)
+    case("直接传 assets 目录无 assets/assets/ 双前缀", "assets/assets/" not in edge, edge)
+
+    # 3) MD 与 SML 的 full 判定逐张一致（不用子串存在性，比对 (name, full) 序列）
+    def _md_pairs(out):
+        res = []
+        for m in _re.finditer(r":::shot( full)?\n!\[说明\]\(assets/([^\"\s]+)", out):
+            res.append((m.group(2), bool(m.group(1))))
+        return res
+    def _sml_pairs(out):
+        res = []
+        for line in out.splitlines():
+            if "shot {" in line:
+                nm = _re.search(r'src: "assets/([^"]+)"', line)
+                if nm:
+                    res.append((nm.group(1), "full: true" in line))
+        return res
+    pm, ps = _md_pairs(out_md), _sml_pairs(out_sml)
+    case("MD 与 SML 的 full 判定逐张一致", pm == ps,
+         "\n  MD : %s\n  SML: %s" % (pm, ps))
+
+
 def main():
     print("== rec-blog 渲染安全回归 ==")
     test_contract_page_escaping()
@@ -401,6 +533,7 @@ def main():
     test_image_size()
     test_unescaped_check()
     test_code_block_consistency()
+    test_assets_generator()
     print("\n%d 项断言" % COUNT[0])
     if FAILS:
         print("失败 %d 项：" % len(FAILS))

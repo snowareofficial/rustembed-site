@@ -300,22 +300,107 @@ def cmd_list(args):
     return 0
 
 
+def _is_full(w, h):
+    """是否出血（break-out）展示：宽 >= 1600px，或宽高比 >= 1.8。
+
+    与站点文档口径一致。尺寸读不到时（w/h 任一为 0）视为非出血。
+    MD 与 SML 两条输出路径共用本函数，确保两边 full 判定逐张一致。
+    """
+    if not w or not h:
+        return False
+    return w >= 1600 or (w / h) >= 1.8
+
+
+def _assets_images(post_dir):
+    """收集文章目录下的图片，返回 [(name, path, w, h), ...]，按文件名排序。
+
+    目录约定：图片放在 <post_dir>/assets/ 下。若作者直接把 assets 目录本身
+    作为参数（post_dir.name == "assets"），也按 assets 目录处理，且输出引用
+    统一写成 assets/<文件名>（绝不出现 assets/assets/）。
+    """
+    if post_dir.name == "assets":
+        assets_dir = post_dir
+    else:
+        assets_dir = post_dir / "assets"
+    if not assets_dir.exists():
+        return []
+    valid_ext = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg")
+    out = []
+    for p in sorted(assets_dir.glob("*")):
+        if p.suffix.lower() in valid_ext:
+            w, h = _read_image_size(p)
+            out.append((p.name, p, w, h))
+    return out
+
+
+def _group_images(items):
+    """按宽高比贪心分组，供图集（gallery）合并使用。
+
+    规则：把图片按文件名排序后，从第一张起，把「与前一张宽高比相差 < 10%」
+    的连续图片并入同一组；一旦比例偏离过大就另起一组。单张自然成一组。
+    只有组内图片数 > 1 才合并成图集，否则逐张走 shot（组内等宽网格，
+    出血语义不适用）。尺寸读不到的图（比例 None）单独成组、按单图处理。
+    """
+    groups = []
+    cur = []
+    cur_ratio = None
+    for name, p, w, h in items:
+        ratio = (w / h) if (w and h) else None
+        if cur and cur_ratio is not None and ratio is not None \
+                and abs(ratio - cur_ratio) / cur_ratio < 0.1:
+            cur.append((name, p, w, h))
+        else:
+            if cur:
+                groups.append(cur)
+            cur = [(name, p, w, h)]
+            cur_ratio = ratio
+    if cur:
+        groups.append(cur)
+    return groups
+
+
+def _render_assets(images, style, cols="2"):
+    """按 images 渲染 MD / SML 图片块。两种风格共用 _is_full 与 _group_images，
+    本地引用一律写成 assets/<文件名>（见 _assets_images）。
+
+    返回 list[str]，每项是一段完整块（含首尾换行）。图注占位用「说明」/「图注」，
+    由调用方在末尾提示作者补写，本函数不编造图注内容。
+    """
+    prefix = "assets"
+    groups = _group_images(images)
+    lines = []
+    for g in groups:
+        if len(g) > 1:
+            if style == "sml":
+                items = ", ".join(
+                    'img { src: "%s/%s" alt: "说明" }' % (prefix, n) for n, _, _, _ in g)
+                lines.append("gallery { cols: %s items: [ %s ] }\n" % (cols, items))
+            else:
+                inner = "".join(
+                    "![说明](%s/%s \"图注\")\n" % (prefix, n) for n, _, _, _ in g)
+                lines.append(":::gallery %s\n%s:::\n" % (cols, inner))
+        else:
+            n, _, w, h = g[0]
+            full = _is_full(w, h)
+            if style == "sml":
+                line = 'shot { src: "%s/%s" alt: "说明"' % (prefix, n)
+                if full:
+                    line += " full: true"
+                line += ' caption: "图注" }\n'
+                lines.append(line)
+            else:
+                head = ":::shot full" if full else ":::shot"
+                lines.append('%s\n![说明](%s/%s "图注")\n:::\n' % (head, prefix, n))
+    return lines
+
+
 def cmd_assets(args):
     post_dir = Path(args.post_dir)
     if not post_dir.exists():
         print("错误：文章目录不存在：%s" % post_dir)
         return 1
 
-    assets_dir = post_dir / "assets"
-    if not assets_dir.exists():
-        print("警告：assets/ 目录不存在，将输出空内容")
-        images = []
-    else:
-        images = sorted(assets_dir.glob("*"))
-        # 过滤图片类型
-        valid_ext = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg")
-        images = [img for img in images if img.suffix.lower() in valid_ext]
-
+    images = _assets_images(post_dir)
     if not images:
         print("assets/ 目录为空或没有支持的图片格式")
         return 0
@@ -325,71 +410,18 @@ def cmd_assets(args):
         print("警告：图片数量超过 20 张，可能超限")
 
     style = args.style or "md"
-    out_lines = []
+    cols = (args.ratio.split(":")[0] if args.ratio else "2") or "2"
+    out = "".join(_render_assets(images, style, cols))
 
-    # 判断是否生成图集
-    if len(images) > 1:
-        # 检查尺寸是否接近
-        sizes = []
-        for img in images:
-            width, height = _read_image_size(img)
-            if width and height:
-                sizes.append((width, height))
-            else:
-                sizes.append((0, 0))
-
-        if sizes:
-            avg_width = sum(w for w, h in sizes) / len(sizes)
-            avg_height = sum(h for w, h in sizes) / len(sizes)
-            ratio_var = max(abs((w / h) - (avg_width / avg_height)) for w, h in sizes)
-            if ratio_var < 0.1:  # 比例差 < 10%
-                # 生成图集
-                cols = args.ratio.split(":")[0] if args.ratio else "2"
-                out_lines.append(":::gallery %s\n" % cols)
-                for i, img in enumerate(images, 1):
-                    alt = "图 %d" % i
-                    caption = ""
-                    if style == "sml":
-                        out_lines.append('para { text: "[%s]" }' % img.name)
-                    else:
-                        out_lines.append("![%s](%s)" % (alt, img.name))
-                out_lines.append(":::\n")
-                # 输出
-                if args.write:
-                    with open(args.write, "a", encoding="utf-8") as f:
-                        f.write("\n".join(out_lines))
-                    print("已追加 %d 个图块到 %s" % (len(images), args.write))
-                else:
-                    print("\n".join(out_lines))
-                return 0
-
-    # 单张图片生成 shot 块
-    for img in images:
-        width, height = _read_image_size(img)
-        is_full = False
-        if width and height:
-            ratio = width / height
-            if width >= 1600 or ratio >= 1.8:
-                is_full = True
-
-        if style == "sml":
-            if is_full:
-                out_lines.append('shot { src: "%s" alt: "图" full: true }\n' % img.name)
-            else:
-                out_lines.append('shot { src: "%s" alt: "图" }\n' % img.name)
-        else:
-            if is_full:
-                out_lines.append(":::shot\n![图](%s)\n:::\n" % img.name)
-            else:
-                out_lines.append(":::shot\n![图](%s)\n:::\n" % img.name)
-
-    # 输出
     if args.write:
         with open(args.write, "a", encoding="utf-8") as f:
-            f.write("\n".join(out_lines))
+            f.write(out)
         print("已追加 %d 个图块到 %s" % (len(images), args.write))
     else:
-        print("\n".join(out_lines))
+        sys.stdout.write(out)
+
+    # 缺陷 4：占位提示（写 stderr，避免污染 --write 文件或管道内容）
+    sys.stderr.write('# 提示：把「说明」与「图注」替换为该图实际说明（alt / 图注）。\n')
     return 0
 
 
