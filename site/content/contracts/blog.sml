@@ -58,13 +58,13 @@
 
 @contract Term {
   loose
-  text: str                # 终端输出文本
+  text: str                # 终端输出文本（逐行保留，行间以 <br> 连接；与 MD :::term 完全一致，不做内联角色替换）
 }
 
 @contract When {
   loose
-  date: str                # 日期
-  text: str                # 事件内容
+  date: str                # 日期（YYYY-MM-DD），渲染进 <span class="when-t">
+  text: str                # 事件正文（唯一来源：优先取 text 字段，缺失时取子块渲染结果；与 MD :::when 围栏头之后的正文对齐）
 }
 
 @contract Series {
