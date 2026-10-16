@@ -7,13 +7,13 @@ const $ = (s) => document.querySelector(s);
 
 const NAV_LABEL = {
   library: '文章库', knowledge: '文章知识', topics: '主题词条', projects: '项目',
-  resources: '资源', members: '成员', weekly: '周报', pages: '站文档',
+  resources: '资源', members: '成员', services: '能力与合作', weekly: '周报', pages: '站文档',
   join: '加入我们', search: '搜索'
 };
 const YEAR_PAGE = 20;
 const CONTACT_LABEL = { blog: '博客', homepage: '主页', github: 'GitHub', gitee: 'Gitee', email: '邮箱' };
 
-const state = { year: '', tag: '', q: '', expand: {}, memberQ: '' };
+const state = { year: '', tag: '', q: '', expand: {}, memberQ: '', svcQ: '' };
 
 function avatarImg(x, cls) {
   if (x.avatar) {
@@ -64,7 +64,10 @@ function goto(hash) { location.hash = hash; }
 function scrollToAnchor(id) {
   if (!id) return;
   const n = document.getElementById(id);
-  if (n) n.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (!n) return;
+  const reduce = window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  n.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
 }
 
 /* ---------- 左栏 ---------- */
@@ -74,6 +77,7 @@ function mapUrlFor(seg) {
   if (seg[0] === 'page') return 'pages/' + seg[1] + '.map.svg';
   if (seg[0] === 'weekly') return 'w/' + seg[1] + '.map.svg';
   if (seg[0] === 'topic') return 'topics/' + seg[1] + '.map.svg';
+  if (seg[0] === 'service') return 'services/' + seg[1] + '.map.svg';
   return 'map.svg';
 }
 
@@ -81,6 +85,7 @@ function tocBase(seg) {
   if (seg[0] === 'page') return '#/page/' + seg[1] + '/';
   if (seg[0] === 'weekly') return '#/weekly/' + seg[1] + '/';
   if (seg[0] === 'topic') return '#/topic/' + seg[1] + '/';
+  if (seg[0] === 'service') return '#/service/' + seg[1] + '/';
   return '#/post/' + seg[1] + '/';
 }
 
@@ -169,6 +174,26 @@ function sidebar(seg, toc) {
     panelTree.appendChild(t);
   }
 
+  // 移动端目录：纯 <details> + <a>（零 JS），注入到 #main 顶部，窄屏取代常驻侧栏
+  if (toc && toc.length) {
+    const base = tocBase(seg);
+    const det = document.createElement('details');
+    det.className = 'mobile-toc';
+    const sum = document.createElement('summary');
+    sum.textContent = '本页目录 · ' + toc.length + ' 节';
+    det.appendChild(sum);
+    const list = document.createElement('div');
+    list.className = 'toc-list';
+    toc.forEach(x => {
+      const a = el('a', '', x.text);
+      a.href = base + x.id;
+      list.appendChild(a);
+    });
+    det.appendChild(list);
+    const mainEl = document.querySelector('#main');
+    if (mainEl) mainEl.insertBefore(det, mainEl.firstChild);
+  }
+
   const url = mapUrlFor(seg);
   btnTree.onclick = () => {
     panelTree.classList.remove('hidden');
@@ -250,8 +275,41 @@ function projectCard(p) {
   return c;
 }
 
-/* ---------- 视图 ---------- */
+function serviceDisclaimer() {
+  const box = el('aside', 'admonition warn');
+  const p = el('p');
+  p.appendChild(el('strong', '', '免责声明：'));
+  p.appendChild(el('span', '',
+    '本站只做信息展示，不参与交易、不担保、不抽成、不经手资金、不介入纠纷；'
+    + '黄页条目由成员本人提供并自负其责，不代表本站对任何个人或服务的认可或背书。'
+    + '联系方式仅来自成员本人授权公开的档案字段。收录标准与申诉见「能力与合作黄页制度」。'));
+  box.appendChild(p);
+  return box;
+}
 
+function serviceCard(s) {
+  const m = M.manifest;
+  const c = el('article', 'card');
+  const h = el('div', 'row');
+  h.appendChild(link('#/service/' + s.id, s.name, 'card-title'));
+  h.appendChild(el('span', 'badge', s.status === 'active' ? '可接洽' : '暂停'));
+  c.appendChild(h);
+  const mem = m.members.find(x => x.id === s.owner);
+  const meta = el('div', 'meta');
+  meta.appendChild(mem ? link('#/member/' + mem.id, mem.name) : el('span', '', s.owner));
+  if (s.updated) meta.appendChild(el('span', '', '更新 ' + s.updated));
+  if (s.rate) meta.appendChild(el('span', '', s.rate));
+  c.appendChild(meta);
+  if (s.skills && s.skills.length) {
+    const st = el('div', 'tags');
+    s.skills.forEach(k => st.appendChild(el('span', 'tag', k)));
+    c.appendChild(st);
+  }
+  if (s.wants && s.wants.length) c.appendChild(el('p', 'muted', '想找：' + s.wants.join('、')));
+  return c;
+}
+
+/* ---------- 视图 ---------- */
 async function viewLibrary() {
   const m = M.manifest;
   const main = $('#main');
@@ -590,6 +648,114 @@ async function viewMember(id) {
   main.appendChild(c);
 }
 
+async function viewServices() {
+  const m = M.manifest;
+  const main = $('#main');
+  main.textContent = '';
+  const list = m.services || [];
+  const head = el('div', 'page-head');
+  head.appendChild(el('h1', '', '能力与合作'));
+  head.appendChild(el('span', 'muted', list.length + ' 条'));
+  main.appendChild(head);
+  main.appendChild(el('p', 'muted',
+    '群友自愿登记的能力黄页，纯信息展示：条目写在 content/services/ 下，联系方式只引用成员档案中本人授权公开的字段。'));
+  main.appendChild(serviceDisclaimer());
+
+  const bar = el('div', 'filterbar');
+  const skills = [...new Set(list.flatMap(s => s.skills || []))].sort();
+  const b0 = el('button', 'chip' + (!state.tag ? ' cur' : ''), '全部技能');
+  b0.onclick = () => { state.tag = ''; viewServices(); };
+  bar.appendChild(b0);
+  skills.forEach(k => {
+    const b = el('button', 'chip' + (state.tag === k ? ' cur' : ''), k);
+    b.onclick = () => { state.tag = state.tag === k ? '' : k; viewServices(); };
+    bar.appendChild(b);
+  });
+  main.appendChild(bar);
+
+  const q = el('input', 'side-filter');
+  q.type = 'search';
+  q.placeholder = '按名称 / 技能 / 想找的内容筛选…';
+  q.value = state.svcQ || '';
+  q.oninput = () => { state.svcQ = q.value; renderList(); };
+  main.appendChild(q);
+
+  const g = el('div', 'cards');
+  main.appendChild(g);
+
+  function renderList() {
+    g.textContent = '';
+    const s = (state.svcQ || '').trim().toLowerCase();
+    const memName = (id) => { const x = m.members.find(v => v.id === id); return x ? x.name : id; };
+    const shown = list.filter(x =>
+      (!state.tag || (x.skills || []).includes(state.tag))
+      && (!s
+        || x.name.toLowerCase().includes(s)
+        || (x.skills || []).join(' ').toLowerCase().includes(s)
+        || (x.wants || []).join(' ').toLowerCase().includes(s)
+        || memName(x.owner).toLowerCase().includes(s)));
+    shown.forEach(x => g.appendChild(serviceCard(x)));
+    if (!shown.length) g.appendChild(el('p', 'muted', '没有匹配的条目。'));
+  }
+  renderList();
+}
+
+async function viewService(id, anchor) {
+  const m = M.manifest;
+  const main = $('#main');
+  main.textContent = '';
+  const s = (m.services || []).find(v => v.id === id);
+  if (!s) { main.appendChild(el('p', 'muted', '条目不存在。')); return; }
+  document.title = s.name + ' · ' + m.site.title;
+  main.appendChild(el('p', 'muted', '能力与合作 / 黄页'));
+  const c = el('article', 'post');
+  const head = el('div', 'row');
+  head.appendChild(el('h1', '', s.name));
+  head.appendChild(el('span', 'badge', s.status === 'active' ? '可接洽' : '暂停'));
+  c.appendChild(head);
+
+  const mem = m.members.find(x => x.id === s.owner);
+  if (mem) {
+    const who = el('div', 'row');
+    who.appendChild(avatarImg(mem, 'avatar'));
+    who.appendChild(link('#/member/' + mem.id, mem.name, 'tag'));
+    if (mem.role) who.appendChild(el('span', 'badge', mem.role));
+    c.appendChild(who);
+  }
+
+  const tags = el('div', 'tags');
+  (s.skills || []).forEach(x => tags.appendChild(el('span', 'tag', x)));
+  c.appendChild(tags);
+  if (s.wants && s.wants.length) c.appendChild(el('p', 'lead', '想找：' + s.wants.join('、')));
+  if (s.rate) c.appendChild(el('p', 'muted', '费用 / 方式：' + s.rate));
+
+  if (mem && s.contact && s.contact.length) {
+    const box = el('div', 'tags');
+    s.contact.forEach(k => {
+      const url = (mem.links || {})[k];
+      if (!url) return;
+      const a = link(url, CONTACT_LABEL[k] || k, 'tag');
+      if (k !== 'email') { a.target = '_blank'; a.rel = 'noopener'; }
+      box.appendChild(a);
+    });
+    if (box.childNodes.length) {
+      c.appendChild(el('h2', '', '联系方式（成员本人公开档案里的字段）'));
+      c.appendChild(box);
+    }
+  }
+  if (s.updated) c.appendChild(el('p', 'muted', '更新于 ' + s.updated));
+
+  const body = el('div', 'body');
+  body.innerHTML = await fragment(s.html);
+  c.appendChild(body);
+
+  const pol = (m.pages || []).find(v => v.id === 'yellow-pages');
+  if (pol) c.appendChild(link('#/page/yellow-pages', '收录标准、审核与申诉 →', 'leaf sec'));
+  main.appendChild(c);
+  sidebar(['service', id], s.toc);
+  scrollToAnchor(anchor);
+}
+
 async function viewTopics() {
   const m = M.manifest;
   const main = $('#main');
@@ -783,6 +949,7 @@ async function render_() {
   if (jb) top.appendChild(jb);
 
   const seg = route();
+  document.body.dataset.page = seg[0] || 'library';   // 场景分型钩子（P0.5）：供 CSS 用 body[data-page] 区分页面
   if (seg[0] === 'group') { goto('#/join'); return; }
   if (!seg.length) { goto('#/library'); return; }
   sidebar(seg, null);
@@ -796,6 +963,8 @@ async function render_() {
   else if (seg[0] === 'resources') await viewResources();
   else if (seg[0] === 'members') await viewMembers();
   else if (seg[0] === 'member') await viewMember(seg[1]);
+  else if (seg[0] === 'services') await viewServices();
+  else if (seg[0] === 'service') await viewService(seg[1], seg[2]);
   else if (seg[0] === 'weekly') await viewWeekly(seg[1]);
   else if (seg[0] === 'pages') await viewPages();
   else if (seg[0] === 'page') await viewPage(seg[1], seg[2]);
@@ -837,3 +1006,14 @@ $('#q').addEventListener('keydown', (e) => {
   }
 });
 render_();
+
+// 代码块复制：事件委托，不侵入任何视图函数（复制逻辑只写在这一个监听器里）
+document.addEventListener('click', (ev) => {
+  const btn = ev.target.closest('.code .copy');
+  if (!btn) return;
+  const code = btn.closest('.code').querySelector('code');
+  const text = code ? code.textContent : '';
+  const done = () => { const old = btn.textContent; btn.textContent = '已复制';
+                       setTimeout(() => { btn.textContent = old; }, 1400); };
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, done); else done();
+});
