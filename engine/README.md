@@ -18,6 +18,7 @@
 | `preview.py` | 本地静态服务（后台运行 + 日志） | 改端口/日志 |
 | `cli.py` | 命令行入口：`new/list/contracts/build/check/test/preview` | 加子命令 |
 | `test_contracts.py` | 契约引擎自测（19 项断言，钉住错误码语义） | 加断言 |
+| `test_render_safety.py` | 渲染安全回归（契约页转义 / 内联角色 / 嵌套列表 / `--out` 守卫） | 加你踩过的坑当用例 |
 | `fonts_import.py` | 从字体压缩包里挑权重到 `site/fonts/src/`（不整包解压） | 改权重匹配、加许可文件识别 |
 
 ## 目录约定（站点根目录，默认 `<repo>/site`）
@@ -28,6 +29,7 @@ content/posts/<年>/<短名>/index.(md|sml) + assets/
 content/pages/*.sml              站文档（group + order 决定文档树）
 content/topics/*.(md|sml)        主题词条（tags 相同标签文章自动归入）
 content/members/*.sml            成员档案（同目录 <id>.jpg 自动作为头像）
+content/services/*.sml           能力与合作黄页（纯展示：owner 必须是成员，contact 只引用其已公开 links）
 content/projects/*.sml           项目（构建期抓仓库元数据）
 content/resources/*.sml          资源条目
 content/weekly/*.sml             周报

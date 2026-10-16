@@ -8,3 +8,7 @@ __pycache__/
 site/fonts/src/
 *.ttf
 *.otf
+
+# SML 原生后端：本机编译的 cdylib（体积 + 跨平台差异，不入库；
+# 缺它时 sml.py 自动退回内置子集解析器，CI 无需安装 Rust）
+engine/native/

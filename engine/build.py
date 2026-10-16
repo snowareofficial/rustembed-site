@@ -51,9 +51,20 @@ REQ = {
     "member": ["name"],
     "resource": ["title", "kind", "url"],
     "weekly": ["period", "title"],
+    "service": ["name", "owner", "skills", "contact", "status", "updated"],
     "doc": ["title"],
     "site": ["title"],
 }
+
+# 黄页条目固定尾部：性质声明 + 免责声明。纯展示，不交易、不担保、不抽成、
+# 不经手资金、不介入纠纷；条目由 owner 本人提供并自负其责，本站不背书。
+SERVICE_DISCLAIMER = (
+    '<aside class="admonition warn"><p><strong>免责声明</strong>：本站只做信息展示，'
+    '不参与交易、不担保、不抽成、不经手资金、不介入纠纷。'
+    '本条黄页信息由成员本人提供并自负其责，不代表本站对任何个人或服务的认可或背书；'
+    '是否合作、如何合作、如何结算，请自行判断并在站外约定。'
+    '联系方式仅引用成员档案中本人授权公开的字段，本站不代收任何新联系方式。'
+    '条目内容按站点默认许可 CC BY-NC-SA 4.0（非商业）发布。</p></aside>\n')
 
 
 def now_iso():
@@ -74,6 +85,39 @@ def clean_out(out):
                 p.rmdir()
         except OSError:
             pass
+
+
+def _under(parent, child):
+    """child 是否等于 parent，或位于 parent 之下（两侧都会 resolve）。"""
+    a = str(Path(parent).resolve()).rstrip("\\/")
+    b = str(Path(child).resolve()).rstrip("\\/")
+    if b == a:
+        return True
+    return any(b.startswith(a + s) for s in ("/", "\\"))
+
+
+def guard_out(out):
+    """拒绝把产物目录指到会毁掉源码的位置 —— clean_out() 会递归清空目标目录。
+
+    放行：仓库外的目录；仓库内的 <repo>/dist 及其子目录。
+    拒绝：仓库根、站点目录，以及它们的**上级**（--out . 或 --out 上级目录
+          会连整个工作区一起删）；仓库内除 dist/ 外的任何位置（如 --out engine）。
+    """
+    out = Path(out).resolve()
+    repo = Path(config.REPO).resolve()
+    site = Path(config.SITE).resolve()
+    dist = Path(config.OUT).resolve()
+    for label, p in (("仓库根", repo), ("站点目录", site)):
+        if _under(out, p):
+            raise SystemExit(
+                "[E-OUT-001] --out 指向%s（%s）或其上级：%s\n"
+                "           构建会先递归清空该目录，请改用仓库外的目录。" % (label, p, out))
+    if _under(repo, out) and not _under(dist, out):
+        raise SystemExit(
+            "[E-OUT-002] --out 落在仓库内但不是 dist/ 之下：%s\n"
+            "           构建会先递归清空该目录（源码会丢），请改到仓库外或 %s 之下。"
+            % (out, dist))
+    return out
 
 
 def esc(s):
@@ -415,6 +459,59 @@ def build_topics(rep):
     return out
 
 
+def build_services(rep, members):
+    """能力与合作黄页：成员自愿登记的纯展示条目。
+
+    不变量（与 check.py 对齐）：每条必须有 owner 且 owner 必须是已建档成员；
+    contact 只能引用该成员 links 里已公开的字段，不新收集个人信息。
+    """
+    by_id = {m["id"]: m for m in members}
+    out = []
+    for f in docs_in(CONTENT / "services"):
+        d, cs = load2(f)
+        where = f.relative_to(ROOT).as_posix()
+        register_contracts(rep, where, cs)
+        if not apply_contract(rep, where, d, "service"):
+            check_req(rep, "service", where, d)
+        ctx = render.Ctx()
+        html_body, toc = render_body(d, ctx, 1)
+        owner = sml.as_str(d.get("owner", "")).strip()
+        mem = by_id.get(owner)
+        if not owner:
+            rep.err(where, "缺少必填字段 `owner`（成员 id）")
+        elif mem is None:
+            rep.err(where, "owner `%s` 没有成员档案（应为 content/members/%s.sml）" % (owner, owner))
+        contact = [sml.as_str(x).strip() for x in as_list(d.get("contact"))]
+        contact = [c for c in contact if c]
+        if not contact:
+            rep.err(where, "缺少必填字段 `contact`（成员公开联系方式）")
+        elif mem is not None:
+            public = sorted(mem["links"])
+            bad = [c for c in contact if c not in mem["links"]]
+            if bad:
+                rep.err(where, "contact 引用了未公开的联系方式 `%s`（成员 %s 的 links 只有：%s）"
+                        % (" ".join(bad), owner, " ".join(public) or "无"))
+        out.append({
+            "id": f.stem,
+            "name": sml.as_str(d.get("name")),
+            "owner": owner,
+            "skills": [sml.as_str(x) for x in as_list(d.get("skills"))],
+            "wants": [sml.as_str(x) for x in as_list(d.get("wants"))],
+            "contact": contact,
+            "rate": sml.as_str(d.get("rate", "")),
+            "status": sml.as_str(d.get("status", "active")),
+            "updated": sml.as_str(d.get("updated", "")),
+            "html": "services/%s.html" % f.stem,
+            "map": "services/%s.map.svg" % f.stem,
+            "toc": toc,
+            "text": render.strip_html(html_body),
+            "file": where,
+            "_html": html_body + SERVICE_DISCLAIMER,
+        })
+    out.sort(key=lambda s: (s["status"] == "paused", s["name"]))
+    return out
+
+
 def build_simple(kind, rep, cache=None, offline=False):
     out = []
     for f in docs_in(CONTENT / kind):
@@ -478,7 +575,9 @@ def build_contract_page():
     for c in contract_mod.describe(GLOBAL_CONTRACTS):
         ident = "contract-" + c["name"]
         toc.append({"id": ident, "text": c["name"], "level": 2})
-        html.append('<h2 id="%s">%s%s</h2>\n' % (ident, esc(c["name"]), "（loose）" if c["loose"] else ""))
+        # ident 来自契约名（自由文本，可含引号与尖括号），拼进属性前必须转义；
+        # 否则可以闭合 id 属性注入 <img onerror> 之类，经 app.js 的 innerHTML 执行。
+        html.append('<h2 id="%s">%s%s</h2>\n' % (esc(ident), esc(c["name"]), "（loose）" if c["loose"] else ""))
         html.append("<table>\n<thead><tr><th>字段</th><th>类型</th><th>必填</th><th>约束</th><th>说明</th></tr></thead>\n<tbody>\n")
         kids = []
         for f in c["fields"]:
@@ -685,7 +784,7 @@ def main():
                     help="放宽 E-CONTRACT-004（未声明字段）——临时允许契约外的字段")
     config.add_site_arg(ap)
     args = ap.parse_args()
-    out = Path(args.out)
+    out = guard_out(args.out)
     rep = Report()
 
     print("== rec-blog build ==")
@@ -733,6 +832,9 @@ def main():
     print("-- 主题词条")
     topics = build_topics(rep)
     print("   %d 条" % len(topics))
+    print("-- 能力与合作")
+    services = build_services(rep, members)
+    print("   %d 条" % len(services))
     print("-- 资源 / 周报 / 文档页")
     resources = build_simple("resources", rep, cache, args.offline)
     weekly_raw = build_simple("weekly", rep)
@@ -810,6 +912,13 @@ def main():
         (out / t["map"]).write_text(
             mindmap.to_svg(mindmap.from_toc(t["title"], nodes), t["title"]), encoding="utf-8")
 
+    for s in services:
+        (out / s["html"]).parent.mkdir(parents=True, exist_ok=True)
+        (out / s["html"]).write_text(s["_html"] or "<p>（空）</p>", encoding="utf-8")
+        nodes = [dict(x, anchor="#/service/%s/%s" % (s["id"], x["id"])) for x in s["toc"]]
+        (out / s["map"]).write_text(
+            mindmap.to_svg(mindmap.from_toc(s["name"], nodes), s["name"]), encoding="utf-8")
+
     contract_entry = build_contract_page()
     if contract_entry:
         (out / contract_entry["html"]).parent.mkdir(parents=True, exist_ok=True)
@@ -845,6 +954,9 @@ def main():
     if members:
         site_map["children"].append({"label": "成员", "children": [
             {"label": m["name"], "href": "#/member/" + m["id"], "children": []} for m in members]})
+    if services:
+        site_map["children"].append({"label": "能力与合作", "children": [
+            {"label": s["name"], "href": "#/service/" + s["id"], "children": []} for s in services]})
     if resources:
         site_map["children"].append({"label": "资源", "href": "#/resources", "children": [
             {"label": r["title"], "href": "#/resources", "children": []} for r in resources]})
@@ -904,6 +1016,7 @@ def main():
         "posts": [{k: v for k, v in p.items() if not k.startswith("_")} for p in posts],
         "projects": projects,
         "members": members,
+        "services": [{k: v for k, v in s.items() if not k.startswith("_")} for s in services],
         "resources": resources,
         "weekly": weekly,
         "topics": [{k: v for k, v in t.items() if not k.startswith("_")} for t in topics],
@@ -925,6 +1038,10 @@ def main():
     for m in members:
         search.append({"title": m["name"], "summary": m["signature"], "tags": m["skills"],
                        "url": "#/member/" + m["id"], "text": m["signature"]})
+    for s in services:
+        search.append({"title": s["name"], "summary": " / ".join(s["skills"]),
+                       "tags": s["skills"] + s["wants"],
+                       "url": "#/service/" + s["id"], "text": s["text"]})
     for r in resources:
         search.append({"title": r["title"], "summary": r.get("note", ""), "tags": r.get("tags", []),
                        "url": "#/resources", "text": r.get("note", "")})
@@ -977,6 +1094,14 @@ def main():
     for mem in members:
         L.append("- %s（%s）%s" % (mem["name"], mem["role"], mem["signature"]))
     L.append("")
+    L.append("## 能力与合作（黄页，仅信息展示：不交易、不担保、不抽成、不经手资金、不介入纠纷）")
+    for s in services:
+        extra = ("；想找：" + "、".join(s["wants"])) if s["wants"] else ""
+        rate = ("；" + s["rate"]) if s["rate"] else ""
+        L.append("- [%s](%s/#/service/%s) — %s%s%s（%s，更新 %s）"
+                 % (s["name"], base_url0, s["id"], " / ".join(s["skills"]), extra, rate,
+                    s["status"], s["updated"]))
+    L.append("")
     L.append("## 资源")
     for r in resources:
         L.append("- [%s](%s)（%s）%s" % (r["title"], r["url"], r["kind"], r.get("note", "")))
@@ -998,6 +1123,7 @@ def main():
     base_url = manifest["site"]["url"].rstrip("/")
     urls = [base_url + "/"] + [base_url + "/#/post/" + p["slug"] for p in posts] + \
            [base_url + "/#/projects"] + [base_url + "/#/member/" + m["id"] for m in members] + \
+           [base_url + "/#/services"] + [base_url + "/#/service/" + s["id"] for s in services] + \
            [base_url + "/#/resources"] + [base_url + "/#/group"] + \
            [base_url + "/#/topic/" + t["id"] for t in topics]
     sm = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
@@ -1044,7 +1170,7 @@ def main():
             if f.is_file():
                 shutil.copy2(f, out / f.name)
 
-    bodies = [p["_html"] for p in posts] + [x.get("_html", "") for x in pages + weekly + topics]
+    bodies = [p["_html"] for p in posts] + [x.get("_html", "") for x in pages + weekly + topics + services]
     fonts_css = build_fonts(rep, out, manifest, bodies)
     inject_head(rep, out, manifest, avatar, fonts_css)
 
@@ -1058,7 +1184,7 @@ def main():
     if rep.errors and not args.warn_only:
         print("构建失败：%d 个错误" % len(rep.errors))
         return 1
-    print("产物：%s（文章 %d / 项目 %d / 成员 %d）" % (out, len(posts), len(projects), len(members)))
+    print("产物：%s（文章 %d / 项目 %d / 成员 %d / 黄页 %d）" % (out, len(posts), len(projects), len(members), len(services)))
     return 0
 
 

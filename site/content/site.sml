@@ -8,7 +8,7 @@ repo_url: "https://gitee.com/rustembed/site"
 repo_mirror: "https://gitee.com/snoware/sml-sitegen"
 default_license: "CC BY-NC-SA 4.0"
 announcement: "投稿请提 PR，或把稿子交给有仓库权限的群管理代投。讨论回 QQ 群。"
-nav: [ library knowledge topics projects resources members weekly pages join ]
+nav: [ library knowledge topics projects resources members services weekly pages join ]
 
 # 默认契约：按内容类型自动套用（文件里写 @is 可覆盖）
 contracts {
@@ -19,11 +19,12 @@ contracts {
   project: Project
   member: Member
   weekly: Weekly
+  service: Service
 }
 
 group {
   name: "Rust嵌入式探讨"
-  qq: "待填写"
+  qq: "947963288"
   join_url: "https://qm.qq.com/q/uo06W0c7Is"
   join: "加群验证：说出你最近在啃的一块板子"
   intro: "面向嵌入式与 Rust 的学习/实践群。这里存放群友写的技术文章、做过的项目、整理的资源，以及这个群本身的故事。"

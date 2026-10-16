@@ -3,6 +3,10 @@ name: 构建并发布到 Cloudflare Pages
 on:
   push:
     branches: [ master, main ]
+  # 投稿走 PR —— 必须在 PR 上就跑校验，否则贡献者拿不到任何反馈。
+  # PR 只验证、不部署（见下方 deploy 步骤的 if）。
+  pull_request:
+    branches: [ master, main ]
   workflow_dispatch:
 
 permissions:
@@ -18,10 +22,26 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: 构建
-        run: python engine/build.py --warn-only
+      # 1) 契约引擎自测：钉住每一类错误码的语义
+      - name: 契约引擎自测
+        run: python engine/test_contracts.py
 
+      # 2) 渲染安全回归：转义、内联角色、嵌套列表
+      - name: 渲染安全回归
+        run: python engine/test_render_safety.py
+
+      # 3) 构建。**不加 --warn-only**：契约与附件错误必须让流水线失败，
+      #    否则「字段写错会被契约拦下」这句对投稿者的承诺在发布链路上不成立。
+      - name: 构建
+        run: python engine/build.py
+
+      # 4) 产物不变量自检
+      - name: 产物自检
+        run: python engine/check.py
+
+      # 5) 只在推送到受保护分支时发布；PR 上跑到这里就结束。
       - name: 发布到 Cloudflare Pages
+        if: github.event_name == 'push'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -33,3 +53,5 @@ jobs:
 #    rec-blog.swebase.cn（主）与 rust-embed.swebase.cn（别名），二者都指向同一项目。
 # 2. 若绑定不了（DNS 不在 CF 托管），改用 CNAME 到 <project>.pages.dev。
 # 3. 元数据抓取失败不会中断构建；缓存文件 meta/repos.json 会随提交更新。
+# 4. Gitee 是权威源与 PR 落地点，但它上面没有工作流配置，所以本文件的门禁
+#    只在 GitHub 镜像侧生效。要在 Gitee 侧也拦住，需要另配 Gitee Go。
