@@ -127,6 +127,67 @@ h2 { font-size: 20px; margin: 28px 0 10px; }
 
 #footer { display: flex; gap: 14px; padding: 20px 24px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; flex-wrap: wrap; }
 
+/* ===== 结构化块（engine 的 :::panel / :::steps / :::shot / :::gallery / :::term / :::when）=====
+   这些块由 engine/lib/markdown.py 与 render.py 产出；此前本站样式表没有它们的任何规则，
+   导致新块以"裸标签"显示（term 变成普通正文、图集堆成一列、when 显示成裸列表项）。
+   这里只做补齐，不改动既有排版体系；色彩沿用上面的 --line/--accent/--muted/--card。
+   说明：`.when` 目前是独立 <li>（渲染层没有包 <ul class="timeline">），
+   所以按"单条也成立"来设计——多条并排时天然形成时间线。 */
+:root {
+  --surface-2: #f3efe8;
+  --surface-3: #ece6dc;
+  --line-strong: #cfc7ba;
+  --radius: 10px;
+  --radius-s: 6px;
+  --mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, "Liberation Mono", monospace;
+}
+
+/* panel：结论 / 摘要块 */
+.panel { background: var(--card); border: 1px solid var(--line);
+  border-left: 4px solid var(--accent); border-radius: var(--radius);
+  padding: 12px 16px; margin: 22px 0; }
+.panel-t { font-weight: 700; margin: 0 0 6px; }
+.panel > :last-child { margin-bottom: 0; }
+
+/* steps：教程步骤（外层唯一 <ol>，内部不再嵌套列表） */
+.steps { margin: 18px 0; padding-left: 1.4em; }
+.steps > li { margin: .45em 0; padding-left: .2em; }
+.steps > li::marker { color: var(--accent); font-weight: 600; }
+
+/* shot / gallery：图与图注 */
+.post .body figure { margin: 22px 0; }
+.post .body figcaption { font-size: 13px; color: var(--muted);
+  margin-top: 6px; text-align: center; }
+/* 破栏出血：宽度由 img 自己撑满视口。
+   曾经写成"容器负 margin + img max-width:100%"，结果 img 相对被撑宽的容器再算 100%，整图溢出视口。 */
+.post .body figure.full { margin: 26px calc(50% - 50vw); }
+.post .body figure.full img { width: 100vw; max-width: none;
+  border-left: 0; border-right: 0; border-radius: 0; }
+
+.gallery { display: grid; gap: 12px; margin: 22px 0; }
+.gallery.cols-2 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.gallery.cols-3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.gallery figure { margin: 0; }
+.gallery img { width: 100%; }
+
+/* term：终端输出，逐行原样（行间是 <br>，不是段落） */
+.term { background: var(--surface-3); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 12px 14px; margin: 18px 0;
+  font-family: var(--mono); font-size: 13px; line-height: 1.7;
+  color: #3f3a33; overflow-x: auto; }
+[data-theme="dark"] .term { color: var(--fg); }
+
+/* when：事件条目；外面套了 <ul class="timeline"> 时自动成为时间线 */
+li.when { list-style: none; padding: 6px 0 6px 14px; margin: 0;
+  border-left: 2px solid var(--line); }
+li.when .when-t { display: block; font-size: 12px; letter-spacing: .04em;
+  color: var(--muted); }
+ul.timeline { list-style: none; margin: 20px 0 20px 6px; padding: 0; }
+ul.timeline > li.when:last-child { border-left-color: transparent; }
+@media (max-width: 640px) {
+  .gallery.cols-2, .gallery.cols-3 { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 860px) {
   #layout { flex-direction: column; padding: 14px; }
   #sidebar { width: 100%; flex: none; position: static; max-height: none; border-right: 0; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
