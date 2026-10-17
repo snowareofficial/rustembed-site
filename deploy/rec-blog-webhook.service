@@ -1,0 +1,23 @@
+[Unit]
+Description=rec-blog Gitee webhook (container rebuild + publish)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/srv/rec-blog
+# 按需修改；AI_* 不填则跳过 AI 摘要
+Environment=GITEE_WEBHOOK_TOKEN=change-me
+Environment=BRANCH=master
+Environment=PORT=8787
+Environment=DEPLOY=wrangler
+Environment=CF_PROJECT=rec-blog
+Environment=AI_BASE_URL=
+Environment=AI_API_KEY=
+Environment=AI_MODEL=glm-4.7-flash
+ExecStart=/usr/bin/python3 /srv/rec-blog/deploy/gitee-webhook.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

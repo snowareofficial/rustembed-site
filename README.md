@@ -98,6 +98,8 @@ git push sitegen master    # 示例源（可选，推同一个提交）
 GitHub，`build.yml` 在 Actions 里构建并用 `wrangler pages deploy dist` 发布到 Cloudflare Pages。
 需要的 secret：`GITEE_USER` / `GITEE_TOKEN`（只读即可）、`CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`。
 
+也可以不用 Actions：**自建服务器（Docker 容器构建 + GLM 生成构建期摘要 + 发布）** 见 [`docs/SELF-HOST.md`](docs/SELF-HOST.md)，一条 Gitee Webhook 触发全链路。
+
 ## 许可
 
 文章默认 `CC BY-NC-SA 4.0`（可在文章里用 `license` 覆盖），站点代码 MulanPSL-2。

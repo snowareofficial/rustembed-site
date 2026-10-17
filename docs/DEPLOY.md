@@ -12,6 +12,11 @@
                                                      └─► rust-embed.swebase.cn（别名）
 ```
 
+> **两条发布路径，二选一或并存：**
+> - GitHub Actions（本文下半部分）：镜像 → Actions → Cloudflare Pages；
+> - **自建服务器（容器构建 + AI 摘要）**：Gitee Webhook → 服务器容器 → `wrangler pages deploy` 或 nginx，
+>   见 [`SELF-HOST.md`](SELF-HOST.md)。
+
 ## 0. 首次初始化清单（按顺序做一次）
 
 **Gitee（权威源，接受 PR）**

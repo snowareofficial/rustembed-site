@@ -1,0 +1,10 @@
+.git
+dist
+node_modules
+__pycache__
+*.pyc
+.preview.log
+tests/shots
+engine/native
+MiSans.zip
+site/fonts/src
