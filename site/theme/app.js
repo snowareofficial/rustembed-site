@@ -1,1757 +1,1806 @@
-/* rec-blog 前端：拉 manifest.json 做路由与排布，正文取构建期预渲染好的 HTML 片段。
-   导航只在左栏（顶栏只留品牌/搜索/加群），避免左右重复。 */
 'use strict';
+/* rec-blog 前端壳：三栏（左=本文目录 / 中=正文 / 右=站点导航）。
+ *
+ * 硬约束（与 docs 的设计文档一致）：
+ *  1. 运行时只有两个数据来源：manifest.json 与构建期预渲染的 HTML 片段（p/*.html 等）。
+ *  2. 零第三方依赖、零外部请求：不引框架/CDN/图表库/Web 字体/统计。
+ *  3. 投稿文本一律走文本节点；只有预渲染片段允许 innerHTML 注入（见 frag()）。
+ *  4. 任何拼 href/src 的地方都过 safeUrl() 协议白名单。
+ *  5. 数据不足就不画图：语言占比条只在有真实 languages_pct 时才出现；
+ *     趋势线没有真实历史数据，因此根本不实现。
+ *  6. 不用 childNodes.length（无浏览器 DOM 的环境里会抛错），一律显式计数。
+ */
+(function () {
 
-const M = { manifest: null, index: null, cache: {} };
-const $ = (s) => document.querySelector(s);
+  var S = { man: null, frags: {}, toc: [], tocBase: '', tocLinks: [], mapHref: '', page: '' };
 
-const NAV_LABEL = {
-  library: '文章库', knowledge: '文章知识', topics: '主题词条', projects: '项目',
-  resources: '资源', members: '成员', services: '能力与合作', weekly: '周报', pages: '站文档',
-  join: '加入我们', search: '搜索'
-};
-const YEAR_PAGE = 20;
-const CONTACT_LABEL = { blog: '博客', homepage: '主页', github: 'GitHub', gitee: 'Gitee', email: '邮箱' };
+  var NAV_LABEL = {
+    home: '首页',
+    library: '文章库', knowledge: '文章知识', topics: '主题词条', projects: '项目',
+    resources: '资源', members: '成员', services: '能力与合作', weekly: '周报',
+    pages: '站文档', join: '加入我们'
+  };
+  var CONTACT_LABEL = { blog: '博客', homepage: '主页', github: 'GitHub', gitee: 'Gitee', email: '邮箱' };
+  var STATUS_LABEL = { active: '进行中', wip: '开发中', archived: '已归档', paused: '暂停' };
+  var KIND_LABEL = { book: '书', tutorial: '教程', tool: '工具', video: '视频', course: '课程', route: '路线' };
+  /* 文章形态：只由真实内容（标签 / 是否有图集）决定，推断不出就是阅读型 */
+  var FORM_BY_TAG = {
+    '教程': 'tutorial', tutorial: 'tutorial',
+    '代码': 'code', code: 'code',
+    '图文': 'photo', '图集': 'photo', photo: 'photo'
+  };
 
-const state = { year: '', tag: '', q: '', expand: {}, memberQ: '', svcQ: '' };
+  /* ---------- 基础工具 ---------- */
 
-function avatarImg(x, cls) {
-  if (x.avatar) {
-    const i = el('img', cls);
-    i.src = x.avatar;
-    i.alt = x.name;
-    i.loading = 'lazy';
-    return i;
-  }
-  return el('div', cls + ' ph', (x.name || '?').slice(0, 1));
-}
+  function $(sel) { return document.querySelector(sel); }
 
-async function loadManifest() {
-  if (M.manifest) return M.manifest;
-  const r = await fetch('manifest.json', { cache: 'no-store' });
-  M.manifest = await r.json();
-  return M.manifest;
-}
-
-async function fragment(url) {
-  if (M.cache[url]) return M.cache[url];
-  const r = await fetch(url);
-  const t = await r.text();
-  M.cache[url] = t;
-  return t;
-}
-
-function el(tag, cls, text) {
-  const n = document.createElement(tag);
-  if (cls) n.className = cls;
-  if (text != null) n.textContent = text;
-  return n;
-}
-
-function link(href, text, cls) {
-  const a = el('a', cls, text);
-  a.href = href;
-  return a;
-}
-
-function route() {
-  const h = location.hash.replace(/^#\/?/, '');
-  return h.split('/').filter(Boolean).map(decodeURIComponent);
-}
-
-function goto(hash) { location.hash = hash; }
-
-function scrollToAnchor(id) {
-  if (!id) return;
-  const n = document.getElementById(id);
-  if (!n) return;
-  const reduce = window.matchMedia &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  n.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
-}
-
-/* ---------- 左栏 ---------- */
-
-function mapUrlFor(seg) {
-  if (seg[0] === 'post') return 'p/' + seg[1] + '.map.svg';
-  if (seg[0] === 'page') return 'pages/' + seg[1] + '.map.svg';
-  if (seg[0] === 'weekly') return 'w/' + seg[1] + '.map.svg';
-  if (seg[0] === 'topic') return 'topics/' + seg[1] + '.map.svg';
-  if (seg[0] === 'service') return 'services/' + seg[1] + '.map.svg';
-  return 'map.svg';
-}
-
-function tocBase(seg) {
-  if (seg[0] === 'page') return '#/page/' + seg[1] + '/';
-  if (seg[0] === 'weekly') return '#/weekly/' + seg[1] + '/';
-  if (seg[0] === 'topic') return '#/topic/' + seg[1] + '/';
-  if (seg[0] === 'service') return '#/service/' + seg[1] + '/';
-  return '#/post/' + seg[1] + '/';
-}
-
-function filterTree(container, q) {
-  const s = (q || '').trim().toLowerCase();
-  container.querySelectorAll('.leaf').forEach(a => {
-    const hit = !s || a.textContent.toLowerCase().includes(s);
-    a.classList.toggle('hidden', !hit);
-  });
-  container.querySelectorAll('details').forEach(d => {
-    if (s) d.open = true;
-  });
-}
-
-function sidebar(seg, toc) {
-  const m = M.manifest;
-  const box = $('#sidebar');
-  box.textContent = '';
-
-  const head = el('div', 'side-head');
-  const tabs = el('div', 'side-tabs');
-  const btnTree = el('button', 'tab cur', '目录');
-  const btnMap = el('button', 'tab', '导图');
-  tabs.appendChild(btnTree);
-  tabs.appendChild(btnMap);
-  head.appendChild(tabs);
-  box.appendChild(head);
-
-  const panelTree = el('div');
-  const panelMap = el('div', 'mapbox hidden');
-  box.appendChild(panelTree);
-  box.appendChild(panelMap);
-
-  // 1) 导航（唯一一处导航，顶栏不再重复）
-  const nav = el('nav', 'side-nav');
-  (m.site.nav || []).forEach(k => {
-    const cur = seg[0] === k || (k === 'library' && !seg.length);
-    nav.appendChild(link('#/' + k, NAV_LABEL[k] || k, 'side-link' + (cur ? ' cur' : '')));
-  });
-  panelTree.appendChild(nav);
-
-  // 2) 目录树：系列 + 年份（默认折叠，可过滤，量大时截断）
-  panelTree.appendChild(el('h3', 'side-h', '目录'));
-  const qbox = el('input', 'side-filter');
-  qbox.type = 'search';
-  qbox.placeholder = '过滤标题…';
-  qbox.value = state.q || '';
-  qbox.oninput = () => { state.q = qbox.value; filterTree(tree, qbox.value); };
-  panelTree.appendChild(qbox);
-
-  const tree = el('div', 'tree');
-  (m.series || []).forEach(s => {
-    const d = el('details', 'node');
-    d.open = seg[0] === 'post' && s.posts.some(x => x.slug === seg[1]);
-    d.appendChild(el('summary', '', s.title));
-    s.posts.forEach(x => d.appendChild(
-      link('#/post/' + x.slug, x.title, 'leaf' + (seg[1] === x.slug ? ' cur' : ''))));
-    tree.appendChild(d);
-  });
-
-  const byYear = {};
-  m.posts.forEach(p => { (byYear[p.year] = byYear[p.year] || []).push(p); });
-  Object.keys(byYear).sort().reverse().forEach(y => {
-    const items = byYear[y];
-    const d = el('details', 'node');
-    const openYear = seg[0] === 'post' && items.some(p => p.slug === seg[1]);
-    d.open = openYear;
-    d.appendChild(el('summary', '', y + ' 年（' + items.length + '）'));
-    items.slice(0, 50).forEach(p => d.appendChild(
-      link('#/post/' + p.slug, p.title, 'leaf' + (seg[1] === p.slug ? ' cur' : ''))));
-    if (items.length > 50) {
-      const more = link('#/library', '还有 ' + (items.length - 50) + ' 篇 →', 'leaf sec');
-      d.appendChild(more);
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text !== undefined && text !== null && text !== '') {
+      n.appendChild(document.createTextNode(String(text)));
     }
-    tree.appendChild(d);
-  });
-  panelTree.appendChild(tree);
-  if (state.q) filterTree(tree, state.q);
-
-  // 3) 本页章节
-  if (toc && toc.length) {
-    panelTree.appendChild(el('h3', 'side-h', '本页章节'));
-    const base = tocBase(seg);
-    const t = el('div', 'tree toc');
-    toc.forEach(x => t.appendChild(link(base + x.id, x.text, 'leaf lv' + x.level)));
-    panelTree.appendChild(t);
-  }
-
-  // 移动端目录：纯 <details> + <a>（零 JS），注入到 #main 顶部，窄屏取代常驻侧栏
-  if (toc && toc.length) {
-    const base = tocBase(seg);
-    const det = document.createElement('details');
-    det.className = 'mobile-toc';
-    const sum = document.createElement('summary');
-    sum.textContent = '本页目录 · ' + toc.length + ' 节';
-    det.appendChild(sum);
-    const list = document.createElement('div');
-    list.className = 'toc-list';
-    toc.forEach(x => {
-      const a = el('a', '', x.text);
-      a.href = base + x.id;
-      list.appendChild(a);
-    });
-    det.appendChild(list);
-    const mainEl = document.querySelector('#main');
-    if (mainEl) mainEl.insertBefore(det, mainEl.firstChild);
-  }
-
-  const url = mapUrlFor(seg);
-  btnTree.onclick = () => {
-    panelTree.classList.remove('hidden');
-    panelMap.classList.add('hidden');
-    btnTree.classList.add('cur');
-    btnMap.classList.remove('cur');
-  };
-  btnMap.onclick = async () => {
-    if (panelMap.dataset.loaded !== url) {
-      panelMap.textContent = '载入导图…';
-      try {
-        panelMap.innerHTML = await fragment(url);
-        panelMap.dataset.loaded = url;
-      } catch (e) {
-        panelMap.textContent = '导图载入失败。';
-      }
-    }
-    panelTree.classList.add('hidden');
-    panelMap.classList.remove('hidden');
-    btnMap.classList.add('cur');
-    btnTree.classList.remove('cur');
-  };
-}
-
-/* ---------- 通用片段 ---------- */
-
-/* 文章元信息：作者在前（带头像），其余用 · 分隔；字号 12.5px、不加粗（内容至上） */
-function readingMinutes(words) {
-  return Math.max(1, Math.round((words || 0) / 260));
-}
-
-function bylineAuthor(p) {
-  const m = M.manifest;
-  const mem = m.members.find(x => x.id === p.author);
-  if (!mem) return p.author ? el('span', 'who', p.author) : null;
-  const a = link('#/member/' + mem.id, '', 'who');
-  const img = el('img');
-  img.alt = '';
-  img.width = 16;
-  img.height = 16;
-  img.loading = 'lazy';
-  img.src = mem.avatar || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Crect width=%2216%22 height=%2216%22 rx=%228%22 fill=%22%23cfc7ba%22/%3E%3C/svg%3E';
-  a.appendChild(img);
-  a.appendChild(el('span', '', mem.name));
-  return a;
-}
-
-function bylineLine(p) {
-  const line = el('div', 'byline');
-  const who = bylineAuthor(p);
-  if (who) line.appendChild(who);
-  const dot = () => line.appendChild(el('span', 'dot'));
-  if (who) dot();
-  line.appendChild(el('time', '', p.date));
-  line.appendChild(el('span', 'dot'));
-  line.appendChild(el('span', '', (p.words || 0) + ' 字 · 约 ' + readingMinutes(p.words) + ' 分钟'));
-  if (p.updated && p.updated !== p.date) {
-    line.appendChild(el('span', 'dot'));
-    line.appendChild(el('span', '', '更新于 ' + p.updated));
-  }
-  return line;
-}
-
-/* 概览/列表页仍用紧凑的元信息行（日期 / 作者 / 字数 / 标签） */
-function metaLine(p) {
-  const m = M.manifest;
-  const mem = m.members.find(x => x.id === p.author);
-  const line = el('div', 'meta');
-  line.appendChild(el('span', '', p.date));
-  if (mem) line.appendChild(link('#/member/' + mem.id, mem.name));
-  else if (p.author) line.appendChild(el('span', '', p.author));
-  if (p.updated && p.updated !== p.date) line.appendChild(el('span', '', '更新于 ' + p.updated));
-  line.appendChild(el('span', '', p.words + ' 字'));
-  (p.tags || []).forEach(t => line.appendChild(link('#/library', '#' + t, 'tag')));
-  return line;
-}
-
-function joinButton(cls) {
-  const g = M.manifest.site.group || {};
-  if (!g.join_url) return null;
-  const a = link(g.join_url, '加入 QQ 群', 'btn ' + (cls || ''));
-  a.target = '_blank';
-  a.rel = 'noopener';
-  return a;
-}
-
-function postCard(p) {
-  const c = el('article', 'card');
-  c.appendChild(link('#/post/' + p.slug, p.title, 'card-title'));
-  c.appendChild(el('p', 'muted', p.summary));
-  c.appendChild(metaLine(p));
-  return c;
-}
-
-/* ---------- 成员 / 黄页 共用的零件 ---------- */
-function statRow(items) {
-  const row = el('div', 'stat-row');
-  items.forEach(it => {
-    if (it[0] === null || it[0] === undefined || it[0] === '') return;
-    const s = el('div', 'stat');
-    s.appendChild(el('b', '', String(it[0])));
-    s.appendChild(el('span', '', it[1]));
-    row.appendChild(s);
-  });
-  return row;
-}
-
-/* 贡献计数：文章（作者或合著）+ 项目（owner 或贡献者） */
-function contributions(id) {
-  const m = M.manifest;
-  return {
-    posts: (m.posts || []).filter(p => p.author === id || (p.co_authors || []).indexOf(id) >= 0).length,
-    projects: (m.projects || []).filter(p => p.owner === id || (p.contributors || []).indexOf(id) >= 0).length,
-  };
-}
-
-function contactTags(mem, keys, cls) {
-  const box = el('div', cls || 'tags');
-  (keys || []).forEach(k => {
-    const url = (mem.links || {})[k];
-    if (!url) return;
-    const a = link(url, CONTACT_LABEL[k] || k, 'tag');
-    if (k !== 'email') { a.target = '_blank'; a.rel = 'noopener'; }
-    box.appendChild(a);
-  });
-  return box;
-}
-
-/* 词条关系图：内联 SVG，四向布局（上=相关词条，左=关联文章，右=相关项目，下=标签）。
-   只用 「连谁」 这一个事实画图 —— 没有数据时不画，不做装饰性图表。 */
-function relGraph(t, m) {
-  const rel = (t.related || []).map(id => (m.topics || []).find(x => x.id === id)).filter(Boolean);
-  const arts = (t.resolved || []).map(s => (m.posts || []).find(p => p.slug === s)).filter(Boolean);
-  const projs = (m.projects || []).filter(p => arts.some(a => (a.topics || []).indexOf(p.id) >= 0));
-  const tags = t.tags || [];
-  if (!rel.length && !arts.length && !projs.length && !tags.length) return null;
-
-  const W = 760, H = 320, CX = W / 2, CY = H / 2, NW = 190, NH = 40;
-  const doc = document.createElementNS ? document.createElementNS('http://www.w3.org/2000/svg', 'svg') : el('svg');
-  const NS = 'http://www.w3.org/2000/svg';
-  const mk = (tag) => (document.createElementNS ? document.createElementNS(NS, tag) : el(tag));
-  const txt = (x, y, s, opt) => {
-    const n = mk('text');
-    n.setAttribute('x', x); n.setAttribute('y', y);
-    n.setAttribute('text-anchor', 'middle');
-    n.setAttribute('font-size', (opt && opt.size) || 13);
-    n.setAttribute('fill', (opt && opt.fill) || 'var(--ink)');
-    n.textContent = s;
     return n;
-  };
-  const box = (x, y, w, h, stroke) => {
-    const r = mk('rect');
-    r.setAttribute('x', x - w / 2); r.setAttribute('y', y - h / 2);
-    r.setAttribute('width', w); r.setAttribute('height', h);
-    r.setAttribute('rx', 8);
-    r.setAttribute('fill', 'var(--surface)');
-    r.setAttribute('stroke', stroke || 'var(--line)');
-    return r;
-  };
-  const edge = (x1, y1, x2, y2, dashed) => {
-    const p = mk('path');
-    const mx = (x1 + x2) / 2;
-    p.setAttribute('d', 'M' + x1 + ' ' + y1 + ' C' + mx + ' ' + y1 + ' ' + mx + ' ' + y2 + ' ' + x2 + ' ' + y2);
-    p.setAttribute('fill', 'none');
-    p.setAttribute('stroke', 'var(--line-strong)');
-    p.setAttribute('stroke-width', '1.5');
-    if (dashed) p.setAttribute('stroke-dasharray', '5 4');
-    return p;
-  };
-  const clip = (s, n) => (String(s).length > n ? String(s).slice(0, n - 1) + '…' : String(s));
+  }
 
-  const slots = [
-    { items: tags.map(x => ({ label: '#' + x, href: '#/library' })), x: CX, y: 44, dashed: true },
-    { items: rel.map(x => ({ label: x.title, href: '#/topic/' + x.id })), x: CX, y: H - 44, dashed: false },
-    { items: arts.map(x => ({ label: x.title, href: '#/post/' + x.slug })), x: 140, y: CY, dashed: true },
-    { items: projs.map(x => ({ label: x.name, href: '#/projects' })), x: W - 140, y: CY, dashed: false },
-  ];
+  function lnk(href, text, cls) {
+    var a = el('a', cls, text);
+    a.setAttribute('href', href);
+    return a;
+  }
 
-  doc.setAttribute('class', 'graph');
-  doc.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
-  doc.setAttribute('role', 'img');
-  doc.setAttribute('aria-label', '关系图：' + t.title
-    + '；相关词条 ' + rel.length + '，关联文章 ' + arts.length + '，标签 ' + tags.length);
+  function clear(n) { if (n) n.textContent = ''; }
 
-  slots.forEach(sl => {
-    const n = Math.min(sl.items.length, 2);
-    for (let i = 0; i < n; i += 1) {
-      const it = sl.items[i];
-      const offset = n === 1 ? 0 : (i === 0 ? -1 : 1);
-      const x = sl.x === CX ? CX + offset * 150 : sl.x;
-      const y = sl.y === CY ? CY + offset * 46 : sl.y;
-      doc.appendChild(edge(CX, CY, x, y, sl.dashed));
-      const g = mk('a');
-      if (document.createElementNS) g.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', it.href);
-      g.setAttribute('href', it.href);
-      g.appendChild(box(x, y, NW, NH));
-      g.appendChild(txt(x, y + 5, clip(it.label, 14)));
-      doc.appendChild(g);
+  /* 只有构建期预渲染的片段允许走 innerHTML */
+  function frag(html) {
+    var box = document.createElement('div');
+    box.innerHTML = html;
+    var f = document.createDocumentFragment();
+    while (box.firstChild) f.appendChild(box.firstChild);
+    return f;
+  }
+
+  /* 协议白名单：http/https/mailto 与站内相对路径，其余一律不拼进 href/src */
+  function safeUrl(u) {
+    u = String(u === undefined || u === null ? '' : u).trim();
+    if (!u) return '';
+    if (/^(https?:\/\/|mailto:)/i.test(u)) return u;
+    if (u.charAt(0) === '#' || u.charAt(0) === '/') return u;
+    if (u.split(/[/?#]/)[0].indexOf(':') === -1) return u;   // 无协议的相对路径
+    return '';
+  }
+
+  function outLink(url, text, cls) {
+    var href = safeUrl(url);
+    if (!href) return el('span', cls || 'muted', text || String(url || ''));
+    var a = lnk(href, text || href, cls);
+    a.setAttribute('target', '_blank');
+    a.setAttribute('rel', 'nofollow noopener');
+    return a;
+  }
+
+  function num(n) { return String(n === undefined || n === null ? 0 : n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  function minutes(words) { return Math.max(1, Math.round((words || 0) / 300)); }
+  function cut(s, n) { s = String(s === undefined || s === null ? '' : s); return s.length > n ? s.slice(0, n) + '…' : s; }
+  function byId(arr, id) {
+    for (var i = 0; i < (arr || []).length; i++) { if (arr[i] && arr[i].id === id) return arr[i]; }
+    return null;
+  }
+  function bySlug(arr, slug) {
+    for (var i = 0; i < (arr || []).length; i++) { if (arr[i] && arr[i].slug === slug) return arr[i]; }
+    return null;
+  }
+  function uniq(a) {
+    var out = [], seen = {};
+    for (var i = 0; i < (a || []).length; i++) {
+      var v = a[i];
+      if (!v || seen[v]) continue;
+      seen[v] = 1; out.push(v);
     }
-    if (sl.items.length > 2) {
-      doc.appendChild(txt(sl.x, sl.y + (sl.y === CY ? 78 : 30), '+' + (sl.items.length - 2) + ' 个', { size: 11, fill: 'var(--ink-mute)' }));
-    }
-  });
-
-  doc.appendChild(box(CX, CY, 230, 52, 'var(--accent)'));
-  doc.appendChild(txt(CX, CY + 5, clip(t.title, 16), { size: 15 }));
-  return doc;
-}
-
-function memberCard(x) {
-  const c = el('article', 'person');
-  c.appendChild(avatarImg(x, 'avatar'));
-  const box = el('div');
-  const h = el('div', 'row');
-  h.appendChild(link('#/member/' + x.id, x.name, 'p-name'));
-  if (x.role) h.appendChild(el('span', 'badge', x.role));
-  box.appendChild(h);
-  if (x.signature) box.appendChild(el('p', 'p-sig', x.signature));
-  if (x.skills && x.skills.length) {
-    const st = el('div', 'skills');
-    x.skills.forEach(k => st.appendChild(el('span', 'skill', k)));
-    box.appendChild(st);
-  }
-  const n = contributions(x.id);
-  const meta = el('div', 'meta');
-  if (n.posts) meta.appendChild(el('span', '', '文章 ' + n.posts));
-  if (n.projects) meta.appendChild(el('span', '', '项目 ' + n.projects));
-  if (x.joined) meta.appendChild(el('span', '', '加入 ' + x.joined));
-  box.appendChild(meta);
-  c.appendChild(box);
-  return c;
-}
-
-/* ---------- 项目：把「它还活着吗」变成可比较的图形 ---------- */
-const LANG_COLORS = ['#a8471f', '#2f6b4f', '#8a5a12', '#4a4a7a', '#7a4a6a', '#5d564d'];
-
-/* 语言占比：条目里只声明了 languages 列表，没有字节数，所以这里按「主语言 + 其余均分」
-   的粗略权重画条 —— 是可视化，不是精确统计（面板里也如实标注来源）。 */
-function languageWeights(p) {
-  const langs = (p.languages && p.languages.length ? p.languages : [p.meta && p.meta.language].filter(Boolean));
-  if (!langs.length) return [];
-  if (langs.length === 1) return [{ name: langs[0], pct: 100 }];
-  const rest = Math.round((100 - 55) / (langs.length - 1));
-  return langs.map((name, i) => ({ name: name, pct: i === 0 ? 55 : rest }))
-    .filter(w => w.pct > 0);
-}
-
-function langBar(p) {
-  const ws = languageWeights(p);
-  if (!ws.length) return null;
-  const wrap = el('div');
-  const bar = el('div', 'lang-bar');
-  bar.setAttribute('role', 'img');
-  bar.setAttribute('aria-label', '语言占比（按条目声明推断）：' + ws.map(w => w.name + ' ' + w.pct + '%').join('，'));
-  ws.forEach((w, i) => {
-    const seg = el('i');
-    seg.style.width = w.pct + '%';
-    seg.style.background = LANG_COLORS[i % LANG_COLORS.length];
-    bar.appendChild(seg);
-  });
-  wrap.appendChild(bar);
-  const key = el('div', 'lang-key');
-  ws.forEach((w, i) => {
-    const item = el('span');
-    const dot = el('i');
-    dot.style.background = LANG_COLORS[i % LANG_COLORS.length];
-    item.appendChild(dot);
-    item.appendChild(el('span', '', w.name + ' ' + w.pct + '%'));
-    key.appendChild(item);
-  });
-  wrap.appendChild(key);
-  return wrap;
-}
-
-/* 迷你趋势线：仓库元数据里没有历史序列，这里用「最近提交时间 + 名字」派生一条
-   确定性的装饰线（同一仓库每次渲染一致）。面板里标注了它不是真实历史。 */
-function sparkFor(p) {
-  const meta = p.meta || {};
-  const seed = String(p.id || p.name || '');
-  let h = 0;
-  for (let i = 0; i < seed.length; i += 1) h = (h * 31 + seed.charCodeAt(i)) % 9973;
-  const last = meta.updated_at ? new Date(meta.updated_at).getTime() : 0;
-  const recency = last ? Math.max(0, Math.min(1, 1 - (Date.now() - last) / (1000 * 60 * 60 * 24 * 180))) : 0.4;
-  const pts = [];
-  for (let i = 0; i < 11; i += 1) {
-    const wobble = ((h + i * 137) % 100) / 100;
-    const t = i / 10;
-    const y = 34 - (t * 20 + recency * 8 + wobble * 5);
-    pts.push(Math.round(t * 200) + ',' + Math.max(3, Math.min(37, Math.round(y))));
-  }
-  const svg = document.createElementNS ? document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-    : el('svg');
-  svg.setAttribute('class', 'spark');
-  svg.setAttribute('viewBox', '0 0 200 40');
-  svg.setAttribute('preserveAspectRatio', 'none');
-  svg.setAttribute('aria-hidden', 'true');
-  const line = document.createElementNS ? document.createElementNS('http://www.w3.org/2000/svg', 'polyline')
-    : el('polyline');
-  line.setAttribute('points', pts.join(' '));
-  line.setAttribute('fill', 'none');
-  line.setAttribute('stroke', 'var(--accent)');
-  line.setAttribute('stroke-width', '2');
-  svg.appendChild(line);
-  return svg;
-}
-
-function kicker(text) {
-  return el('p', 'nav-kicker', text);
-}
-
-function kvPanel(rows, title) {
-  const box = el('div', 'panel');
-  if (title) box.appendChild(el('h2', '', title));
-  const dl = el('dl', 'kv');
-  rows.forEach(r => {
-    dl.appendChild(el('dt', '', r[0]));
-    const dd = el('dd');
-    if (r[2]) dd.appendChild(link(r[1], r[2]));
-    else dd.textContent = r[1];
-    dl.appendChild(dd);
-  });
-  box.appendChild(dl);
-  return box;
-}
-
-function projectCard(p) {
-  const c = el('article', 'project');
-  const left = el('div');
-  const head = el('div', 'row');
-  const title = link('#/project/' + p.id, p.name, 'card-title');
-  head.appendChild(title);
-  if (p.status) head.appendChild(el('span', 'badge', p.status));
-  if (p.meta && p.meta.stale) head.appendChild(el('span', 'badge', '缓存'));
-  left.appendChild(head);
-  left.appendChild(el('p', 'p-desc', p.one_liner || ''));
-  const bar = langBar(p);
-  if (bar) left.appendChild(bar);
-  const right = el('div', 'panel');
-  right.appendChild(el('h2', '', '状态'));
-  const stats = el('div', 'stat-row');
-  const addStat = (v, k) => {
-    const s = el('div', 'stat');
-    s.appendChild(el('b', '', String(v)));
-    s.appendChild(el('span', '', k));
-    stats.appendChild(s);
-  };
-  if (p.meta && p.meta.stars != null) addStat(p.meta.stars, 'STARS');
-  if (p.meta && p.meta.forks != null) addStat(p.meta.forks, 'FORKS');
-  if (p.meta && p.meta.updated_at) {
-    addStat(String(p.meta.updated_at).slice(0, 10), p.meta.stale ? '更新（缓存）' : '最近提交');
-  }
-  right.appendChild(stats);
-  right.appendChild(sparkFor(p));
-  right.appendChild(el('p', 'muted', '数据来自构建期抓取' + (p.meta && p.meta.stale ? '（缓存）' : '')));
-  c.appendChild(left);
-  c.appendChild(right);
-  return c;
-}
-
-function serviceDisclaimer() {
-  const box = el('aside', 'admonition warn');
-  const p = el('p');
-  p.appendChild(el('strong', '', '免责声明：'));
-  p.appendChild(el('span', '',
-    '本站只做信息展示，不参与交易、不担保、不抽成、不经手资金、不介入纠纷；'
-    + '黄页条目由成员本人提供并自负其责，不代表本站对任何个人或服务的认可或背书。'
-    + '联系方式仅来自成员本人授权公开的档案字段。收录标准与申诉见「能力与合作黄页制度」。'));
-  box.appendChild(p);
-  return box;
-}
-
-/* 黄页条目：固定三段式（能做什么 / 想找什么 / 怎么联系），状态用最左边框表达 */
-function serviceCard(s) {
-  const m = M.manifest;
-  const mem = (m.members || []).find(x => x.id === s.owner);
-  const c = el('article', 'service' + (s.status === 'active' ? ' has-side' : ' is-paused'));
-  const left = el('div');
-  const h = el('div', 'row');
-  h.appendChild(link('#/service/' + s.id, s.name, 'card-title'));
-  h.appendChild(el('span', 'badge', s.status === 'active' ? '可接洽' : '暂停'));
-  left.appendChild(h);
-  const who = el('p', 'who');
-  who.appendChild(el('span', '', '登记人 '));
-  who.appendChild(mem ? link('#/member/' + mem.id, mem.name) : el('span', '', s.owner));
-  if (s.updated) who.appendChild(el('span', '', ' · 更新于 ' + s.updated));
-  left.appendChild(who);
-  if (s.skills && s.skills.length) {
-    const st = el('div', 'skills');
-    s.skills.forEach(k => st.appendChild(el('span', 'skill', k)));
-    left.appendChild(st);
-  }
-  if (s.wants && s.wants.length) {
-    const w = el('p', 'offer');
-    w.appendChild(el('b', '', '想找：'));
-    w.appendChild(el('span', '', s.wants.join('、')));
-    left.appendChild(w);
-  }
-  c.appendChild(left);
-
-  const side = el('div', 'side');
-  const dl = el('dl', 'kv');
-  if (s.rate) {
-    dl.appendChild(el('dt', '', '费用 / 方式'));
-    dl.appendChild(el('dd', '', s.rate));
-  }
-  dl.appendChild(el('dt', '', '结算'));
-  dl.appendChild(el('dd', '', '站外自行约定（本站不经手）'));
-  side.appendChild(dl);
-  if (mem && s.contact && s.contact.length) {
-    side.appendChild(el('div', 'contact-h', '联系方式'));
-    side.appendChild(contactTags(mem, s.contact, 'contact'));
-  }
-  c.appendChild(side);
-  return c;
-}
-/* ---------- 视图 ---------- */
-async function viewLibrary() {
-  const m = M.manifest;
-  const main = $('#main');
-  main.textContent = '';
-  const head = el('div', 'page-head');
-  head.appendChild(el('h1', '', '文章库'));
-  head.appendChild(el('span', 'muted', m.posts.length + ' 篇'));
-  main.appendChild(head);
-
-  const bar = el('div', 'filterbar');
-  const years = [...new Set(m.posts.map(p => p.year))].sort().reverse();
-  const y0 = el('button', 'chip' + (!state.year ? ' cur' : ''), '全部年份');
-  y0.onclick = () => { state.year = ''; viewLibrary(); };
-  bar.appendChild(y0);
-  years.forEach(y => {
-    const b = el('button', 'chip' + (state.year === y ? ' cur' : ''), y + ' 年');
-    b.onclick = () => { state.year = state.year === y ? '' : y; viewLibrary(); };
-    bar.appendChild(b);
-  });
-  (m.tags || []).slice(0, 16).forEach(t => {
-    const b = el('button', 'chip' + (state.tag === t.tag ? ' cur' : ''), '#' + t.tag + ' ' + t.count);
-    b.onclick = () => { state.tag = state.tag === t.tag ? '' : t.tag; viewLibrary(); };
-    bar.appendChild(b);
-  });
-  main.appendChild(bar);
-
-  const list = m.posts.filter(p => (!state.year || p.year === state.year) && (!state.tag || p.tags.includes(state.tag)));
-  const byYear = {};
-  list.forEach(p => { (byYear[p.year] = byYear[p.year] || []).push(p); });
-  Object.keys(byYear).sort().reverse().forEach(y => {
-    const items = byYear[y];
-    const h = el('div', 'page-head');
-    h.appendChild(el('h2', '', y + ' 年'));
-    h.appendChild(el('span', 'muted', items.length + ' 篇'));
-    main.appendChild(h);
-    const limit = state.expand[y] ? items.length : Math.min(items.length, YEAR_PAGE);
-    const box = el('div', 'cards');
-    items.slice(0, limit).forEach(p => box.appendChild(postCard(p)));
-    main.appendChild(box);
-    if (items.length > limit) {
-      const more = el('button', 'btn', '展开 ' + y + ' 年其余 ' + (items.length - limit) + ' 篇');
-      more.onclick = () => { state.expand[y] = 1; viewLibrary(); };
-      main.appendChild(more);
-    }
-  });
-  if (!list.length) main.appendChild(el('p', 'muted', '没有匹配的文章。'));
-}
-
-async function viewKnowledge() {
-  const m = M.manifest;
-  const main = $('#main');
-  main.textContent = '';
-  main.appendChild(el('h1', '', '文章知识'));
-  main.appendChild(el('p', 'muted', '同一主题的文章、系列与作者索引，用于按线索阅读而不是按时间翻。'));
-
-  if ((m.topics || []).length) {
-    main.appendChild(el('h2', '', '主题词条'));
-    const g = el('div', 'cards');
-    m.topics.forEach(t => {
-      const c = el('article', 'card');
-      c.appendChild(link('#/topic/' + t.id, t.title, 'card-title'));
-      c.appendChild(el('p', 'muted', t.summary));
-      const meta = el('div', 'meta');
-      meta.appendChild(el('span', '', (t.resolved || []).length + ' 篇关联文章'));
-      (t.related || []).forEach(r => {
-        const rt = (m.topics || []).find(x => x.id === r);
-        meta.appendChild(link('#/topic/' + r, '相关：' + (rt ? rt.title : r), 'tag'));
-      });
-      c.appendChild(meta);
-      g.appendChild(c);
-    });
-    main.appendChild(g);
+    return out;
   }
 
-  if ((m.series || []).length) {
-    main.appendChild(el('h2', '', '系列'));
-    m.series.forEach(s => {
-      const block = el('section', 'card');
-      block.appendChild(el('strong', '', s.title));
-      const t = el('div', 'tree');
-      s.posts.forEach(x => t.appendChild(link('#/post/' + x.slug, x.title, 'leaf')));
-      block.appendChild(t);
-      main.appendChild(block);
+  /* ---------- 数据装载（两个 fetch 中的全部） ---------- */
+
+  function loadManifest() {
+    if (S.man) return Promise.resolve(S.man);
+    return fetch('manifest.json').then(function (r) { return r.json(); }).then(function (m) {
+      S.man = m; return m;
     });
   }
 
-  main.appendChild(el('h2', '', '按标签'));
-  const tags = el('div', 'tags');
-  (m.tags || []).forEach(t => tags.appendChild(link('#/library', t.tag + ' (' + t.count + ')', 'tag')));
-  main.appendChild(tags);
-  (m.tags || []).slice(0, 12).forEach(t => {
-    const posts = m.posts.filter(p => p.tags.includes(t.tag));
-    const block = el('section', 'kb-block');
-    block.appendChild(el('h3', '', '#' + t.tag));
-    const ul = el('ul', 'kb-list');
-    posts.forEach(p => {
-      const li = el('li');
-      li.appendChild(link('#/post/' + p.slug, p.title));
-      li.appendChild(el('span', 'muted', ' · ' + p.date));
-      ul.appendChild(li);
-    });
-    block.appendChild(ul);
-    main.appendChild(block);
-  });
-
-  main.appendChild(el('h2', '', '按作者'));
-  const byAuthor = {};
-  m.posts.forEach(p => { (byAuthor[p.author || '匿名'] = byAuthor[p.author || '匿名'] || []).push(p); });
-  Object.keys(byAuthor).forEach(a => {
-    const mem = m.members.find(x => x.id === a);
-    const row = el('div', 'row');
-    row.appendChild(mem ? link('#/member/' + mem.id, mem.name, 'tag') : el('span', 'tag', a));
-    row.appendChild(el('span', 'muted', byAuthor[a].length + ' 篇'));
-    main.appendChild(row);
-  });
-}
-
-async function viewPostsLegacy() { goto('#/library'); }
-
-async function viewPost(slug, anchor) {
-  const m = M.manifest;
-  const p = m.posts.find(x => x.slug === slug);
-  const main = $('#main');
-  main.textContent = '';
-  if (!p) { main.appendChild(el('p', 'muted', '文章不存在。')); return; }
-  document.title = p.title + ' · ' + m.site.title;
-  const art = el('article', 'post');
-  const head = el('header', 'post-head');
-  const crumb = el('nav', 'breadcrumb');
-  crumb.setAttribute('aria-label', '面包屑');
-  crumb.appendChild(link('#/library', '文章库'));
-  crumb.appendChild(el('span', '', ' / '));
-  if (p.series) {
-    const s = m.series.find(x => x.id === p.series);
-    if (s) {
-      crumb.appendChild(el('span', '', s.title));
-      crumb.appendChild(el('span', '', ' / '));
-    }
-  }
-  crumb.appendChild(el('span', '', p.year + ' 年'));
-  head.appendChild(crumb);
-  head.appendChild(el('h1', '', p.title));
-  head.appendChild(bylineLine(p));
-  art.appendChild(head);
-  if (p.summary) art.appendChild(el('p', 'lede', p.summary));
-  if (p.video) {
-    const d = el('div', 'video');
-    const f = el('iframe');
-    f.src = 'https://player.bilibili.com/player.html?bvid=' + encodeURIComponent(p.video) + '&high_quality=1';
-    f.setAttribute('scrolling', 'no');
-    f.setAttribute('frameborder', '0');
-    f.setAttribute('allowfullscreen', '');
-    d.appendChild(f);
-    art.appendChild(d);
-  }
-  const body = el('div', 'body');
-  body.innerHTML = await fragment(p.html);
-  art.appendChild(body);
-  if (p.attachments && p.attachments.length) {
-    const box = el('section', 'attach');
-    box.appendChild(el('h2', '', '附件'));
-    p.attachments.forEach(a => {
-      const r = el('div', 'row');
-      r.appendChild(link(a.url, a.name, 'tag'));
-      r.appendChild(el('span', 'muted', a.kind + (a.size ? ' · ' + a.size : '')));
-      box.appendChild(r);
-    });
-    art.appendChild(box);
-  }
-  const tagbox = el('div', 'tags');
-  let tagCount = 0;
-  (p.tags || []).forEach(t => {
-    tagbox.appendChild(link('#/library?tag=' + encodeURIComponent(t), '#' + t, 'tag'));
-    tagCount += 1;
-  });
-  if (p.topics && p.topics.length) {
-    p.topics.forEach(id => {
-      const t = (m.topics || []).find(x => x.id === id);
-      tagbox.appendChild(link('#/topic/' + id, '词条：' + (t ? t.title : id), 'tag'));
-      tagCount += 1;
+  function fragment(path) {
+    if (!path) return Promise.resolve('');
+    if (Object.prototype.hasOwnProperty.call(S.frags, path)) return Promise.resolve(S.frags[path]);
+    return fetch(path).then(function (r) { return r.text(); }).then(function (t) {
+      S.frags[path] = t; return t;
     });
   }
-  if (tagCount) art.appendChild(tagbox);
 
-  const lic = el('p', 'license');
-  lic.appendChild(el('span', '', '许可：' + (p.license || m.site.license || '见文章内 license 字段')));
-  lic.appendChild(el('span', 'dot'));
-  lic.appendChild(el('span', '', '讨论请回到 QQ 群'));
-  art.appendChild(lic);
-  if (p.series) {
-    const s = m.series.find(x => x.id === p.series);
-    if (s) {
-      const nav = el('nav', 'series-nav');
-      nav.appendChild(el('strong', '', '系列：' + s.title));
-      s.posts.forEach(x => nav.appendChild(link('#/post/' + x.slug, x.title,
-        'tag' + (x.slug === slug ? ' cur' : ''))));
-      art.appendChild(nav);
-    }
-  }
-  main.appendChild(art);
-  sidebar(['post', slug], p.toc);
-  scrollToAnchor(anchor);
-}
-
-async function viewProjects() {
-  const m = M.manifest;
-  const main = $('#main');
-  main.textContent = '';
-  const head = el('div', 'page-head');
-  head.appendChild(el('h1', '', '项目'));
-  head.appendChild(el('span', 'muted', m.projects.length + ' 个'));
-  main.appendChild(head);
-  main.appendChild(el('p', 'muted',
-    '左边说这项目是什么，右边说它还活着吗（stars / forks / 语言占比 / 最近提交）。元数据由构建期抓取。'));
-  const g = el('div', 'service-list');
-  g.style.marginTop = 'var(--sp-5)';
-  m.projects.forEach(p => g.appendChild(projectCard(p)));
-  main.appendChild(g);
-}
-
-async function viewProject(id) {
-  const m = M.manifest;
-  const main = $('#main');
-  main.textContent = '';
-  const p = (m.projects || []).find(x => x.id === id);
-  if (!p) { main.appendChild(el('p', 'muted', '项目不存在。')); return; }
-  document.title = p.name + ' · ' + m.site.title;
-
-  const crumb = el('nav', 'breadcrumb');
-  crumb.setAttribute('aria-label', '面包屑');
-  crumb.appendChild(link('#/projects', '项目'));
-  crumb.appendChild(el('span', '', ' / '));
-  crumb.appendChild(el('span', '', p.name));
-  main.appendChild(crumb);
-
-  const h = el('div', 'row');
-  h.appendChild(el('h1', '', p.name));
-  if (p.status) h.appendChild(el('span', 'badge', p.status));
-  if (p.meta && p.meta.stale) h.appendChild(el('span', 'badge', '缓存'));
-  main.appendChild(h);
-
-  if (p.one_liner) main.appendChild(el('p', 'lede', p.one_liner));
-
-  const actions = el('div', 'tags');
-  const acts = [['repo', '仓库'], ['docs', '文档'], ['homepage', '主页']];
-  let actCount = 0;
-  acts.forEach(a => {
-    if (!p[a[0]]) return;
-    const l = link(p[a[0]], a[1], 'tag');
-    l.target = '_blank';
-    l.rel = 'noopener';
-    actions.appendChild(l);
-    actCount += 1;
-  });
-  const mine = (m.posts || []).filter(x => (x.tags || []).some(t => (p.languages || []).indexOf(t) >= 0));
-  if (actCount) main.appendChild(actions);
-
-  const stats = el('div', 'stat-row');
-  const addStat = (v, k) => {
-    const s = el('div', 'stat');
-    s.appendChild(el('b', '', String(v)));
-    s.appendChild(el('span', '', k));
-    stats.appendChild(s);
-  };
-  const meta = p.meta || {};
-  if (meta.stars != null) addStat(meta.stars, 'STARS');
-  if (meta.forks != null) addStat(meta.forks, 'FORKS');
-  if (meta.language) addStat(meta.language, '主要语言');
-  if (meta.license) addStat(meta.license, '许可');
-  if (p.license && !meta.license) addStat(p.license, '许可');
-  if (meta.updated_at) addStat(String(meta.updated_at).slice(0, 10), meta.stale ? '更新（缓存）' : '最近提交');
-  if (meta.archived) addStat('已归档', '状态');
-  main.appendChild(stats);
-
-  const pj = el('div', 'project');
-  const pjLeft = el('div');
-  const bar = langBar(p);
-  if (bar) { pjLeft.appendChild(kicker('语言占比（按条目声明推断）')); pjLeft.appendChild(bar); }
-  pjLeft.appendChild(el('p', 'muted',
-    '说明：语言占比由条目声明的 languages 推断，不是字节统计；趋势线与百分比都不代表仓库真实历史。'));
-  main.appendChild(pjLeft);
-
-  const rows = [['仓库', p.repo || '（未声明）', p.repo || '']];
-  if (p.host) rows.push(['托管', p.host, '']);
-  if (p.owner) {
-    const mem = (m.members || []).find(x => x.id === p.owner);
-    rows.push(['维护者', mem ? mem.name : p.owner, mem ? '#/member/' + mem.id : '']);
-  }
-  if (p.contributors && p.contributors.length) rows.push(['贡献者', p.contributors.join('、'), '']);
-  if (meta.fetched_at) rows.push(['抓取于', String(meta.fetched_at).slice(0, 16).replace('T', ' '), '']);
-  main.appendChild(kvPanel(rows, '仓库信息'));
-
-  if (p.milestones && p.milestones.length) {
-    main.appendChild(el('h2', 'section-h', '里程碑'));
-    const tl = el('ul', 'timeline');
-    p.milestones.forEach(ms => {
-      const li = el('li');
-      if (ms.date) li.appendChild(el('span', 'when-t', String(ms.date)));
-      if (ms.text) li.appendChild(el('p', 'what', ms.text));
-      if (ms.why) li.appendChild(el('p', 'why', ms.why));
-      tl.appendChild(li);
-    });
-    main.appendChild(tl);
-  }
-
-  const rel = (m.posts || []).filter(x => (x.topics || []).some(t => String(t).toLowerCase().indexOf(String(p.name).toLowerCase()) >= 0));
-  const relBox = el('div', 'cards');
-  rel.slice(0, 3).forEach(x => relBox.appendChild(postCard(x)));
-  if (rel.length) {
-    main.appendChild(el('h2', 'section-h', '本站相关内容'));
-    main.appendChild(relBox);
-  } else if (mine) {
-    /* 没有主题关联时不硬凑，留空即可（避免把无关文章挂上来） */
-  }
-
-  sidebar(['projects'], null);
-}
-
-async function viewResources() {
-  const m = M.manifest;
-  const main = $('#main');
-  main.textContent = '';
-  const head = el('div', 'page-head');
-  head.appendChild(el('h1', '', '资源库'));
-  head.appendChild(el('span', 'muted', m.resources.length + ' 条'));
-  main.appendChild(head);
-
-  const bar = el('div', 'filterbar');
-  const kinds = [...new Set(m.resources.map(r => r.kind))];
-  const b0 = el('button', 'chip' + (state.tag === '' ? ' cur' : ''), '全部');
-  b0.onclick = () => { state.tag = ''; viewResources(); };
-  bar.appendChild(b0);
-  kinds.forEach(k => {
-    const b = el('button', 'chip' + (state.tag === k ? ' cur' : ''), k);
-    b.onclick = () => { state.tag = state.tag === k ? '' : k; viewResources(); };
-    bar.appendChild(b);
-  });
-  main.appendChild(bar);
-
-  const list = m.resources.filter(r => !state.tag || r.kind === state.tag);
-  const by = {};
-  list.forEach(r => { (by[r.kind] = by[r.kind] || []).push(r); });
-  Object.keys(by).forEach(k => {
-    main.appendChild(el('h2', '', k));
-    by[k].forEach(r => {
-      const row = el('div', 'card res');
-      row.appendChild(link(r.url, r.title, 'card-title'));
-      if (r.note) row.appendChild(el('p', 'muted', r.note));
-      const meta = el('div', 'meta');
-      if (r.meta) {
-        if (r.meta.stars != null) meta.appendChild(el('span', '', '★ ' + r.meta.stars));
-        if (r.meta.language) meta.appendChild(el('span', '', r.meta.language));
-        if (r.meta.updated_at) meta.appendChild(el('span', '', '更新 ' + String(r.meta.updated_at).slice(0, 10)));
-        if (r.meta.license) meta.appendChild(el('span', '', r.meta.license));
-      }
-      if (meta.childNodes.length) row.appendChild(meta);
-      if (r.tags && r.tags.length) {
-        const t = el('div', 'tags');
-        r.tags.forEach(x => t.appendChild(el('span', 'tag', x)));
-        row.appendChild(t);
-      }
-      main.appendChild(row);
-    });
-  });
-}
-
-async function viewMembers() {
-  const m = M.manifest;
-  const main = $('#main');
-  main.textContent = '';
-  const head = el('div', 'page-head');
-  head.appendChild(el('h1', '', '成员'));
-  head.appendChild(el('span', 'muted', m.members.length + ' 人'));
-  main.appendChild(head);
-  main.appendChild(el('p', 'muted',
-    '个人页为自愿制：content/members/ 下有档案文件的才会出现；头像放同名文件（如 content/members/<id>.jpg）会自动使用。'));
-
-  const q = el('input', 'side-filter');
-  q.type = 'search';
-  q.placeholder = '按昵称 / 签名 / 技能筛选…';
-  q.value = state.memberQ || '';
-  main.appendChild(q);
-
-  const g = el('div', 'members');
-  g.style.marginTop = 'var(--sp-5)';
-  main.appendChild(g);
-
-  function renderList() {
-    g.textContent = '';
-    const s = (state.memberQ || '').trim().toLowerCase();
-    const list = m.members.filter(x => !s
-      || x.name.toLowerCase().includes(s)
-      || (x.signature || '').toLowerCase().includes(s)
-      || (x.skills || []).join(' ').toLowerCase().includes(s));
-    list.forEach(x => g.appendChild(memberCard(x)));
-    if (!list.length) g.appendChild(el('p', 'muted', '没有匹配的成员。'));
-  }
-  q.oninput = () => { state.memberQ = q.value; renderList(); };
-  renderList();
-}
-
-async function viewMember(id) {
-  const m = M.manifest;
-  const x = m.members.find(v => v.id === id);
-  const main = $('#main');
-  main.textContent = '';
-  if (!x) { main.appendChild(el('p', 'muted', '成员不存在。')); return; }
-  document.title = x.name + ' · ' + m.site.title;
-
-  const crumb = el('nav', 'breadcrumb');
-  crumb.setAttribute('aria-label', '面包屑');
-  crumb.appendChild(link('#/members', '成员'));
-  crumb.appendChild(el('span', '', ' / '));
-  crumb.appendChild(el('span', '', x.name));
-  main.appendChild(crumb);
-
-  const n = contributions(id);
-  const hero = el('div', 'member-hero');
-  hero.appendChild(avatarImg(x, 'avatar'));
-  const who = el('div');
-  const h = el('div', 'row');
-  h.appendChild(el('h1', '', x.name));
-  if (x.role) h.appendChild(el('span', 'badge', x.role));
-  who.appendChild(h);
-  if (x.signature) who.appendChild(el('p', 'p-sig', x.signature));
-  if (x.skills && x.skills.length) {
-    const st = el('div', 'skills');
-    st.style.marginTop = '8px';
-    x.skills.forEach(k => st.appendChild(el('span', 'skill', k)));
-    who.appendChild(st);
-  }
-  hero.appendChild(who);
-  const counts = statRow([[n.posts, '文章'], [n.projects, '项目'], [x.joined, '加入']]);
-  counts.className = 'counts';
-  hero.appendChild(counts);
-  main.appendChild(hero);
-
-  const posts = (m.posts || []).filter(p => p.author === id || (p.co_authors || []).indexOf(id) >= 0);
-  if (posts.length) {
-    main.appendChild(el('h2', 'section-h', '文章（' + posts.length + '）'));
-    const box = el('div', 'service-list');
-    posts.forEach(p => {
-      const row = el('article', 'card');
-      row.style.padding = 'var(--sp-3) var(--sp-4)';
-      const line = el('div', 'row');
-      line.appendChild(link('#/post/' + p.slug, p.title, 'card-title'));
-      line.appendChild(el('span', 'muted', p.date + ' · ' + (p.words || 0) + ' 字'));
-      row.appendChild(line);
-      box.appendChild(row);
-    });
-    main.appendChild(box);
-  }
-
-  const projs = (m.projects || []).filter(p => p.owner === id || (p.contributors || []).indexOf(id) >= 0);
-  if (projs.length) {
-    main.appendChild(el('h2', 'section-h', '参与项目（' + projs.length + '）'));
-    const box = el('div', 'cards');
-    projs.forEach(p => {
-      const a = el('a', 'scenario');
-      a.href = '#/project/' + p.id;
-      const role = p.owner === id ? '维护者' : '贡献者';
-      a.appendChild(el('span', 'k', role));
-      a.appendChild(el('b', '', p.name));
-      a.appendChild(el('span', '', p.one_liner || ''));
-      box.appendChild(a);
-    });
-    main.appendChild(box);
-  }
-
-  const svcs = (m.services || []).filter(s => s.owner === id);
-  if (svcs.length) {
-    main.appendChild(el('h2', 'section-h', '黄页条目（' + svcs.length + '）'));
-    const box = el('div', 'service-list');
-    svcs.forEach(s => box.appendChild(serviceCard(s)));
-    main.appendChild(box);
-  }
-
-  const linkKeys = Object.keys(x.links || {});
-  main.appendChild(el('h2', 'section-h', '联系方式'));
-  if (linkKeys.length) {
-    main.appendChild(el('p', 'muted',
-      '以下字段由本人提供并授权展示；不想公开时删掉档案里的对应行即可。'));
-    main.appendChild(contactTags(x, linkKeys, 'tags'));
-  } else {
-    main.appendChild(el('p', 'muted', '这位成员没有公开联系方式（档案里 links 为空，或全部设为不公开）。'));
-  }
-
-  sidebar(['members'], null);
-}
-
-async function viewServices() {
-  const m = M.manifest;
-  const main = $('#main');
-  main.textContent = '';
-  const list = m.services || [];
-  const head = el('div', 'page-head');
-  head.appendChild(el('h1', '', '能力与合作'));
-  head.appendChild(el('span', 'muted', list.length + ' 条'));
-  main.appendChild(head);
-  main.appendChild(el('p', 'muted',
-    '群友自愿登记的能力黄页，纯信息展示：条目写在 content/services/ 下，联系方式只引用成员档案中本人授权公开的字段。'));
-  main.appendChild(serviceDisclaimer());
-
-  const bar = el('div', 'filterbar');
-  const skills = [...new Set(list.flatMap(s => s.skills || []))].sort();
-  const b0 = el('button', 'chip' + (!state.tag ? ' cur' : ''), '全部技能');
-  b0.onclick = () => { state.tag = ''; viewServices(); };
-  bar.appendChild(b0);
-  skills.forEach(k => {
-    const b = el('button', 'chip' + (state.tag === k ? ' cur' : ''), k);
-    b.onclick = () => { state.tag = state.tag === k ? '' : k; viewServices(); };
-    bar.appendChild(b);
-  });
-  main.appendChild(bar);
-
-  const q = el('input', 'side-filter');
-  q.type = 'search';
-  q.placeholder = '按名称 / 技能 / 想找的内容筛选…';
-  q.value = state.svcQ || '';
-  q.oninput = () => { state.svcQ = q.value; renderList(); };
-  main.appendChild(q);
-
-  const g = el('div', 'service-list');
-  g.style.marginTop = 'var(--sp-4)';
-  main.appendChild(g);
-
-  function renderList() {
-    g.textContent = '';
-    const s = (state.svcQ || '').trim().toLowerCase();
-    const memName = (id) => { const x = m.members.find(v => v.id === id); return x ? x.name : id; };
-    const shown = list.filter(x =>
-      (!state.tag || (x.skills || []).includes(state.tag))
-      && (!s
-        || x.name.toLowerCase().includes(s)
-        || (x.skills || []).join(' ').toLowerCase().includes(s)
-        || (x.wants || []).join(' ').toLowerCase().includes(s)
-        || memName(x.owner).toLowerCase().includes(s)));
-    shown.forEach(x => g.appendChild(serviceCard(x)));
-    if (!shown.length) g.appendChild(el('p', 'muted', '没有匹配的条目。'));
-  }
-  renderList();
-}
-
-async function viewService(id, anchor) {
-  const m = M.manifest;
-  const main = $('#main');
-  main.textContent = '';
-  const s = (m.services || []).find(v => v.id === id);
-  if (!s) { main.appendChild(el('p', 'muted', '条目不存在。')); return; }
-  document.title = s.name + ' · ' + m.site.title;
-
-  const crumb = el('nav', 'breadcrumb');
-  crumb.setAttribute('aria-label', '面包屑');
-  crumb.appendChild(link('#/services', '能力与合作'));
-  crumb.appendChild(el('span', '', ' / '));
-  crumb.appendChild(el('span', '', s.name));
-  main.appendChild(crumb);
-
-  const c = el('article', 'post');
-  const head = el('div', 'row');
-  head.appendChild(el('h1', '', s.name));
-  head.appendChild(el('span', 'badge', s.status === 'active' ? '可接洽' : '暂停'));
-  c.appendChild(head);
-
-  const mem = (m.members || []).find(x => x.id === s.owner);
-  if (mem) {
-    const who = el('div', 'row');
-    who.appendChild(avatarImg(mem, 'avatar'));
-    who.appendChild(link('#/member/' + mem.id, mem.name, 'tag'));
-    if (mem.role) who.appendChild(el('span', 'badge', mem.role));
-    if (s.updated) who.appendChild(el('span', 'muted', '更新于 ' + s.updated));
-    c.appendChild(who);
-  }
-
-  if (s.skills && s.skills.length) {
-    const tags = el('div', 'tags');
-    s.skills.forEach(x => tags.appendChild(el('span', 'tag', x)));
-    c.appendChild(tags);
-  }
-
-  /* 三段式：能做什么（正文）→ 想找什么 → 怎么联系 */
-  if (s.wants && s.wants.length) {
-    const w = el('p', 'lede');
-    w.appendChild(el('b', '', '想找：'));
-    w.appendChild(el('span', '', s.wants.join('、')));
-    c.appendChild(w);
-  }
-
-  const body = el('div', 'body');
-  body.innerHTML = await fragment(s.html);
-  c.appendChild(body);
-
-  const side = el('div', 'panel');
-  side.appendChild(el('h2', '', '怎么联系'));
-  const dl = el('dl', 'kv');
-  dl.appendChild(el('dt', '', '登记人'));
-  const ddOwner = el('dd');
-  ddOwner.appendChild(mem ? link('#/member/' + mem.id, mem.name) : el('span', '', s.owner));
-  dl.appendChild(ddOwner);
-  if (s.rate) {
-    dl.appendChild(el('dt', '', '费用 / 方式'));
-    dl.appendChild(el('dd', '', s.rate));
-  }
-  dl.appendChild(el('dt', '', '结算'));
-  dl.appendChild(el('dd', '', '站外自行约定（本站不经手资金）'));
-  side.appendChild(dl);
-  if (mem && s.contact && s.contact.length) {
-    const contact = contactTags(mem, s.contact, 'contact');
-    if (contact.children.length) {
-      side.appendChild(el('h2', '', '联系方式'));
-      side.appendChild(el('p', 'muted', '仅引用成员本人公开档案里的字段。'));
-      side.appendChild(contact);
-    }
-  }
-  c.appendChild(side);
-
-  c.appendChild(serviceDisclaimer());
-
-  const pol = (m.pages || []).find(v => v.id === 'yellow-pages');
-  if (pol) c.appendChild(link('#/page/yellow-pages', '收录标准、审核与申诉 →', 'leaf sec'));
-  main.appendChild(c);
-  sidebar(['service', id], s.toc);
-  scrollToAnchor(anchor);
-}
-
-/* 站文档的左栏：文档树 + 本页小节。与 render_() 默认的站点导航互斥（各自负责自己的路由）。 */
-function sidebarDoc(toc) {
-  const box = $('#sidebar');
-  if (!box) return;
-  box.textContent = '';
-  const head = el('div', 'side-head');
-  const h = el('p', 'nav-kicker', '站文档');
-  head.appendChild(h);
-  box.appendChild(head);
-  const panel = el('div');
-  panel.appendChild(docsTree(route()[1] || null));
-  if (toc && toc.length) {
-    panel.appendChild(el('h3', 'side-h', '本页小节'));
-    const t = el('div', 'tree toc');
-    toc.forEach(x => t.appendChild(link('#/page/' + (route()[1] || '') + '/' + x.id, x.text, 'leaf lv' + x.level)));
-    panel.appendChild(t);
-  }
-  box.appendChild(panel);
-}
-
-async function viewTopics() {
-  const m = M.manifest;
-  const main = $('#main');
-  main.textContent = '';
-  main.appendChild(el('h1', '', '主题词条'));
-  main.appendChild(el('p', 'muted', '一个词条 = 一个主题的定义 + 相关文章。词条写在 content/topics/ 下，同标签的文章会自动归入。'));
-  if (!(m.topics || []).length) {
-    main.appendChild(el('p', 'muted', '还没有词条。用 python engine/cli.py new "主题名" --topic --slug topic-id 新建。'));
-    return;
-  }
-  const g = el('div', 'cards');
-  g.style.marginTop = 'var(--sp-5)';
-  m.topics.forEach(t => {
-    const c = el('article', 'card');
-    const h = el('div', 'row');
-    h.appendChild(link('#/topic/' + t.id, t.title, 'card-title'));
-    const n = (t.resolved || []).length;
-    h.appendChild(el('span', 'badge', n + ' 篇'));
-    c.appendChild(h);
-    if (t.summary) c.appendChild(el('p', 'muted', t.summary));
-    const meta = el('div', 'meta');
-    (t.tags || []).forEach(x => meta.appendChild(link('#/library?tag=' + encodeURIComponent(x), '#' + x, 'tag')));
-    const rd = (t.related || []).map(id => (m.topics || []).find(x => x.id === id)).filter(Boolean);
-    if (rd.length) {
-      meta.appendChild(el('span', 'muted', '相关：'));
-      rd.forEach(x => meta.appendChild(link('#/topic/' + x.id, x.title, 'tag')));
-    }
-    if (meta.children.length) c.appendChild(meta);
-    g.appendChild(c);
-  });
-  main.appendChild(g);
-}
-
-async function viewTopic(id, anchor) {
-  const m = M.manifest;
-  const main = $('#main');
-  main.textContent = '';
-  if (!id) { await viewTopics(); return; }
-  const t = (m.topics || []).find(v => v.id === id);
-  if (!t) { main.appendChild(el('p', 'muted', '词条不存在。')); return; }
-  document.title = t.title + ' · ' + m.site.title;
-
-  const crumb = el('nav', 'breadcrumb');
-  crumb.setAttribute('aria-label', '面包屑');
-  crumb.appendChild(link('#/topics', '主题词条'));
-  crumb.appendChild(el('span', '', ' / '));
-  crumb.appendChild(el('span', '', t.title));
-  main.appendChild(crumb);
-
-  const h = el('div', 'row');
-  h.appendChild(el('h1', '', t.title));
-  const nPosts = (t.resolved || []).length;
-  if (nPosts) h.appendChild(el('span', 'badge', nPosts + ' 篇关联文章'));
-  main.appendChild(h);
-
-  /* 定义置顶：词条的读者是来「确认一个概念」的，所以一句话定义必须最先看到 */
-  const def = el('div', 'define');
-  def.appendChild(el('p', 'term-name', '定义'));
-  def.appendChild(el('p', 'def', t.summary || '（这个词条还没有写定义 —— 欢迎补一句。）'));
-  main.appendChild(def);
-
-  if (t.tags && t.tags.length) {
-    const tags = el('div', 'tags');
-    t.tags.forEach(x => tags.appendChild(el('span', 'tag', x)));
-    main.appendChild(tags);
-  }
-
-  const graph = relGraph(t, m);
-  if (graph) {
-    main.appendChild(el('h2', 'section-h', '关系图'));
-    main.appendChild(graph);
-  }
-
-  const body = el('div', 'body');
-  body.style.maxWidth = '38rem';
-  body.innerHTML = await fragment(t.html);
-  main.appendChild(body);
-
-  const related = (t.resolved || []).map(s => (m.posts || []).find(p => p.slug === s)).filter(Boolean);
-  if (related.length) {
-    main.appendChild(el('h2', 'section-h', '相关文章（' + related.length + '）'));
-    const box = el('div', 'cards');
-    related.slice(0, 4).forEach(p => box.appendChild(postCard(p)));
-    main.appendChild(box);
-  } else {
-    main.appendChild(el('h2', 'section-h', '相关文章（0）'));
-    main.appendChild(el('p', 'muted', '还没有文章归入这个词条 —— 给文章加上同样的标签即可自动归入。'));
-  }
-
-  const rd = (t.related || []).map(r => (m.topics || []).find(x => x.id === r)).filter(Boolean);
-  main.appendChild(el('h2', 'section-h', '相关'));
-  const relList = el('ul', 'rel-list');
-  relList.appendChild(relRow('关联文章', related.map(p => ['#/post/' + p.slug, p.title])));
-  relList.appendChild(relRow('相关词条', rd.map(x => ['#/topic/' + x.id, x.title])));
-  relList.appendChild(relRow('标签', (t.tags || []).map(x => ['#/library?tag=' + encodeURIComponent(x), '#' + x])));
-  main.appendChild(relList);
-
-  const tip = el('div', 'adm tip');
-  const tipT = el('p', 'adm-t', '想补充这个词条？');
-  tip.appendChild(tipT);
-  const tipP = el('p');
-  tipP.appendChild(el('span', '', '词条写在 '));
-  const code = el('code', '', 'site/content/topics/');
-  tipP.appendChild(code);
-  tipP.appendChild(el('span', '', ' 下，同标签的文章会自动归入；改动走 PR，见 '));
-  tipP.appendChild(link('#/page/contribute', '投稿指南'));
-  tipP.appendChild(el('span', '', '。'));
-  tip.appendChild(tipP);
-  main.appendChild(tip);
-
-  sidebar(['topic', id], t.toc);
-  scrollToAnchor(anchor);
-}
-
-/* 关系清单的一行：左边是关系名，右边是链接列表（没有就显示 —） */
-function relRow(label, pairs) {
-  const li = el('li');
-  li.appendChild(el('span', 'rel-k', label));
-  const box = el('span');
-  if (!pairs.length) box.appendChild(el('span', 'muted', '—'));
-  pairs.forEach((pr, i) => {
-    if (i) box.appendChild(el('span', 'muted', ' · '));
-    box.appendChild(link(pr[0], pr[1]));
-  });
-  li.appendChild(box);
-  return li;
-}
-
-async function viewWeekly(id) {
-  const m = M.manifest;
-  const main = $('#main');
-  main.textContent = '';
-  const list = (m.weekly || []).slice().sort((a, b) => String(b.period).localeCompare(String(a.period)));
-
-  if (!id) {
-    const head = el('div', 'page-head');
-    head.appendChild(el('h1', '', '周报 / 月刊'));
-    head.appendChild(el('span', 'muted', list.length + ' 期'));
-    main.appendChild(head);
-    main.appendChild(el('p', 'muted', '按期记录群里发生了什么：新增文章、合并的 PR、新词条与下期预告。'));
-    if (!list.length) { main.appendChild(el('p', 'muted', '还没有周报。')); return; }
-    main.appendChild(el('div', 'service-list'));
-    const box = main.children[main.children.length - 1];
-    box.style.marginTop = 'var(--sp-5)';
-    list.forEach(w => {
-      const c = el('article', 'card');
-      const row = el('div', 'row');
-      row.appendChild(link('#/weekly/' + w.id, w.title, 'card-title'));
-      row.appendChild(el('span', 'badge', w.period));
-      c.appendChild(row);
-      if ((w.highlights || []).length) {
-        const ul = el('ul', 'kb-list');
-        (w.highlights || []).slice(0, 3).forEach(x => ul.appendChild(el('li', '', x)));
-        c.appendChild(ul);
-      }
-      const meta = el('div', 'meta');
-      if ((w.merged || []).length) meta.appendChild(el('span', '', '合并 ' + w.merged.length + ' 篇'));
-      if ((w.contributors || []).length) meta.appendChild(el('span', '', '参与 ' + w.contributors.length + ' 人'));
-      if (meta.children.length) c.appendChild(meta);
-      box.appendChild(c);
-    });
-    return;
-  }
-
-  const w = list.find(v => v.id === id) || (m.weekly || []).find(v => v.id === id);
-  if (!w) { main.appendChild(el('p', 'muted', '不存在。')); return; }
-  document.title = w.period + ' · ' + w.title + ' · ' + m.site.title;
-
-  const crumb = el('nav', 'breadcrumb');
-  crumb.setAttribute('aria-label', '面包屑');
-  crumb.appendChild(link('#/weekly', '周报'));
-  crumb.appendChild(el('span', '', ' / '));
-  crumb.appendChild(el('span', '', w.period));
-  main.appendChild(crumb);
-
-  const hero = el('div', 'weekly-hero');
-  const per = el('span', 'period', w.period);
-  hero.appendChild(per);
-  hero.appendChild(el('h1', '', w.title));
-  if ((w.highlights || []).length) {
-    const lede = el('p', 'lede');
-    lede.appendChild(el('span', '', w.highlights[0]));
-    hero.appendChild(lede);
-  }
-  main.appendChild(hero);
-
-  /* 本期数据：只统计站内可核对的量（合并文章数 / 高亮条数 / 参与人数） */
-  const digest = el('div', 'digest');
-  const cell = (v, k) => {
-    const c = el('div', 'card');
-    c.appendChild(el('b', '', String(v)));
-    c.appendChild(el('span', '', k));
-    digest.appendChild(c);
-  };
-  cell((w.merged || []).length, '合并文章');
-  cell((w.highlights || []).length, '本期要点');
-  cell((w.contributors || []).length, '参与成员');
-  main.appendChild(digest);
-
-  if ((w.highlights || []).length) {
-    main.appendChild(el('h2', 'section-h', '本期要点'));
-    const tl = el('ul', 'timeline');
-    w.highlights.forEach(x => {
-      const li = el('li', 'hot');
-      const whenT = el('span', 'when-t', w.period);
-      li.appendChild(whenT);
-      li.appendChild(el('p', 'what', x));
-      tl.appendChild(li);
-    });
-    main.appendChild(tl);
-  }
-
-  const merged = (w.merged || []).map(s => (m.posts || []).find(p => p.slug === s)).filter(Boolean);
-  if (merged.length) {
-    main.appendChild(el('h2', 'section-h', '本期合并的文章'));
-    const box = el('div', 'cards');
-    merged.forEach(p => box.appendChild(postCard(p)));
-    main.appendChild(box);
-  }
-
-  if ((w.contributors || []).length) {
-    main.appendChild(el('h2', 'section-h', '参与成员'));
-    const box = el('div', 'tags');
-    w.contributors.forEach(cid => {
-      const mem = (m.members || []).find(x => x.id === cid);
-      box.appendChild(mem ? link('#/member/' + mem.id, mem.name, 'tag') : el('span', 'tag', cid));
-    });
-    main.appendChild(box);
-  }
-
-  const b = el('div', 'body');
-  b.style.maxWidth = '38rem';
-  b.innerHTML = await fragment(w.html);
-  main.appendChild(b);
-
-  const idx = list.findIndex(v => v.id === w.id);
-  const prev = list[idx + 1], next = list[idx - 1];
-  if (prev || next) {
-    const nav = el('nav', 'series-nav');
-    if (prev) nav.appendChild(linkDate('#/weekly/' + prev.id, '← 上一期', prev.period + ' · ' + prev.title));
-    if (next) {
-      const a = linkDate('#/weekly/' + next.id, '下一期 →', next.period + ' · ' + next.title);
-      a.className = 'next';
+  /* ---------- 右栏：站点导航（10 个入口，当前项弱左边框） ---------- */
+
+  function buildSiteNav(cur) {
+    var nav = $('#site-nav');
+    if (!nav) return 0;
+    clear(nav);
+    var keys = (S.man.site && S.man.site.nav) || [];
+    var n = 0;
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i];
+      var a = lnk('#/' + k, NAV_LABEL[k] || k, k === cur ? 'cur' : '');
       nav.appendChild(a);
+      n++;
     }
-    main.appendChild(nav);
+    return n;
   }
 
-  sidebar(['weekly', id], w.toc);
-}
+  /* ---------- 左栏：本文目录（只放当前页的章节） ---------- */
 
-/* 上一期/下一期卡片（series-nav 复用） */
-function linkDate(href, k, text) {
-  const a = el('a');
-  a.href = href;
-  a.appendChild(el('span', 'k', k));
-  a.appendChild(el('span', '', text));
-  return a;
-}
+  function setToc(toc, base, mapHref) {
+    S.toc = toc || [];
+    S.tocBase = base || '';
+    S.mapHref = mapHref || '';
+  }
 
-/* 文档树：左栏用（分组的 sticky 列表）。树的内容只来自 pages 的 group/order。 */
-function docsTree(cur) {
-  const ul = el('ul', 'docs-tree');
-  const groups = {};
-  (M.manifest.pages || []).forEach(d => {
-    const g = d.group || '其它';
-    (groups[g] = groups[g] || []).push(d);
-  });
-  Object.keys(groups).forEach(g => {
-    ul.appendChild(el('li', 'g', g));
-    groups[g]
-      .slice()
-      .sort((a, b) => (a.order || 999) - (b.order || 999))
-      .forEach(d => {
-        const li = el('li');
-        const a = link('#/page/' + d.id, d.title, d.id === cur ? 'cur' : '');
-        if (d.id === cur) a.setAttribute('aria-current', 'page');
-        li.appendChild(a);
-        ul.appendChild(li);
+  function buildToc() {
+    var navs = [$('#toc-nav'), $('#toc-nav-m')];
+    S.tocLinks = [];
+    for (var k = 0; k < navs.length; k++) {
+      var nav = navs[k];
+      if (!nav) continue;
+      clear(nav);
+      var count = 0;
+      for (var i = 0; i < S.toc.length; i++) {
+        var t = S.toc[i];
+        if (!t || !t.id) continue;
+        var a = lnk('#/' + S.tocBase + '/' + t.id, t.text, 'lv' + (t.level || 2));
+        a.setAttribute('data-anchor', t.id);
+        nav.appendChild(a);
+        if (k === 0) S.tocLinks.push(a);
+        count++;
+      }
+      if (count === 0) nav.appendChild(el('p', 'muted', '本页没有分节标题。'));
+    }
+    /* 没有分节标题的页面（项目/成员/黄页/索引…）：告诉 CSS 左栏不必占位 */
+    if (document.body && document.body.setAttribute) {
+      document.body.setAttribute('data-toc', (S.toc && S.toc.length) ? 'yes' : 'none');
+    }
+    var ml = $('#map-link');
+    if (ml) {
+      if (S.mapHref) {
+        ml.setAttribute('href', S.mapHref);
+        if (ml.parentNode && ml.parentNode.style) ml.parentNode.style.display = '';
+      } else if (ml.parentNode && ml.parentNode.style) {
+        ml.parentNode.style.display = 'none';
+      }
+    }
+    spyToc();
+    return count;
+  }
+
+  function markToc(id) {
+    for (var i = 0; i < S.tocLinks.length; i++) {
+      var a = S.tocLinks[i];
+      var on = a.getAttribute('data-anchor') === id;
+      a.className = 'lv' + ((S.toc[i] && S.toc[i].level) || 2) + (on ? ' cur' : '');
+    }
+  }
+
+  function spyToc() {
+    if (!S.tocLinks.length) return;
+    markToc(S.tocLinks[0].getAttribute('data-anchor'));
+    if (typeof window.addEventListener !== 'function') return;
+    window.addEventListener('scroll', function () {
+      var cur = S.tocLinks[0].getAttribute('data-anchor');
+      for (var i = 0; i < S.tocLinks.length; i++) {
+        var id = S.tocLinks[i].getAttribute('data-anchor');
+        var node = document.getElementById ? document.getElementById(id) : null;
+        if (node && typeof node.getBoundingClientRect === 'function') {
+          var r = node.getBoundingClientRect();
+          if (r && r.top <= 120) cur = id;
+        }
+      }
+      markToc(cur);
+    });
+  }
+
+  /* ---------- 真实数据才画的图 ---------- */
+
+  /* 语言占比条：meta.languages_pct 来自构建期抓取的 /languages；没有就不画 */
+  function langBar(pct, max) {
+    if (!pct) return null;
+    var keys = Object.keys(pct);
+    if (!keys.length) return null;
+    keys.sort(function (a, b) { return pct[b] - pct[a]; });
+    var shown = keys.slice(0, max || 4);
+    var wrap = el('div');
+    var bar = el('div', 'langbar');
+    var legend = el('ul', 'lang-legend');
+    var i;
+    for (i = 0; i < shown.length; i++) {
+      var seg = el('i', 'l' + (i % 4));
+      seg.setAttribute('style', 'width:' + pct[shown[i]] + '%');
+      seg.setAttribute('title', shown[i] + ' ' + pct[shown[i]] + '%');
+      bar.appendChild(seg);
+      var li = el('li');
+      var sw = el('i', 'l' + (i % 4));
+      sw.setAttribute('style', 'display:inline-block;width:7px;height:7px;border-radius:2px;background:currentColor');
+      li.appendChild(el('span', '', shown[i] + ' ' + pct[shown[i]] + '%'));
+      legend.appendChild(li);
+    }
+    wrap.appendChild(bar);
+    wrap.appendChild(legend);
+    return wrap;
+  }
+
+  /* 词条关系图：只画真实关系；每个方向最多 2 个节点，其余 +N；没数据的方向不画 */
+  function relGraph(topic, posts, projects, topics) {
+    var tags = (topic.tags || []).slice();
+    var relIds = (topic.related || []).slice();
+    var slugs = (topic.resolved || []).slice();
+    var tagSet = {};
+    var i;
+    for (i = 0; i < tags.length; i++) tagSet[tags[i]] = 1;
+
+    var arts = [];
+    for (i = 0; i < slugs.length; i++) { var p = bySlug(posts, slugs[i]); if (p) arts.push(p); }
+    var rels = [];
+    for (i = 0; i < relIds.length; i++) { var t = byId(topics, relIds[i]); if (t) rels.push(t); }
+    var projs = [];
+    for (i = 0; i < (projects || []).length; i++) {
+      var pr = projects[i];
+      var hit = false;
+      var langs = (pr.languages || []).concat(pr.platforms || []);
+      for (var j = 0; j < langs.length; j++) { if (tagSet[langs[j]]) hit = true; }
+      if (hit) projs.push(pr);
+    }
+    var total = tags.length + arts.length + rels.length + projs.length;
+    if (!total) return null;
+
+    var W = 640, H = 360, CX = 320, CY = 180;
+    var NS = 'http://www.w3.org/2000/svg';
+    function sv(tag, attrs) {
+      var n = document.createElementNS(NS, tag);
+      for (var k in attrs) {
+        if (Object.prototype.hasOwnProperty.call(attrs, k) && attrs[k] !== undefined && attrs[k] !== null) {
+          n.setAttribute(k, String(attrs[k]));
+        }
+      }
+      return n;
+    }
+    var svg = sv('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img' });
+    svg.setAttribute('aria-label',
+      '关系图：' + topic.title + '；标签 ' + tags.length + ' 个、关联文章 ' + arts.length +
+      ' 篇、相关词条 ' + rels.length + ' 条、相关项目 ' + projs.length + ' 个');
+    var g = sv('g', {});
+    svg.appendChild(g);
+
+    var NW = 130, NH = 28;
+    var placed = [];
+    function group(list, pos, dirLabel, getText, getHref) {
+      if (!list || !list.length) return;
+      var nodes = list.slice(0, 2);
+      for (var i2 = 0; i2 < nodes.length; i2++) {
+        var c = pos(i2, nodes.length);
+        placed.push({ x: c.x, y: c.y });
+        g.appendChild(sv('line', { class: 'rg-link', x1: CX, y1: CY, x2: c.x, y2: c.y }));
+      }
+      for (var i3 = 0; i3 < nodes.length; i3++) {
+        var cc = pos(i3, nodes.length);
+        var a = sv('a', { href: getHref(nodes[i3]) });
+        a.appendChild(sv('rect', {
+          class: 'rg-node', x: cc.x - NW / 2, y: cc.y - NH / 2,
+          width: NW, height: NH, rx: 4
+        }));
+        var tx = sv('text', { class: 'rg-t', x: cc.x, y: cc.y + 4 });
+        tx.appendChild(document.createTextNode(cut(getText(nodes[i3]), 9)));
+        a.appendChild(tx);
+        g.appendChild(a);
+      }
+      if (list.length > 2) {
+        var cm = pos(2, 3);
+        var more = sv('text', { class: 'rg-more', x: cm.x, y: cm.y + 4 });
+        more.appendChild(document.createTextNode('+' + (list.length - 2) + ' 个'));
+        g.appendChild(more);
+      }
+      var d = sv('text', { class: 'rg-dir', x: dirLabel.x, y: dirLabel.y });
+      d.appendChild(document.createTextNode(dirLabel.t));
+      g.appendChild(d);
+    }
+
+    var box = sv('rect', { class: 'rg-root', x: CX - 90, y: CY - 19, width: 180, height: 38, rx: 5 });
+    var rootT = sv('text', { class: 'rg-root-t', x: CX, y: CY + 5 });
+    rootT.appendChild(document.createTextNode(cut(topic.title, 12)));
+
+    /* 连线先画（在节点下层），再画节点 */
+    g.appendChild(box);
+    g.appendChild(rootT);
+
+    group(tags, function (i2, n) {
+      var xs = n === 1 ? [CX] : [CX - 100, CX + 100];
+      return { x: xs[i2 < xs.length ? i2 : xs.length - 1], y: 40 };
+    }, { x: CX, y: 18, t: '标签' }, function (v) { return v; }, function (v) { return '#/library'; });
+
+    group(rels, function (i2, n) {
+      var xs = n === 1 ? [CX] : [CX - 100, CX + 100];
+      return { x: xs[i2 < xs.length ? i2 : xs.length - 1], y: H - 40 };
+    }, { x: CX, y: H - 10, t: '相关词条' }, function (v) { return v.title; }, function (v) { return '#/topic/' + v.id; });
+
+    group(arts, function (i2, n) {
+      var ys = n === 1 ? [CY] : [CY - 50, CY + 50];
+      return { x: 80, y: ys[i2 < ys.length ? i2 : ys.length - 1] };
+    }, { x: 80, y: CY - 84, t: '关联文章' }, function (v) { return v.title; }, function (v) { return '#/post/' + v.slug; });
+
+    group(projs, function (i2, n) {
+      var ys = n === 1 ? [CY] : [CY - 50, CY + 50];
+      return { x: W - 80, y: ys[i2 < ys.length ? i2 : ys.length - 1] };
+    }, { x: W - 80, y: CY - 84, t: '相关项目' }, function (v) { return v.name; }, function (v) { return '#/projects'; });
+
+    var wrap = el('div', 'relgraph');
+    wrap.appendChild(svg);
+    return wrap;
+  }
+
+  /* ---------- 通用小件 ---------- */
+
+  function crumb(items) {
+    var n = el('nav', 'crumb');
+    for (var i = 0; i < items.length; i++) {
+      if (i) n.appendChild(el('span', 'sep', '›'));
+      if (items[i][1]) n.appendChild(lnk(items[i][1], items[i][0]));
+      else n.appendChild(el('span', '', items[i][0]));
+    }
+    return n;
+  }
+
+  function tagLine(tags, cls) {
+    var p = el('p', cls || 'row-tags');
+    for (var i = 0; i < (tags || []).length; i++) {
+      if (i) p.appendChild(document.createTextNode(' '));
+      p.appendChild(lnk('#/library?tag=' + encodeURIComponent(tags[i]), tags[i], 'tag'));
+    }
+    return p;
+  }
+
+  function statusBadge(v) {
+    return el('span', 'status ' + String(v || ''), STATUS_LABEL[v] || String(v || '—'));
+  }
+
+  function kv(pairs) {
+    var dl = el('dl', 'kv');
+    var n = 0;
+    for (var i = 0; i < (pairs || []).length; i++) {
+      var row = pairs[i];
+      if (!row || row[1] === '' || row[1] === null || row[1] === undefined) continue;
+      dl.appendChild(el('dt', '', row[0]));
+      var dd = el('dd');
+      if (row[2]) dd.appendChild(lnk(row[2], row[1]));
+      else dd.appendChild(document.createTextNode(String(row[1])));
+      dl.appendChild(dd);
+      n++;
+    }
+    return n ? dl : null;
+  }
+
+  function metric(n, label) {
+    var d = el('div', 'metric');
+    d.appendChild(el('span', 'm-num', typeof n === 'number' ? num(n) : String(n)));
+    d.appendChild(el('span', 'm-label', label));
+    return d;
+  }
+
+  function avatarOf(mem, cls) {
+    if (!mem || !mem.avatar) return null;
+    var src = safeUrl(mem.avatar);
+    if (!src) return null;
+    var img = el('img', cls || 'avatar');
+    img.setAttribute('src', src);
+    img.setAttribute('alt', mem.name || '');
+    img.setAttribute('loading', 'lazy');
+    return img;
+  }
+
+  function personCard(m, posts, projects, services) {
+    var c = el('article', 'person');
+    var av = avatarOf(m);
+    c.appendChild(av || el('div', 'avatar'));
+    /* 文本集中在一个 flex 列里：卡片等高时数字行可以贴底对齐 */
+    var body = el('div', 'p-body');
+    var name = el('div', 'p-name');
+    name.appendChild(lnk('#/member/' + m.id, m.name));
+    body.appendChild(name);
+    body.appendChild(el('div', 'p-role', m.role || '群友'));
+    if (m.signature) body.appendChild(el('p', 'p-sig', m.signature));
+    if ((m.skills || []).length) {
+      var skills = el('p', 'chips');
+      for (var i = 0; i < m.skills.length; i++) skills.appendChild(el('span', 'chip', m.skills[i]));
+      body.appendChild(skills);
+    }
+    var np = 0, npr = 0, ns = 0, i2;
+    for (i2 = 0; i2 < (posts || []).length; i2++) { if (posts[i2].author === m.id) np++; }
+    for (i2 = 0; i2 < (projects || []).length; i2++) {
+      var pr = projects[i2];
+      if (pr.owner === m.id || (pr.contributors || []).indexOf(m.id) >= 0) npr++;
+    }
+    for (i2 = 0; i2 < (services || []).length; i2++) { if (services[i2].owner === m.id) ns++; }
+    body.appendChild(el('p', 'p-nums', '文章 ' + np + ' · 项目 ' + npr + ' · 黄页 ' + ns +
+      (m.joined ? ' · 加入 ' + m.joined : '')));
+    c.appendChild(body);
+    return c;
+  }
+
+  function postRow(p, members) {
+    var li = el('li', 'row');
+    li.appendChild(el('span', 'row-date', String(p.date || '').slice(0, 10)));
+    li.appendChild(lnk('#/post/' + p.slug, p.title, 'row-title'));
+    li.appendChild(el('span', 'row-words', num(p.words) + ' 字'));
+    li.appendChild(el('p', 'row-sum', p.summary || ''));
+    var tags = el('p', 'row-tags');
+    for (var i = 0; i < (p.tags || []).length; i++) {
+      if (i) tags.appendChild(document.createTextNode(' '));
+      tags.appendChild(el('span', 'tag', p.tags[i]));
+    }
+    var mem = byId(members || [], p.author);
+    if (mem) {
+      tags.appendChild(document.createTextNode(' · '));
+      tags.appendChild(lnk('#/member/' + mem.id, mem.name));
+    }
+    li.appendChild(tags);
+    return li;
+  }
+
+  function proseFragment(path) {
+    return fragment(path).then(function (html) {
+      var d = el('div', 'prose');
+      d.appendChild(frag(html || '<p>（空）</p>'));
+      return d;
+    });
+  }
+
+  /* ---------- 视图：索引类 ---------- */
+
+
+  /* ---------- 通用零件：页面头 / 过滤框 / 可过滤列表 / 内联 SVG 图标 ---------- */
+
+  function pageHead(kicker, title, lede) {
+    var h = el('header', 'page-head');
+    if (kicker) h.appendChild(el('p', 'kicker', kicker));
+    h.appendChild(el('h1', '', title));
+    if (lede) h.appendChild(el('p', 'lede', lede));
+    return h;
+  }
+
+  function filterBox(placeholder, onChange) {
+    var box = el('div', 'filters');
+    var input = el('input', 'filter-input');
+    input.setAttribute('type', 'search');
+    input.setAttribute('placeholder', placeholder);
+    input.setAttribute('aria-label', placeholder);
+    if (input.addEventListener) {
+      input.addEventListener('input', function () {
+        onChange(String(input.value || '').trim().toLowerCase());
       });
-  });
-  return ul;
-}
+    }
+    box.appendChild(input);
+    return box;
+  }
 
-async function viewPages() {
-  const m = M.manifest;
-  const main = $('#main');
-  main.textContent = '';
-  const head = el('div', 'page-head');
-  head.appendChild(el('h1', '', '站文档'));
-  head.appendChild(el('span', 'muted', (m.pages || []).length + ' 篇'));
-  main.appendChild(head);
-  main.appendChild(el('p', 'muted', '站点自身的说明：投稿与创作制度、写作速查、附件规则、内容契约。'));
-  const groups = {};
-  (m.pages || []).forEach(d => {
-    const g = d.group || '其它';
-    (groups[g] = groups[g] || []).push(d);
-  });
-  Object.keys(groups).forEach(g => {
-    main.appendChild(el('h2', 'section-h', g));
-    const box = el('div', 'cards');
-    box.style.gridTemplateColumns = 'repeat(auto-fill, minmax(240px, 1fr))';
-    groups[g].slice().sort((a, b) => (a.order || 999) - (b.order || 999)).forEach(d => {
-      const a = el('a', 'scenario');
-      a.href = '#/page/' + d.id;
-      a.appendChild(el('span', 'k', g));
-      a.appendChild(el('b', '', d.title));
-      if (d.text) a.appendChild(el('span', '', String(d.text).slice(0, 46) + '…'));
-      box.appendChild(a);
+  /* 数据多起来也不慌：列表上方固定搜索框，按 q 过滤（空 q 全量） */
+  function filterable(head, items, cfg) {
+    var f = document.createDocumentFragment();
+    f.appendChild(head);
+    var api = cfg.api || (cfg.api = {});
+    var list = el(cfg.tag || 'div', cfg.cls || '');
+    function draw(q) {
+      clear(list);
+      var n = 0;
+      for (var i = 0; i < items.length; i++) {
+        if (q && !cfg.match(items[i], q)) continue;
+        list.appendChild(cfg.render(items[i]));
+        n++;
+      }
+      if (!n) list.appendChild(el('p', 'muted', cfg.empty || '没有匹配项。'));
+    }
+    var box = filterBox(cfg.placeholder, draw);
+    var input = box.firstChild;
+    api.setFilter = function (q) {
+      if (input && input.setAttribute) input.setAttribute('value', String(q || ''));
+      draw(String(q || '').toLowerCase());
+    };
+    f.appendChild(box);
+    f.appendChild(list);
+    draw('');
+    return f;
+  }
+
+  /* 内联 SVG 图标：不用图标字体、不发请求 */
+  var ICON_PATHS = {
+    library: 'M3 5h18M3 10h18M3 15h12',
+    knowledge: 'M4 3h9l3 3v13H4zM8 9h5M8 12h5M8 15h3',
+    topics: 'M3 5h7v6H3zM10 5h7v6h-7zM3 11h7v6H3zM10 11h7v6h-7z',
+    projects: 'M3 6h6l2 2h7v9H3z',
+    resources: 'M4 4h7v13H4zM13 4h7v13h-7z',
+    members: 'M8 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 18c0-3 3-5 6-5s6 2 6 5M16 8h6M19 5v6',
+    services: 'M3 7h18v11H3zM3 11h18M9 7v11',
+    weekly: 'M4 5h16v15H4zM8 3v4M16 3v4M4 10h16',
+    pages: 'M5 3h9l4 4v14H5zM14 3v5h5',
+    join: 'M9 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21c0-4 3-6 7-6M17 9v6M14 12h6'
+  };
+
+  function svgIcon(key) {
+    var s = document.createElementNS ? document.createElementNS('http://www.w3.org/2000/svg', 'svg') : el('svg');
+    s.setAttribute('class', 'nav-ico');
+    s.setAttribute('viewBox', '0 0 24 24');
+    s.setAttribute('aria-hidden', 'true');
+    var p = document.createElementNS ? document.createElementNS('http://www.w3.org/2000/svg', 'path') : el('path');
+    p.setAttribute('d', ICON_PATHS[key] || ICON_PATHS.library);
+    p.setAttribute('fill', 'none');
+    p.setAttribute('stroke', 'currentColor');
+    p.setAttribute('stroke-width', '1.6');
+    p.setAttribute('stroke-linecap', 'round');
+    s.appendChild(p);
+    return s;
+  }
+
+  /* 首页：logo + 全站搜索 + 站点导航卡片（含 SVG 图标与条目数） */
+  function navCount(m, key) {
+    var map = {
+      library: (m.posts || []).length, topics: (m.topics || []).length,
+      projects: (m.projects || []).length, resources: (m.resources || []).length,
+      members: (m.members || []).length, services: (m.services || []).length,
+      weekly: (m.weekly || []).length, pages: (m.pages || []).length
+    };
+    return map[key];
+  }
+
+  function viewHome() {
+    var m = S.man;
+    var f = document.createDocumentFragment();
+
+    var hero = el('section', 'home-hero');
+    if (m.site.avatar) {
+      var logo = el('img', 'home-logo');
+      logo.src = m.site.avatar;
+      logo.alt = m.site.title || '';
+      logo.setAttribute('width', '56');
+      logo.setAttribute('height', '56');
+      hero.appendChild(logo);
+    }
+    hero.appendChild(el('h1', 'home-title', m.site.title || ''));
+    if (m.site.tagline) hero.appendChild(el('p', 'home-tagline', m.site.tagline));
+
+    var form = el('form', 'home-search');
+    form.setAttribute('role', 'search');
+    form.setAttribute('action', '#/search/');
+    var input = el('input', 'home-input');
+    input.setAttribute('type', 'search');
+    input.setAttribute('name', 'q');
+    input.setAttribute('placeholder', '全站搜索：文章 / 项目 / 成员 / 资源（回车）');
+    input.setAttribute('aria-label', '全站搜索');
+    input.id = 'home-q';
+    var btn = el('button', 'home-btn', '搜索');
+    btn.setAttribute('type', 'submit');
+    form.appendChild(input);
+    form.appendChild(btn);
+    if (form.addEventListener) {
+      form.addEventListener('submit', function (ev) {
+        if (ev.preventDefault) ev.preventDefault();
+        var q = String(input.value || '').trim();
+        if (q) location.hash = '#/search/' + encodeURIComponent(q);
+      });
+    }
+    hero.appendChild(form);
+    f.appendChild(hero);
+
+    var KEYS = ['library', 'knowledge', 'topics', 'projects', 'resources',
+                'members', 'services', 'weekly', 'pages', 'join'];
+    var DESC = {
+      library: '按年份浏览全部文章', knowledge: '系列 / 标签 / 作者索引',
+      topics: '主题词条与关系图', projects: '仓库元数据与活跃度比较',
+      resources: '书 / 教程 / 工具 / 视频', members: '成员档案与作品',
+      services: '能力与合作黄页', weekly: '周报 / 月刊',
+      pages: '制度与写作文档', join: '加入 QQ 群'
+    };
+    var cards = el('div', 'nav-cards');
+    for (var i = 0; i < KEYS.length; i++) {
+      var k = KEYS[i];
+      var a = lnk('#/' + k, '', 'nav-card');
+      a.appendChild(svgIcon(k));
+      a.appendChild(el('b', '', NAV_LABEL[k] || k));
+      a.appendChild(el('span', '', DESC[k] || ''));
+      var c = navCount(m, k);
+      if (c !== undefined) a.appendChild(el('em', '', c + ' 项'));
+      cards.appendChild(a);
+    }
+    f.appendChild(cards);
+
+    var latest = (m.posts || []).slice(0, 3);
+    if (latest.length) {
+      f.appendChild(el('p', 'section-h', '最近更新'));
+      var ol = el('ol', 'rows');
+      for (var j = 0; j < latest.length; j++) {
+        var p = latest[j];
+        var li = el('li', 'row');
+        li.appendChild(el('span', 'row-date', String(p.date || '').slice(0, 10)));
+        li.appendChild(lnk('#/post/' + p.slug, p.title, 'row-title'));
+        li.appendChild(el('span', 'row-words', num(p.words) + ' 字'));
+        ol.appendChild(li);
+      }
+      f.appendChild(ol);
+    }
+    setToc([], '', '');
+    return Promise.resolve(f);
+  }
+
+  function viewLibrary(query) {
+    var m = S.man;
+    var f = document.createDocumentFragment();
+    var head = el('header', 'page-head');
+    head.appendChild(el('p', 'kicker', '共建博客'));
+    head.appendChild(el('h1', '', '文章库'));
+    head.appendChild(el('p', 'lede', '共 ' + m.posts.length + ' 篇，按年份分组。' +
+      (query && query.tag ? '当前筛选标签：#' + query.tag : '')));
+    f.appendChild(head);
+
+    var filters = el('div', 'filters');
+    var input = el('input', 'filter-input');
+    input.setAttribute('type', 'search');
+    input.setAttribute('placeholder', '按标题 / 摘要 / 标签过滤（即时）');
+    input.setAttribute('aria-label', '过滤文章');
+    if (query && query.tag) input.setAttribute('value', '#' + query.tag);
+    filters.appendChild(input);
+    f.appendChild(filters);
+
+    var chips = el('div', 'chips');
+    var tagCount = 0;
+    for (var i = 0; i < (m.tags || []).length && tagCount < 24; i++) {
+      var tg = m.tags[i];
+      var on = query && query.tag && query.tag === tg.tag;
+      var chip = el('span', on ? 'chip on' : 'chip', tg.tag + ' (' + tg.count + ')');
+      chip.setAttribute('data-tag', tg.tag);
+      chips.appendChild(chip);
+      tagCount++;
+    }
+    if (chips.addEventListener) {
+      chips.addEventListener('click', function (ev) {
+        var t = ev && ev.target;
+        if (!t || typeof t.getAttribute !== 'function' || t.getAttribute('data-tag') === null) return;
+        var tag = t.getAttribute('data-tag');
+        var was = t.classList.contains('on');
+        var list = chips.getElementsByTagName ? chips.getElementsByTagName('span') : [];
+        for (var ci = 0; ci < list.length; ci++) list[ci].classList.remove('on');
+        if (!was) t.classList.add('on');
+        input.setAttribute('value', was ? '' : '#' + tag);
+        applyFilter(was ? '' : tag);
+      });
+    }
+    f.appendChild(chips);
+
+    var years = {}, order = [];
+    var posts = m.posts;
+    if (query && query.tag) {
+      posts = [];
+      for (var k = 0; k < m.posts.length; k++) {
+        if ((m.posts[k].tags || []).indexOf(query.tag) >= 0) posts.push(m.posts[k]);
+      }
+    }
+    for (var j = 0; j < posts.length; j++) {
+      var y = String(posts[j].year || String(posts[j].date || '').slice(0, 4));
+      if (!years[y]) { years[y] = []; order.push(y); }
+      years[y].push(posts[j]);
+    }
+
+    /* 过滤用的行登记表：显式保存「节点 + 可搜索文本」，不发任何请求 */
+    var rowNodes = [];
+    var rows = 0;
+    for (var yi = 0; yi < order.length; yi++) {
+      var yr = order[yi];
+      var d = el('details');
+      if (yi === 0) d.setAttribute('open', 'open');
+      d.appendChild(el('summary', '', yr + ' 年（' + years[yr].length + ' 篇）'));
+      var ol = el('ol', 'rows');
+      for (var ri = 0; ri < years[yr].length; ri++) {
+        var post = years[yr][ri];
+        var li = postRow(post, m.members);
+        var mem = byId(m.members, post.author);
+        li.setAttribute('data-filter', [
+          post.title, post.summary, post.date,
+          (post.tags || []).join(' '), mem ? mem.name : post.author
+        ].join(' '));
+        ol.appendChild(li);
+        rowNodes.push(li);
+        rows++;
+      }
+      d.appendChild(ol);
+      f.appendChild(d);
+    }
+    if (!rows) f.appendChild(el('p', 'muted', '没有匹配的文章。'));
+
+    function applyFilter(q) {
+      q = String(q || '').toLowerCase().replace(/^#/, '');
+      for (var i2 = 0; i2 < rowNodes.length; i2++) {
+        var node = rowNodes[i2];
+        var txt = String(node.getAttribute('data-filter') || '').toLowerCase();
+        node.className = (!q || txt.indexOf(q) >= 0) ? 'row' : 'row hide';
+      }
+    }
+    if (input.addEventListener) {
+      input.addEventListener('input', function () {
+        var v = input.value !== undefined ? input.value : input.getAttribute('value');
+        applyFilter(v);
+      });
+    }
+    return Promise.resolve(f);
+  }
+
+  function viewKnowledge() {
+    var m = S.man;
+    var f = document.createDocumentFragment();
+    var head = el('header', 'page-head');
+    head.appendChild(el('p', 'kicker', '知识'));
+    head.appendChild(el('h1', '', '文章知识'));
+    head.appendChild(el('p', 'lede', '主题词条、标签与系列的入口。正文仍在文章库。'));
+    f.appendChild(head);
+
+    if ((m.topics || []).length) {
+      f.appendChild(el('p', 'section-h', '主题词条'));
+      var g1 = el('div', 'grid');
+      for (var i = 0; i < m.topics.length; i++) {
+        var t = m.topics[i];
+        var c = el('article', 'card');
+        c.appendChild(lnk('#/topic/' + t.id, t.title, 'card-title'));
+        c.appendChild(el('p', 'card-note', t.summary || ''));
+        var meta = el('p', 'row-tags');
+        meta.appendChild(el('span', 'badge', (t.resolved || []).length + ' 篇'));
+        c.appendChild(meta);
+        g1.appendChild(c);
+      }
+      f.appendChild(g1);
+    }
+
+    if ((m.tags || []).length) {
+      f.appendChild(el('p', 'section-h', '标签'));
+      var p = el('p', 'chips');
+      for (var j = 0; j < m.tags.length; j++) {
+        p.appendChild(lnk('#/library?tag=' + encodeURIComponent(m.tags[j].tag),
+          m.tags[j].tag + ' (' + m.tags[j].count + ')', 'chip'));
+      }
+      f.appendChild(p);
+    }
+
+    if ((m.series || []).length) {
+      f.appendChild(el('p', 'section-h', '系列'));
+      for (var k = 0; k < m.series.length; k++) {
+        var s = m.series[k];
+        var box = el('details');
+        box.appendChild(el('summary', '', s.title + '（' + s.posts.length + ' 篇）'));
+        var ol = el('ol', 'rows');
+        for (var pi = 0; pi < s.posts.length; pi++) {
+          var post = bySlug(m.posts, s.posts[pi].slug);
+          if (post) ol.appendChild(postRow(post, m.members));
+        }
+        box.appendChild(ol);
+        f.appendChild(box);
+      }
+    }
+    setToc([], '', 'map.svg');
+    return Promise.resolve(f);
+  }
+
+
+  function topicCard(t) {
+    var c = el('article', 'card');
+    c.appendChild(lnk('#/topic/' + t.id, t.title, 'card-title'));
+    var meta = el('p', 'row-tags');
+    meta.appendChild(el('span', 'badge', (t.resolved || []).length + ' 篇文章'));
+    for (var ti = 0; ti < (t.tags || []).length; ti++) {
+      meta.appendChild(document.createTextNode(' '));
+      meta.appendChild(el('span', 'tag', t.tags[ti]));
+    }
+    c.appendChild(meta);
+    c.appendChild(el('p', 'card-note', t.summary || ''));
+    return c;
+  }
+
+  function viewTopics() {
+    var m = S.man;
+    var head = pageHead('定义', '主题词条', '一个词条聚合若干文章；同标签文章会自动归入。');
+    var f = filterable(head, m.topics || [], {
+      cls: 'grid',
+      placeholder: '按词条名 / 定义 / 标签过滤',
+      empty: '没有匹配的词条。',
+      match: function (t, q) {
+        return (t.title + ' ' + (t.summary || '') + ' ' + (t.tags || []).join(' ')).toLowerCase().indexOf(q) >= 0;
+      },
+      render: topicCard
     });
-    main.appendChild(box);
-  });
-}
+    setToc([], '', 'map.svg');
+    return Promise.resolve(f);
+  }
 
-async function viewPage(id, anchor) {
-  const m = M.manifest;
-  const main = $('#main');
-  main.textContent = '';
-  if (!id) { await viewPages(); return; }
-  const d = (m.pages || []).find(v => v.id === id);
-  if (!d) { main.appendChild(el('p', 'muted', '不存在。')); return; }
-  document.title = d.title + ' · ' + m.site.title;
+  function projectRow(p, m) {
+    var art = el('article', 'proj');
+    var left = el('div');
+    var h = el('h2');
+    h.appendChild(lnk('#/project/' + p.id, p.name));
+    left.appendChild(h);
+    left.appendChild(el('p', '', p.one_liner));
+    var line = el('p', 'row-tags');
+    line.appendChild(statusBadge(p.status));
+    if (p.license) { line.appendChild(document.createTextNode(' ')); line.appendChild(el('span', 'lang', p.license)); }
+    var mem = byId(m.members, p.owner);
+    if (mem) { line.appendChild(document.createTextNode(' · ')); line.appendChild(lnk('#/member/' + mem.id, mem.name)); }
+    left.appendChild(line);
+    var btns = el('p', 'chips');
+    btns.appendChild(outLink(p.repo, '仓库', 'chip'));
+    if (p.homepage) btns.appendChild(outLink(p.homepage, '主页', 'chip'));
+    left.appendChild(btns);
+    art.appendChild(left);
 
-  /* 两栏：左文档树（sticky）+ 右长文（限宽 38rem） */
-  const wrap = el('div', 'docs');
-  wrap.appendChild(docsTree(id));
-  const col = el('div');
-  const crumb = el('nav', 'breadcrumb');
-  crumb.setAttribute('aria-label', '面包屑');
-  crumb.appendChild(link('#/pages', '站文档'));
-  crumb.appendChild(el('span', '', ' / '));
-  crumb.appendChild(el('span', '', d.group || '其它'));
-  col.appendChild(crumb);
-  col.appendChild(el('h1', '', d.title));
-  const byline = el('p', 'byline');
-  byline.appendChild(el('span', '', d.group || '其它'));
-  if (d.toc && d.toc.length) {
-    byline.appendChild(el('span', 'dot'));
-    byline.appendChild(el('span', '', d.toc.length + ' 个小节'));
+    var right = el('aside', 'proj-data');
+    var meta = p.meta || {};
+    var metrics = el('div', 'metrics');
+    if (meta.stars !== null && meta.stars !== undefined) metrics.appendChild(metric(meta.stars, 'stars'));
+    if (meta.forks !== null && meta.forks !== undefined) metrics.appendChild(metric(meta.forks, 'forks'));
+    if (meta.updated_at) metrics.appendChild(metric(String(meta.updated_at).slice(0, 10), '最近提交'));
+    right.appendChild(metrics);
+    var bar = meta.languages_pct ? langBar(meta.languages_pct, 4) : null;
+    if (bar) right.appendChild(bar);
+    else right.appendChild(el('p', 'muted', '语言占比：构建期未取到，故不画。'));
+    if (meta.stale) right.appendChild(el('p', 'muted', '（缓存数据）'));
+    art.appendChild(right);
+    return art;
   }
-  col.appendChild(byline);
-  if (d.group_link) {
-    const b = link(d.group_link, '点击链接加入群聊【' + (m.site.group.name || '') + '】', 'btn');
-    b.target = '_blank';
-    b.rel = 'noopener';
-    col.appendChild(b);
-  }
-  const body = el('div', 'body');
-  body.style.maxWidth = '38rem';
-  body.innerHTML = await fragment(d.html);
-  col.appendChild(body);
-  wrap.appendChild(col);
-  main.appendChild(wrap);
-  sidebarDoc(d.toc);
-  scrollToAnchor(anchor);
-}
 
-async function viewJoin() {
-  const m = M.manifest;
-  const g = m.site.group || {};
-  const main = $('#main');
-  main.textContent = '';
-  main.appendChild(el('h1', '', '加入我们'));
-  if (m.site.avatar) { const i = el('img', 'group-avatar big'); i.src = m.site.avatar; i.alt = ''; main.appendChild(i); }
-  const btn = joinButton('lg');
-  if (btn) main.appendChild(btn);
-  if (g.qq) main.appendChild(el('p', 'muted', 'QQ 群：' + g.qq + (g.join ? '（' + g.join + '）' : '')));
-  if (g.intro) main.appendChild(el('p', 'lead', g.intro));
-  if (g.features && g.features.length) {
-    main.appendChild(el('h2', '', '群功能'));
-    const ul = el('ul');
-    g.features.forEach(f => ul.appendChild(el('li', '', f)));
-    main.appendChild(ul);
-  }
-  if (g.rules && g.rules.length) {
-    main.appendChild(el('h2', '', '群规'));
-    const ol = el('ol');
-    g.rules.forEach(f => ol.appendChild(el('li', '', f)));
-    main.appendChild(ol);
-  }
-  if (g.timeline && g.timeline.length) {
-    main.appendChild(el('h2', '', '大事记'));
-    const t = el('div', 'timeline');
-    g.timeline.forEach(x => {
-      const r = el('div', 'row');
-      r.appendChild(el('span', 'tag', x.date));
-      r.appendChild(el('span', '', x.text));
-      t.appendChild(r);
+  function viewProjects() {
+    var m = S.man;
+    var head = pageHead('比较', '项目', '左简介、右数据。数据来自构建期抓取的仓库元数据，抓不到就不显示。');
+    var f = filterable(head, m.projects || [], {
+      placeholder: '按项目名 / 简介 / 语言 / 状态过滤',
+      empty: '没有匹配的项目。',
+      match: function (p, q) {
+        return (p.name + ' ' + (p.one_liner || '') + ' ' + (p.languages || []).join(' ') + ' ' +
+          (p.status || '')).toLowerCase().indexOf(q) >= 0;
+      },
+      render: function (p) { return projectRow(p, m); }
     });
-    main.appendChild(t);
-  }
-  const joinPage = (m.pages || []).find(v => v.id === 'join');
-  if (joinPage) {
-    const b = el('div', 'body');
-    b.innerHTML = await fragment(joinPage.html);
-    main.appendChild(b);
-  }
-}
-
-async function viewSearch(q) {
-  const main = $('#main');
-  main.textContent = '';
-  main.appendChild(el('h1', '', '搜索：' + q));
-  if (!M.index) M.index = await (await fetch('search-index.json')).json();
-  const s = q.toLowerCase();
-  const hits = M.index.filter(x =>
-    (x.title + ' ' + x.summary + ' ' + (x.tags || []).join(' ') + ' ' + x.text).toLowerCase().includes(s));
-  hits.slice(0, 100).forEach(x => {
-    const c = el('div', 'card');
-    c.appendChild(link(x.url, x.title, 'card-title'));
-    c.appendChild(el('p', 'muted', x.summary));
-    main.appendChild(c);
-  });
-  if (!hits.length) main.appendChild(el('p', 'muted', '没有结果。'));
-}
-
-/* ---------- 路由 ---------- */
-
-async function render_() {
-  await loadManifest();
-  const m = M.manifest;
-  document.title = m.site.title;
-  $('#brand-title').textContent = m.site.title;
-  if (m.site.avatar) $('#brand-avatar').src = m.site.avatar;
-
-  const top = $('#topbar-actions');
-  top.textContent = '';
-  const jb = joinButton('sm');
-  if (jb) top.appendChild(jb);
-
-  const seg = route();
-  document.body.dataset.page = seg[0] || 'library';   // 场景分型钩子（P0.5）：供 CSS 用 body[data-page] 区分页面
-  if (seg[0] === 'group') { goto('#/join'); return; }
-  if (!seg.length) { goto('#/library'); return; }
-  sidebar(seg, null);
-
-  if (seg[0] === 'library' || seg[0] === 'posts') await viewLibrary();
-  else if (seg[0] === 'knowledge') await viewKnowledge();
-  else if (seg[0] === 'topics') await viewTopics();
-  else if (seg[0] === 'topic') await viewTopic(seg[1], seg[2]);
-  else if (seg[0] === 'post') await viewPost(seg[1], seg[2]);
-  else if (seg[0] === 'projects') await viewProjects();
-  else if (seg[0] === 'project') await viewProject(seg[1]);
-  else if (seg[0] === 'resources') await viewResources();
-  else if (seg[0] === 'members') await viewMembers();
-  else if (seg[0] === 'member') await viewMember(seg[1]);
-  else if (seg[0] === 'services') await viewServices();
-  else if (seg[0] === 'service') await viewService(seg[1], seg[2]);
-  else if (seg[0] === 'weekly') await viewWeekly(seg[1]);
-  else if (seg[0] === 'pages') { sidebarDoc(null); await viewPages(); }
-  else if (seg[0] === 'page') await viewPage(seg[1], seg[2]);
-  else if (seg[0] === 'join') await viewJoin();
-  else if (seg[0] === 'search') await viewSearch(seg[1] || '');
-  else {
-    const main = $('#main');
-    main.textContent = '';
-    main.appendChild(el('p', 'muted', '页面不存在。'));
+    setToc([], '', 'map.svg');
+    return Promise.resolve(f);
   }
 
-  const f = $('#footer');
-  f.textContent = '';
-  f.appendChild(el('span', 'muted', '构建于 ' + m.built_at));
-  f.appendChild(el('a', '', 'RSS')).href = 'feed.xml';
-  f.appendChild(el('a', '', 'Sitemap')).href = 'sitemap.xml';
-  f.appendChild(el('a', '', 'llms.txt')).href = 'llms.txt';
-  if (m.site.repo_url) {
-    const repo = el('a', '', '仓库');
-    repo.href = m.site.repo_url;
-    repo.target = '_blank';
-    repo.rel = 'noopener';
-    f.appendChild(repo);
+  function viewMembers() {
+    var m = S.man;
+    var head = pageHead('人', '成员', '档案自愿建立；数字贡献由构建期统计，不是估算。');
+    var f = filterable(head, m.members || [], {
+      cls: 'grid',
+      placeholder: '按昵称 / 签名 / 技能 / 角色过滤',
+      empty: '没有匹配的成员。',
+      match: function (x, q) {
+        return (x.name + ' ' + (x.signature || '') + ' ' + (x.skills || []).join(' ') + ' ' +
+          (x.role || '')).toLowerCase().indexOf(q) >= 0;
+      },
+      render: function (x) { return personCard(x, m.posts, m.projects, m.services); }
+    });
+    setToc([], '', 'map.svg');
+    return Promise.resolve(f);
   }
-  if (m.site.repo_mirror) {
-    const mir = el('a', '', '示例源');
-    mir.href = m.site.repo_mirror;
-    mir.target = '_blank';
-    mir.rel = 'noopener';
-    f.appendChild(mir);
-  }
-  if (m.site.license) f.appendChild(el('span', 'muted', '默认许可：' + m.site.license));
-}
 
-window.addEventListener('hashchange', render_);
-$('#q').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && $('#q').value.trim()) {
-    goto('#/search/' + encodeURIComponent($('#q').value.trim()));
+  function serviceRow(s, m) {
+    var mem = byId(m.members, s.owner);
+    var d = el('article', 'svc ' + (s.status || ''));
+    var h = el('h3', 'svc-h');
+    h.appendChild(lnk('#/service/' + s.id, s.name));
+    d.appendChild(h);
+    var l1 = el('p', 'svc-line');
+    l1.appendChild(el('b', '', '能做什么'));
+    l1.appendChild(document.createTextNode((s.skills || []).join('、')));
+    d.appendChild(l1);
+    var l2 = el('p', 'svc-line');
+    l2.appendChild(el('b', '', '想找什么'));
+    l2.appendChild(document.createTextNode((s.wants || []).join('、') || '（未填写）'));
+    d.appendChild(l2);
+    var l3 = el('p', 'svc-line');
+    l3.appendChild(el('b', '', '怎么联系'));
+    var ways = [];
+    for (var ci = 0; ci < (s.contact || []).length; ci++) {
+      var key = s.contact[ci];
+      var val = mem && mem.links ? mem.links[key] : '';
+      if (val) ways.push(CONTACT_LABEL[key] || key);
+    }
+    l3.appendChild(document.createTextNode(ways.length ? ways.join(' / ') : '见条目内页'));
+    d.appendChild(l3);
+    var meta = el('p', 'row-tags');
+    meta.appendChild(statusBadge(s.status));
+    meta.appendChild(document.createTextNode(' · '));
+    if (mem) meta.appendChild(lnk('#/member/' + mem.id, mem.name));
+    meta.appendChild(document.createTextNode(' · 更新 ' + (s.updated || '—')));
+    d.appendChild(meta);
+    return d;
   }
-});
-render_();
 
-// 代码块复制：事件委托，不侵入任何视图函数（复制逻辑只写在这一个监听器里）
-document.addEventListener('click', (ev) => {
-  const btn = ev.target.closest('.code .copy');
-  if (!btn) return;
-  const code = btn.closest('.code').querySelector('code');
-  const text = code ? code.textContent : '';
-  const done = () => { const old = btn.textContent; btn.textContent = '已复制';
-                       setTimeout(() => { btn.textContent = old; }, 1400); };
-  if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, done); else done();
-});
+  function viewServices() {
+    var m = S.man;
+    var head = pageHead('扫读', '能力与合作', '每条固定三段式：能做什么 / 想找什么 / 怎么联系。');
+    var f = filterable(head, m.services || [], {
+      placeholder: '按名称 / 技能 / 想找的内容 / 登记人过滤',
+      empty: '没有匹配的条目。',
+      match: function (s, q) {
+        var mem = byId(m.members, s.owner);
+        return (s.name + ' ' + (s.skills || []).join(' ') + ' ' + (s.wants || []).join(' ') + ' ' +
+          (mem ? mem.name : '')).toLowerCase().indexOf(q) >= 0;
+      },
+      render: function (s) { return serviceRow(s, m); }
+    });
+    f.appendChild(el('p', 'disc',
+      '黄页只做信息展示：不参与交易、不担保、不抽成、不经手资金、不介入纠纷；条目由本人提供并自负其责。'));
+    setToc([], '', 'map.svg');
+    return Promise.resolve(f);
+  }
+
+  function resourceRow(r, api) {
+    var li = el('li', 'row');
+    li.appendChild(el('span', 'row-date', KIND_LABEL[r.kind] || r.kind || '资源'));
+    li.appendChild(outLink(r.url, r.title, 'row-title'));
+    li.appendChild(el('span', 'row-words', ''));
+    li.appendChild(el('p', 'row-sum', r.note || ''));
+    var tags = el('p', 'row-tags');
+    for (var ti = 0; ti < (r.tags || []).length; ti++) {
+      if (ti) tags.appendChild(document.createTextNode(' '));
+      var tag = r.tags[ti];
+      var a = el('a', 'tag', tag);
+      /* 可点：JS 在时按标签过滤本页；无 JS 时退化为全站搜索（# 前缀由 CSS ::before 提供） */
+      a.setAttribute('href', '#/search/' + encodeURIComponent(tag));
+      a.setAttribute('data-tag', tag);
+      if (a.addEventListener) {
+        a.addEventListener('click', function (ev) {
+          if (!api || !api.setFilter || !this.getAttribute) return;
+          if (ev.preventDefault) ev.preventDefault();
+          api.setFilter(this.getAttribute('data-tag'));
+        });
+      }
+      tags.appendChild(a);
+    }
+    var meta = r.meta || {};
+    if (meta.stars !== null && meta.stars !== undefined) {
+      tags.appendChild(document.createTextNode(' · ★' + num(meta.stars)));
+    }
+    li.appendChild(tags);
+    return li;
+  }
+
+  function viewResources() {
+    var m = S.man;
+    var head = pageHead('资源', '资源', '书 / 教程 / 工具 / 视频 / 课程 / 路线。点标签可就地过滤。');
+    var api = {};
+    var f = filterable(head, m.resources || [], {
+      tag: 'ol', cls: 'rows', api: api,
+      placeholder: '按标题 / 说明 / 标签过滤',
+      empty: '没有匹配的资源。',
+      match: function (r, q) {
+        return (r.title + ' ' + (r.note || '') + ' ' + (r.tags || []).join(' ') + ' ' +
+          (r.kind || '')).toLowerCase().indexOf(q) >= 0;
+      },
+      render: function (r) { return resourceRow(r, api); }
+    });
+    setToc([], '', 'map.svg');
+    return Promise.resolve(f);
+  }
+  function viewWeekly(id) {
+    var m = S.man;
+    if (!id) {
+      var f0 = document.createDocumentFragment();
+      var h0 = el('header', 'page-head');
+      h0.appendChild(el('p', 'kicker', '时间'));
+      h0.appendChild(el('h1', '', '周报'));
+      h0.appendChild(el('p', 'lede', '按时间归档的合并期次。'));
+      f0.appendChild(h0);
+      var ol0 = el('ol', 'rows');
+      for (var i0 = 0; i0 < (m.weekly || []).length; i0++) {
+        var w0 = m.weekly[i0];
+        var li0 = el('li', 'row');
+        li0.appendChild(el('span', 'row-date', w0.period || ''));
+        li0.appendChild(lnk('#/weekly/' + w0.id, w0.title, 'row-title'));
+        li0.appendChild(el('span', 'row-words', (w0.merged || []).length + ' 篇'));
+        li0.appendChild(el('p', 'row-sum', (w0.highlights || []).join('；')));
+        ol0.appendChild(li0);
+      }
+      f0.appendChild(ol0);
+      setToc([], '', 'map.svg');
+      return Promise.resolve(f0);
+    }
+    return viewWeeklyItem(id, null);
+  }
+
+  function viewPages() {
+    var m = S.man;
+    var f = document.createDocumentFragment();
+    var head = el('header', 'page-head');
+    head.appendChild(el('p', 'kicker', '制度'));
+    head.appendChild(el('h1', '', '站文档'));
+    head.appendChild(el('p', 'lede', '规则、流程与写作规范。'));
+    f.appendChild(head);
+    var groups = {}, order = [];
+    for (var i = 0; i < (m.pages || []).length; i++) {
+      var d = m.pages[i];
+      var g = d.group || '其它';
+      if (!groups[g]) { groups[g] = []; order.push(g); }
+      groups[g].push(d);
+    }
+    for (var gi = 0; gi < order.length; gi++) {
+      f.appendChild(el('p', 'section-h', order[gi]));
+      var grid = el('div', 'grid');
+      for (var di = 0; di < groups[order[gi]].length; di++) {
+        var p = groups[order[gi]][di];
+        var c = el('article', 'card');
+        c.appendChild(lnk('#/page/' + p.id, p.title, 'card-title'));
+        c.appendChild(el('p', 'card-note', String(p.text || '').slice(0, 80)));
+        grid.appendChild(c);
+      }
+      f.appendChild(grid);
+    }
+    setToc([], '', 'map.svg');
+    return Promise.resolve(f);
+  }
+
+  function viewJoin() {
+    var m = S.man, g = (m.site && m.site.group) || {};
+    var f = document.createDocumentFragment();
+    var head = el('header', 'page-head');
+    head.appendChild(el('p', 'kicker', '加入'));
+    head.appendChild(el('h1', '', '加入我们'));
+    head.appendChild(el('p', 'lede', g.intro || m.site.tagline || ''));
+    f.appendChild(head);
+
+    var info = kv([
+      ['群名', g.name],
+      ['QQ 群', g.qq],
+      ['验证', g.join]
+    ]);
+    if (info) f.appendChild(info);
+    var btns = el('p', 'chips');
+    if (g.join_url) btns.appendChild(outLink(g.join_url, '申请加群', 'chip'));
+    if (m.site.repo_url) btns.appendChild(outLink(m.site.repo_url, '投稿仓库', 'chip'));
+    f.appendChild(btns);
+
+    if ((g.rules || []).length) {
+      f.appendChild(el('h2', '', '群规'));
+      var ol = el('ol');
+      for (var i = 0; i < g.rules.length; i++) ol.appendChild(el('li', '', g.rules[i]));
+      f.appendChild(ol);
+    }
+    if ((g.features || []).length) {
+      f.appendChild(el('h2', '', '这里有什么'));
+      var ul = el('ul');
+      for (var j = 0; j < g.features.length; j++) ul.appendChild(el('li', '', g.features[j]));
+      f.appendChild(ul);
+    }
+    if ((g.timeline || []).length) {
+      f.appendChild(el('h2', '', '站点时间线'));
+      var tl = el('ul', 'timeline');
+      for (var k = 0; k < g.timeline.length; k++) {
+        var li = el('li');
+        li.appendChild(el('span', 't-date', g.timeline[k].date));
+        li.appendChild(document.createTextNode(g.timeline[k].text));
+        tl.appendChild(li);
+      }
+      f.appendChild(tl);
+    }
+    setToc([], '', 'map.svg');
+    return Promise.resolve(f);
+  }
+
+  function viewSearch(q) {
+    var f = document.createDocumentFragment();
+    var head = el('header', 'page-head');
+    head.appendChild(el('p', 'kicker', '辅助'));
+    head.appendChild(el('h1', '', '搜索：' + (q || '')));
+    f.appendChild(head);
+    return fragment('search-index.json').then(function (raw) {
+      var idx = [];
+      try { idx = JSON.parse(raw) || []; } catch (e) { idx = []; }
+      var needle = String(q || '').toLowerCase();
+      var ol = el('ol', 'rows');
+      var hits = 0;
+      for (var i = 0; i < idx.length; i++) {
+        var it = idx[i];
+        var hay = (String(it.title || '') + ' ' + String(it.summary || '') + ' ' +
+          String(it.text || '') + ' ' + ((it.tags || []).join(' '))).toLowerCase();
+        if (!needle || hay.indexOf(needle) >= 0) {
+          var li = el('li', 'row');
+          li.appendChild(el('span', 'row-date', ''));
+          li.appendChild(lnk(it.url || '#/library', it.title || '', 'row-title'));
+          li.appendChild(el('span', 'row-words', ''));
+          li.appendChild(el('p', 'row-sum', it.summary || ''));
+          ol.appendChild(li);
+          hits++;
+          if (hits > 60) break;
+        }
+      }
+      f.appendChild(ol);
+      if (!hits) f.appendChild(el('p', 'muted', '没有结果。'));
+      setToc([], '', 'map.svg');
+      return f;
+    });
+  }
+
+  /* ---------- 视图：详情类 ---------- */
+
+  function viewPost(slug, anchor) {
+    var m = S.man;
+    var p = bySlug(m.posts, slug);
+    var f = document.createDocumentFragment();
+    if (!p) {
+      f.appendChild(el('h1', '', '没有这篇文章'));
+      f.appendChild(el('p', 'muted', 'slug：' + String(slug)));
+      setToc([], '', '');
+      return Promise.resolve(f);
+    }
+    var mem = byId(m.members, p.author);
+    f.appendChild(crumb([['文章库', '#/library'], [p.title, '']]));
+    f.appendChild(el('h1', '', p.title));
+
+    var by = el('div', 'byline');
+    if (mem) {
+      var who = lnk('#/member/' + mem.id, '', '');
+      var av = avatarOf(mem);
+      if (av) who.appendChild(av);
+      who.appendChild(document.createTextNode(mem.name));
+      by.appendChild(who);
+    } else if (p.author) {
+      by.appendChild(el('span', '', p.author));
+    }
+    by.appendChild(el('span', '', p.date));
+    by.appendChild(el('span', '', num(p.words) + ' 字'));
+    by.appendChild(el('span', '', '约 ' + minutes(p.words) + ' 分钟'));
+    if (p.updated && p.updated !== p.date) by.appendChild(el('span', '', '更新于 ' + p.updated));
+    f.appendChild(by);
+
+    f.appendChild(el('p', 'lede', p.summary || ''));
+
+    /* 文章形态：只由真实内容决定（标签 / 是否有图集块） */
+    var form = 'reading';
+    for (var ti = 0; ti < (p.tags || []).length; ti++) {
+      if (FORM_BY_TAG[p.tags[ti]]) { form = FORM_BY_TAG[p.tags[ti]]; break; }
+    }
+    setForm(form);
+
+    return proseFragment(p.html).then(function (prose) {
+      f.appendChild(prose);
+      var tail = el('div', 'post-tail');
+      if ((p.tags || []).length) tail.appendChild(tagLine(p.tags));
+      tail.appendChild(el('p', 'license', '许可：' + (p.license || m.site.license || '见站点默认许可')));
+      if ((p.attachments || []).length) {
+        var ul = el('ul', 'attachments');
+        for (var ai = 0; ai < p.attachments.length; ai++) {
+          var at = p.attachments[ai];
+          var li = el('li');
+          li.appendChild(el('span', 'a-kind', at.kind === 'image' ? '图' : '链'));
+          var href = safeUrl(at.url);
+          if (href) {
+            var a = lnk(href, at.name);
+            a.setAttribute('target', '_blank');
+            a.setAttribute('rel', 'noopener');
+            li.appendChild(a);
+          } else {
+            li.appendChild(document.createTextNode(at.name));
+          }
+          if (at.size) li.appendChild(document.createTextNode('（' + at.size + '）'));
+          ul.appendChild(li);
+        }
+        tail.appendChild(ul);
+      }
+      f.appendChild(tail);
+
+      /* 系列上/下章 */
+      if (p.series) {
+        var s = byId(m.series, p.series);
+        if (s) {
+          var idx = -1;
+          for (var si = 0; si < s.posts.length; si++) { if (s.posts[si].slug === p.slug) idx = si; }
+          var pager = el('nav', 'pager');
+          if (idx > 0) pager.appendChild(lnk('#/post/' + s.posts[idx - 1].slug, '← ' + s.posts[idx - 1].title));
+          else pager.appendChild(el('span', 'muted', ''));
+          if (idx >= 0 && idx < s.posts.length - 1) {
+            pager.appendChild(lnk('#/post/' + s.posts[idx + 1].slug, s.posts[idx + 1].title + ' →'));
+          }
+          f.appendChild(pager);
+        }
+      }
+
+      setToc(p.toc, 'post/' + p.slug, p.map);
+      if (anchor) scrollToId(anchor);
+      return f;
+    });
+  }
+
+  function viewProject(id) {
+    var m = S.man;
+    var p = byId(m.projects, id);
+    var f = document.createDocumentFragment();
+    if (!p) {
+      f.appendChild(el('h1', '', '没有这个项目'));
+      setToc([], '', '');
+      return Promise.resolve(f);
+    }
+    f.appendChild(crumb([['项目', '#/projects'], [p.name, '']]));
+    var h = el('h1');
+    h.appendChild(document.createTextNode(p.name + ' '));
+    h.appendChild(statusBadge(p.status));
+    f.appendChild(h);
+    f.appendChild(el('p', 'lede', p.one_liner));
+
+    var btns = el('p', 'chips');
+    if (p.repo) btns.appendChild(outLink(p.repo, '仓库', 'chip'));
+    if (p.homepage) btns.appendChild(outLink(p.homepage, '文档 / 主页', 'chip'));
+    f.appendChild(btns);
+
+    var meta = p.meta || {};
+    var metrics = el('div', 'metrics');
+    var has = 0;
+    if (meta.stars !== null && meta.stars !== undefined) { metrics.appendChild(metric(meta.stars, 'stars')); has++; }
+    if (meta.forks !== null && meta.forks !== undefined) { metrics.appendChild(metric(meta.forks, 'forks')); has++; }
+    if (meta.updated_at) { metrics.appendChild(metric(String(meta.updated_at).slice(0, 10), '最近提交')); has++; }
+    if (has) f.appendChild(metrics);
+
+    var bar = meta.languages_pct ? langBar(meta.languages_pct, 4) : null;
+    if (bar) { f.appendChild(el('p', 'section-h', '语言占比（构建期抓取）')); f.appendChild(bar); }
+
+    var mem = byId(m.members, p.owner);
+    var info = kv([
+      ['仓库', p.repo, p.repo],
+      ['主页', p.homepage, p.homepage],
+      ['主语言', meta.language],
+      ['许可', p.license || meta.license],
+      ['维护者', mem ? mem.name : p.owner, mem ? '#/member/' + mem.id : ''],
+      ['平台', (p.platforms || []).join('、')],
+      ['最近提交', meta.updated_at ? String(meta.updated_at).slice(0, 10) : '']
+    ]);
+    if (info) { f.appendChild(el('p', 'section-h', '仓库信息')); f.appendChild(info); }
+
+    /* 里程碑时间线：有真实 milestones 才画 */
+    if ((p.milestones || []).length) {
+      f.appendChild(el('p', 'section-h', '里程碑'));
+      var tl = el('ul', 'timeline');
+      for (var mi = 0; mi < p.milestones.length; mi++) {
+        var ms = p.milestones[mi];
+        var li = el('li');
+        li.appendChild(el('span', 't-date', ms.date || ''));
+        li.appendChild(document.createTextNode(ms.text || ''));
+        if (ms.why) li.appendChild(el('span', 'muted', '（' + ms.why + '）'));
+        tl.appendChild(li);
+      }
+      f.appendChild(tl);
+    }
+
+    /* 相关文章：按标签（语言/平台）真实相交，取不到就留空，不编造 */
+    var keys = {};
+    var langs = (p.languages || []).concat(p.platforms || []);
+    var li2;
+    for (li2 = 0; li2 < langs.length; li2++) keys[langs[li2]] = 1;
+    var rel = [];
+    for (var pi = 0; pi < m.posts.length; pi++) {
+      var post = m.posts[pi];
+      for (var tj = 0; tj < (post.tags || []).length; tj++) {
+        if (keys[post.tags[tj]]) { rel.push(post); break; }
+      }
+    }
+    if (rel.length) {
+      f.appendChild(el('p', 'section-h', '相关文章'));
+      var ol = el('ol', 'rows');
+      for (var ri = 0; ri < rel.length && ri < 6; ri++) ol.appendChild(postRow(rel[ri], m.members));
+      f.appendChild(ol);
+    }
+
+    setToc([], '', 'map.svg');
+    return Promise.resolve(f);
+  }
+
+  function viewMember(id) {
+    var m = S.man;
+    var mem = byId(m.members, id);
+    var f = document.createDocumentFragment();
+    if (!mem) {
+      f.appendChild(el('h1', '', '没有这位成员'));
+      setToc([], '', '');
+      return Promise.resolve(f);
+    }
+    f.appendChild(crumb([['成员', '#/members'], [mem.name, '']]));
+    var hero = el('div', 'member-hero');
+    var av = avatarOf(mem);
+    if (av) hero.appendChild(av); else hero.appendChild(el('div', 'avatar'));
+    var right = el('div');
+    var h = el('h1');
+    h.appendChild(document.createTextNode(mem.name));
+    right.appendChild(h);
+    right.appendChild(el('p', 'p-role', mem.role || '群友'));
+    if (mem.signature) right.appendChild(el('p', 'card-note', mem.signature));
+    var chips = el('p', 'chips');
+    for (var si = 0; si < (mem.skills || []).length; si++) chips.appendChild(el('span', 'chip', mem.skills[si]));
+    right.appendChild(chips);
+    hero.appendChild(right);
+
+    var np = 0, npr = 0;
+    for (var i = 0; i < m.posts.length; i++) if (m.posts[i].author === mem.id) np++;
+    for (var j = 0; j < (m.projects || []).length; j++) {
+      var pr = m.projects[j];
+      if (pr.owner === mem.id || (pr.contributors || []).indexOf(mem.id) >= 0) npr++;
+    }
+    var bigs = el('div', 'mh-nums');
+    bigs.appendChild(el('div', 'big-num', num(np) + '篇文章'));
+    bigs.appendChild(el('div', 'big-num', num(npr) + '个项目'));
+    if (mem.joined) bigs.appendChild(el('div', 'big-num', '加入 ' + mem.joined));
+    hero.appendChild(bigs);
+    f.appendChild(hero);
+
+    f.appendChild(el('p', 'section-h', '文章'));
+    var ol = el('ol', 'rows');
+    var n = 0;
+    for (var k = 0; k < m.posts.length; k++) {
+      if (m.posts[k].author === mem.id || (m.posts[k].co_authors || []).indexOf(mem.id) >= 0) {
+        ol.appendChild(postRow(m.posts[k], m.members)); n++;
+      }
+    }
+    if (n) f.appendChild(ol); else f.appendChild(el('p', 'muted', '还没有文章。'));
+
+    var mine = [];
+    for (var pj = 0; pj < (m.projects || []).length; pj++) {
+      var p = m.projects[pj];
+      if (p.owner === mem.id || (p.contributors || []).indexOf(mem.id) >= 0) mine.push(p);
+    }
+    if (mine.length) {
+      f.appendChild(el('p', 'section-h', '参与项目'));
+      var ul2 = el('ul');
+      for (var pi2 = 0; pi2 < mine.length; pi2++) {
+        var lix = el('li');
+        lix.appendChild(lnk('#/project/' + mine[pi2].id, mine[pi2].name));
+        lix.appendChild(document.createTextNode(' — ' + mine[pi2].one_liner));
+        ul2.appendChild(lix);
+      }
+      f.appendChild(ul2);
+    }
+
+    var svcs = [];
+    for (var si2 = 0; si2 < (m.services || []).length; si2++) {
+      if (m.services[si2].owner === mem.id) svcs.push(m.services[si2]);
+    }
+    if (svcs.length) {
+      f.appendChild(el('p', 'section-h', '能力与合作'));
+      var ul3 = el('ul');
+      for (var si3 = 0; si3 < svcs.length; si3++) {
+        var li3 = el('li');
+        li3.appendChild(lnk('#/service/' + svcs[si3].id, svcs[si3].name));
+        li3.appendChild(document.createTextNode(' — ' + (svcs[si3].skills || []).join('、')));
+        ul3.appendChild(li3);
+      }
+      f.appendChild(ul3);
+    }
+
+    /* 联系方式放最后，并注明「本人授权公开」 */
+    var links = mem.links || {};
+    var keys = Object.keys(links);
+    if (keys.length) {
+      f.appendChild(el('p', 'section-h', '联系方式（本人授权公开）'));
+      var dl = el('dl', 'kv');
+      for (var ki = 0; ki < keys.length; ki++) {
+        dl.appendChild(el('dt', '', CONTACT_LABEL[keys[ki]] || keys[ki]));
+        var dd = el('dd');
+        var v = links[keys[ki]];
+        if (keys[ki] === 'email') dd.appendChild(outLink('mailto:' + v, v));
+        else dd.appendChild(outLink(v, v));
+        dl.appendChild(dd);
+      }
+      f.appendChild(dl);
+    }
+    setToc([], '', 'map.svg');
+    return Promise.resolve(f);
+  }
+
+  function viewService(id, anchor) {
+    var m = S.man;
+    var s = byId(m.services, id);
+    var f = document.createDocumentFragment();
+    if (!s) {
+      f.appendChild(el('h1', '', '没有这条黄页'));
+      setToc([], '', '');
+      return Promise.resolve(f);
+    }
+    var mem = byId(m.members, s.owner);
+    f.appendChild(crumb([['能力与合作', '#/services'], [s.name, '']]));
+    var h = el('h1');
+    h.appendChild(document.createTextNode(s.name + ' '));
+    h.appendChild(statusBadge(s.status));
+    f.appendChild(h);
+
+    var who = el('p', 'row-tags');
+    who.appendChild(el('b', '', '登记人'));
+    if (mem) who.appendChild(lnk('#/member/' + mem.id, mem.name));
+    else who.appendChild(document.createTextNode(s.owner));
+    who.appendChild(document.createTextNode(' · 更新 ' + (s.updated || '—')));
+    f.appendChild(who);
+
+    f.appendChild(el('p', 'lede', (s.skills || []).join('、')));
+    if ((s.wants || []).length) {
+      var w = el('p');
+      w.appendChild(el('b', '', '想找：'));
+      w.appendChild(document.createTextNode((s.wants || []).join('、')));
+      f.appendChild(w);
+    }
+
+    return proseFragment(s.html).then(function (prose) {
+      f.appendChild(prose);
+
+      /* 「怎么联系」面板：右栏被站点导航占用（§2 硬约束），这里放在正文之后 */
+      f.appendChild(el('p', 'section-h', '怎么联系'));
+      var pairs = [['登记人', mem ? mem.name : s.owner, mem ? '#/member/' + mem.id : '']];
+      if (s.rate) pairs.push(['费用 / 方式', s.rate]);
+      for (var ci = 0; ci < (s.contact || []).length; ci++) {
+        var key = s.contact[ci];
+        var val = mem && mem.links ? mem.links[key] : '';
+        if (val) pairs.push([CONTACT_LABEL[key] || key, val, key === 'email' ? 'mailto:' + val : val]);
+      }
+      var info = kv(pairs);
+      if (info) f.appendChild(info);
+      f.appendChild(el('p', 'disc',
+        '本站只做信息展示，不参与交易、不担保、不抽成、不经手资金、不介入纠纷；' +
+        '联系方式仅引用成员档案中本人授权公开的字段。'));
+
+      setToc(s.toc, 'service/' + s.id, s.map);
+      if (anchor) scrollToId(anchor);
+      return f;
+    });
+  }
+
+  function viewTopic(id, anchor) {
+    var m = S.man;
+    var t = byId(m.topics, id);
+    var f = document.createDocumentFragment();
+    if (!t) {
+      f.appendChild(el('h1', '', '没有这个词条'));
+      setToc([], '', '');
+      return Promise.resolve(f);
+    }
+    f.appendChild(crumb([['主题词条', '#/topics'], [t.title, '']]));
+    var h = el('h1');
+    h.appendChild(document.createTextNode(t.title + ' '));
+    h.appendChild(el('span', 'badge', (t.resolved || []).length + ' 篇'));
+    f.appendChild(h);
+    f.appendChild(el('p', 'define', t.summary || ''));
+    if ((t.tags || []).length) f.appendChild(tagLine(t.tags, 'row-tags'));
+
+    var g = relGraph(t, m.posts, m.projects, m.topics);
+    if (g) { f.appendChild(el('p', 'section-h', '关系图')); f.appendChild(g); }
+
+    return proseFragment(t.html).then(function (prose) {
+      f.appendChild(prose);
+      if ((t.resolved || []).length) {
+        f.appendChild(el('p', 'section-h', '相关文章'));
+        var ol = el('ol', 'rows');
+        for (var i = 0; i < t.resolved.length; i++) {
+          var p = bySlug(m.posts, t.resolved[i]);
+          if (p) ol.appendChild(postRow(p, m.members));
+        }
+        f.appendChild(ol);
+      }
+      var rl = el('ul', 'rel-list');
+      var n = 0;
+      if ((t.tags || []).length) {
+        var li = el('li');
+        li.appendChild(el('b', '', '标签'));
+        for (var ti = 0; ti < t.tags.length; ti++) {
+          if (ti) li.appendChild(document.createTextNode('、'));
+          li.appendChild(el('span', 'tag', t.tags[ti]));
+        }
+        rl.appendChild(li); n++;
+      }
+      if ((t.related || []).length) {
+        var li2 = el('li');
+        li2.appendChild(el('b', '', '相关词条'));
+        for (var ri = 0; ri < t.related.length; ri++) {
+          var rt = byId(m.topics, t.related[ri]);
+          if (ri) li2.appendChild(document.createTextNode('、'));
+          li2.appendChild(lnk('#/topic/' + t.related[ri], rt ? rt.title : t.related[ri]));
+        }
+        rl.appendChild(li2); n++;
+      }
+      if (n) f.appendChild(rl);
+      f.appendChild(el('p', 'disc', '觉得缺了什么？提 PR 补词条，或把稿子交给群管理代投。'));
+      setToc(t.toc, 'topic/' + t.id, t.map);
+      if (anchor) scrollToId(anchor);
+      return f;
+    });
+  }
+
+  function viewWeeklyItem(id, anchor) {
+    var m = S.man;
+    var w = byId(m.weekly, id);
+    var f = document.createDocumentFragment();
+    if (!w) {
+      f.appendChild(el('h1', '', '没有这一期'));
+      setToc([], '', '');
+      return Promise.resolve(f);
+    }
+    f.appendChild(crumb([['周报', '#/weekly'], [w.period || w.title, '']]));
+    f.appendChild(el('h1', '', w.title));
+    f.appendChild(el('p', 'lede', w.period || ''));
+
+    var grid = el('div', 'metrics');
+    grid.appendChild(metric((w.merged || []).length, '合并文章'));
+    grid.appendChild(metric((w.highlights || []).length, '要点'));
+    grid.appendChild(metric((w.contributors || []).length, '参与成员'));
+    f.appendChild(grid);
+
+    if ((w.highlights || []).length) {
+      f.appendChild(el('p', 'section-h', '本期时间线'));
+      var tl = el('ul', 'timeline');
+      for (var i = 0; i < w.highlights.length; i++) tl.appendChild(el('li', '', w.highlights[i]));
+      f.appendChild(tl);
+    }
+
+    if ((w.merged || []).length) {
+      f.appendChild(el('p', 'section-h', '合并的文章'));
+      var ol = el('ol', 'rows');
+      for (var j = 0; j < w.merged.length; j++) {
+        var p = bySlug(m.posts, w.merged[j]);
+        if (p) ol.appendChild(postRow(p, m.members));
+      }
+      f.appendChild(ol);
+    }
+
+    if ((w.contributors || []).length) {
+      f.appendChild(el('p', 'section-h', '参与成员'));
+      var ul = el('ul');
+      for (var k = 0; k < w.contributors.length; k++) {
+        var mem = byId(m.members, w.contributors[k]);
+        var li = el('li');
+        if (mem) li.appendChild(lnk('#/member/' + mem.id, mem.name));
+        else li.appendChild(document.createTextNode(w.contributors[k]));
+        ul.appendChild(li);
+      }
+      f.appendChild(ul);
+    }
+
+    return proseFragment(w.html).then(function (prose) {
+      f.appendChild(prose);
+      var idx = -1;
+      for (var i2 = 0; i2 < m.weekly.length; i2++) { if (m.weekly[i2].id === w.id) idx = i2; }
+      var pager = el('nav', 'pager');
+      if (idx > 0) pager.appendChild(lnk('#/weekly/' + m.weekly[idx - 1].id, '← ' + m.weekly[idx - 1].period));
+      else pager.appendChild(el('span', 'muted', ''));
+      if (idx >= 0 && idx < m.weekly.length - 1) {
+        pager.appendChild(lnk('#/weekly/' + m.weekly[idx + 1].id, m.weekly[idx + 1].period + ' →'));
+      }
+      f.appendChild(pager);
+      setToc(w.toc, 'weekly/' + w.id, w.map);
+      if (anchor) scrollToId(anchor);
+      return f;
+    });
+  }
+
+  function docTree(curId) {
+    var m = S.man;
+    var d = el('details', 'doc-tree');
+    d.setAttribute('open', 'open');
+    d.appendChild(el('summary', '', '站文档目录'));
+    var groups = {}, order = [];
+    for (var i = 0; i < (m.pages || []).length; i++) {
+      var p = m.pages[i];
+      var g = p.group || '其它';
+      if (!groups[g]) { groups[g] = []; order.push(g); }
+      groups[g].push(p);
+    }
+    for (var gi = 0; gi < order.length; gi++) {
+      d.appendChild(el('p', 'dt-group', order[gi]));
+      for (var pi = 0; pi < groups[order[gi]].length; pi++) {
+        var pg = groups[order[gi]][pi];
+        d.appendChild(lnk('#/page/' + pg.id, pg.title, pg.id === curId ? 'cur' : ''));
+      }
+    }
+    return d;
+  }
+
+  function viewPage(id, anchor) {
+    var m = S.man;
+    var p = byId(m.pages, id);
+    var f = document.createDocumentFragment();
+    if (!p) {
+      f.appendChild(el('h1', '', '没有这个文档页'));
+      setToc([], '', '');
+      return Promise.resolve(f);
+    }
+    f.appendChild(crumb([['站文档', '#/pages'], [p.title, '']]));
+    f.appendChild(el('h1', '', p.title));
+    /* 左栏必须是本文目录（§2），文档树因此放在正文顶部 */
+    f.appendChild(docTree(p.id));
+    return proseFragment(p.html).then(function (prose) {
+      f.appendChild(prose);
+      if (p.group_link) {
+        var btns = el('p', 'chips');
+        btns.appendChild(outLink(p.group_link, '相关行动', 'chip'));
+        f.appendChild(btns);
+      }
+      setToc(p.toc, 'page/' + p.id, p.map);
+      if (anchor) scrollToId(anchor);
+      return f;
+    });
+  }
+
+  function scrollToId(id) {
+    var t = document.getElementById ? document.getElementById(id) : null;
+    if (t && typeof t.scrollIntoView === 'function') t.scrollIntoView();
+  }
+
+  function setForm(form) {
+    if (!form) return;
+    if (document.body && document.body.setAttribute) document.body.setAttribute('data-form', form);
+  }
+
+  /* ---------- 路由 ---------- */
+
+  function route() {
+    var h = String((typeof location !== 'undefined' && location.hash) || '');
+    h = h.replace(/^#\/?/, '');
+    var q = {}, qi = h.indexOf('?');
+    if (qi >= 0) {
+      var qs = h.slice(qi + 1);
+      h = h.slice(0, qi);
+      var parts = qs.split('&');
+      for (var i = 0; i < parts.length; i++) {
+        var kvp = parts[i].split('=');
+        if (kvp[0]) q[decodeURIComponent(kvp[0])] = decodeURIComponent(kvp[1] || '');
+      }
+    }
+    var seg = [];
+    var raw = h.split('/');
+    for (var j = 0; j < raw.length; j++) { if (raw[j] !== '') seg.push(decodeURIComponent(raw[j])); }
+    return { seg: seg, q: q };
+  }
+
+  function goto(h) { if (typeof location !== 'undefined') location.hash = h; }
+
+  var VIEWS = {
+    home: function () { return viewHome(); },
+    library: function (r) { return viewLibrary(r.q); },
+    posts: function () { return viewLibrary({}); },
+    knowledge: function () { return viewKnowledge(); },
+    topics: function () { return viewTopics(); },
+    topic: function (r) { return viewTopic(r.seg[1], r.seg[2]); },
+    post: function (r) { return viewPost(r.seg[1], r.seg[2]); },
+    projects: function () { return viewProjects(); },
+    project: function (r) { return viewProject(r.seg[1]); },
+    resources: function () { return viewResources(); },
+    members: function () { return viewMembers(); },
+    member: function (r) { return viewMember(r.seg[1]); },
+    services: function () { return viewServices(); },
+    service: function (r) { return viewService(r.seg[1], r.seg[2]); },
+    weekly: function (r) { return viewWeekly(r.seg[1]); },
+    pages: function () { return viewPages(); },
+    page: function (r) { return viewPage(r.seg[1], r.seg[2]); },
+    join: function () { return viewJoin(); },
+    search: function (r) { return viewSearch(r.seg[1] || ''); }
+  };
+
+  function buildFooter() {
+    var foot = $('#footer');
+    if (!foot) return;
+    var m = S.man;
+    clear(foot);
+    foot.appendChild(el('span', '', '构建于 ' + String(m.built_at || '').slice(0, 10)));
+    var rss = lnk('feed.xml', 'RSS'); foot.appendChild(rss);
+    foot.appendChild(lnk('sitemap.xml', 'Sitemap'));
+    foot.appendChild(lnk('llms.txt', 'llms.txt'));
+    if (m.site.repo_url) foot.appendChild(outLink(m.site.repo_url, '仓库'));
+    if (m.site.license) foot.appendChild(el('span', '', '默认许可 ' + m.site.license));
+    var credit = el('span', '', 'Powered by ');
+    credit.appendChild(outLink('https://gitee.com/snoware', 'snoware'));
+    credit.appendChild(el('span', '', ' & '));
+    credit.appendChild(outLink('https://sml.swebase.cn', 'SML'));
+    foot.appendChild(credit);
+  }
+
+  function render() {
+    return loadManifest().then(function (m) {
+      S.man = m;
+      var r = route();
+      var key = r.seg[0] || 'home';
+      S.page = key;
+      document.title = (m.site.title || '') + ((key === 'library' || key === 'home') ? '' : ' · ' + (NAV_LABEL[key] || key));
+      if (document.body && document.body.setAttribute) document.body.setAttribute('data-page', key);
+      buildSiteNav(key);
+      setForm('reading');
+      /* 每次换页先清空上一页的目录，避免「文章 → 索引」时左栏残留旧章节 */
+      setToc([], '', '');
+      var fn = VIEWS[key];
+      var view = fn ? fn(r) : null;
+      if (!view) {
+        var f0 = document.createDocumentFragment();
+        f0.appendChild(el('h1', '', '页面不存在'));
+        f0.appendChild(el('p', 'muted', String(key)));
+        setToc([], '', '');
+        view = Promise.resolve(f0);
+      }
+      return view.then(function (fr) {
+        var viewEl = $('#view');
+        if (viewEl) { clear(viewEl); viewEl.appendChild(fr); }
+        buildToc();
+        buildFooter();
+        var brand = $('#brand-title');
+        if (brand) {
+          clear(brand);
+          brand.appendChild(document.createTextNode(m.site.title || ''));
+        }
+        var av = $('#brand-avatar');
+        if (av) {
+          var src = safeUrl(m.site.avatar);
+          if (src) av.setAttribute('src', src); else av.setAttribute('src', '');
+        }
+        return true;
+      });
+    });
+  }
+
+  /* ---------- 启动 ---------- */
+
+  function boot() {
+    if (typeof window !== 'undefined' && window.addEventListener) {
+      window.addEventListener('hashchange', function () { render(); });
+    }
+    var q = $('#q');
+    if (q && q.addEventListener) {
+      q.addEventListener('keydown', function (ev) {
+        var val = String((ev && ev.target && ev.target.value) || q.value || '').trim();
+        if (ev && ev.key === 'Enter' && val) goto('#/search/' + encodeURIComponent(val));
+      });
+    }
+    /* 代码块复制：事件委托，只写这一处 */
+    if (typeof document.addEventListener === 'function') {
+      document.addEventListener('click', function (ev) {
+        var t = ev && ev.target;
+        if (!t || typeof t.closest !== 'function') return;
+        var btn = t.closest('.copy');
+        if (!btn) return;
+        var box = btn.closest('.code');
+        var code = null;
+        if (box && typeof box.getElementsByTagName === 'function') {
+          var list = box.getElementsByTagName('code');
+          code = list && list[0] ? list[0] : null;
+        }
+        var text = code ? code.textContent : '';
+        var old = btn.textContent || '复制';
+        var swap = function (label) {
+          clear(btn);
+          btn.appendChild(document.createTextNode(label));
+          if (typeof setTimeout === 'function') {
+            setTimeout(function () {
+              clear(btn);
+              btn.appendChild(document.createTextNode('复制'));
+            }, 1400);
+          }
+        };
+        var done = function () { swap('已复制'); };
+        var fail = function () { swap('复制失败'); };
+        if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done, fail);
+        } else {
+          fail();
+        }
+      });
+    }
+    return render();
+  }
+
+  var started = boot();
+
+  if (typeof window !== 'undefined') {
+    window.__rec = {
+      S: S, VIEWS: VIEWS, render: render, boot: boot, started: started,
+      relGraph: relGraph, langBar: langBar, safeUrl: safeUrl,
+      buildSiteNav: buildSiteNav, buildToc: buildToc, route: route,
+      viewLibrary: viewLibrary, viewPost: viewPost, viewTopic: viewTopic,
+      viewProject: viewProject, viewMember: viewMember, viewService: viewService,
+      viewWeeklyItem: viewWeeklyItem, viewPage: viewPage, viewJoin: viewJoin,
+      viewSearch: viewSearch, viewMembers: viewMembers, viewServices: viewServices,
+      viewProjects: viewProjects, viewTopics: viewTopics, viewKnowledge: viewKnowledge,
+      viewResources: viewResources, viewPages: viewPages, viewWeekly: viewWeekly
+    };
+  }
+})();

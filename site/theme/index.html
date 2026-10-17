@@ -3,28 +3,57 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <!--BUILD:HEAD-->
 <title>Rust嵌入式探讨</title>
 <link rel="stylesheet" href="style.css">
 <link rel="alternate" type="application/rss+xml" title="RSS" href="feed.xml">
 </head>
-<body>
-<header id="topbar">
-  <a class="brand" href="#/library"><img id="brand-avatar" alt=""><span id="brand-title">载入中…</span></a>
-  <div class="tools">
-    <input id="q" type="search" placeholder="搜索文章／项目／成员（回车）" autocomplete="off">
-    <span id="topbar-actions"></span>
-  </div>
+<body data-page="home" data-form="reading">
+
+<header class="topbar">
+  <a class="brand" href="#/home"><img id="brand-avatar" alt="" width="22" height="22"><span id="brand-title">Rust嵌入式探讨</span></a>
+  <span class="topbar-tools">
+    <input id="q" class="search-input" type="search" placeholder="搜索（回车）" aria-label="搜索站内内容" autocomplete="off">
+  </span>
 </header>
-<div id="layout">
-  <aside id="sidebar"></aside>
-  <main id="main">
-    <div class="skel"><h3></h3><p></p><p></p></div>
-    <div class="skel"><h3></h3><p></p><p></p></div>
-    <div class="skel"><h3></h3><p></p><p></p></div>
+
+<div class="layout">
+
+  <!-- 左栏：只有本文导航（本文目录 + 章节导图），不出现任何站点级入口 -->
+  <aside class="col-left" id="col-left" aria-label="本文导航">
+    <div class="col-left-inner">
+      <p class="col-title">本文目录</p>
+      <nav class="toc" id="toc-nav" aria-label="本文目录"></nav>
+      <p class="col-sub"><a class="map-link" id="map-link" href="map.svg">章节导图 →</a></p>
+    </div>
+  </aside>
+
+  <!-- 中栏：内容，max-width 由 --measure 控制（默认 38rem） -->
+  <main class="col-main" id="main">
+    <details class="mobile-toc" id="mobile-toc">
+      <summary>本页目录</summary>
+      <nav class="toc" id="toc-nav-m" aria-label="本页目录"></nav>
+    </details>
+    <div id="view">
+<!--BUILD:FIRST-->
+    </div>
   </main>
+
+  <!-- 右栏：站点导航，<details> 默认收起；窄屏时变成顶栏右侧的抽屉 -->
+  <aside class="col-right" id="col-right" aria-label="站点导航">
+    <details class="nav-drawer" id="nav-drawer">
+      <summary class="nav-summary">☰ 站点导航</summary>
+      <nav class="site-nav" id="site-nav" aria-label="站点导航">
+<!--BUILD:NAV-->
+      </nav>
+    </details>
+  </aside>
+
 </div>
-<footer id="footer"></footer>
+
+<footer class="footer" id="footer"></footer>
+
 <script src="app.js"></script>
 </body>
 </html>
