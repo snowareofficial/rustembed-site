@@ -355,6 +355,40 @@ async function main() {
   need(att.cards >= 1, '附件渲染成卡片', String(att.cards));
   need(att.icon === true, '附件有统一文件图标', String(att.icon));
 
+  /* ---------- 构建期摘要 / 可选导图（可拖动） ---------- */
+  await go('#/post/hello-rec', 'post', { toc: 'yes' });
+  const ai = await cdp.eval(`(() => ({
+    card: !!document.querySelector('.ai-summary'),
+    points: document.querySelectorAll('.ai-points li').length
+  }))()`);
+  need(ai.card === true, '文章页有构建期摘要卡');
+  need(ai.points >= 1, '摘要卡有要点列表', String(ai.points));
+
+  const mapUI = await cdp.eval(`(async () => {
+    const link = document.querySelector('#map-link');
+    if (!link) return { found: false };
+    link.click();
+    await new Promise((r) => setTimeout(r, 300));
+    const view = document.querySelector('.map-view');
+    const img = document.querySelector('.map-img');
+    const open = !!document.querySelector('#modal:not([hidden])');
+    const before = img ? img.style.transform : '';
+    if (view && img) {
+      view.dispatchEvent(new PointerEvent('pointerdown', { clientX: 100, clientY: 100, bubbles: true }));
+      view.dispatchEvent(new PointerEvent('pointermove', { clientX: 170, clientY: 150, bubbles: true }));
+      view.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+    }
+    const after = img ? img.style.transform : '';
+    const close = document.querySelector('.modal-close');
+    if (close) close.click();
+    return { found: true, view: !!view, img: !!img, open, moved: before !== after, before, after };
+  })()`);
+  need(mapUI.found === true, '文章有章节结构入口');
+  need(mapUI.open === true, '章节结构弹层能打开');
+  need(mapUI.view === true, '导图有可拖动视口');
+  need(mapUI.img === true, '导图 SVG 已载入');
+  need(mapUI.moved === true, '导图支持拖动（transform 变化）', mapUI.before + ' → ' + mapUI.after);
+
   /* ---------- 暗色 1280×900 ---------- */
   console.log('== 1280×900 暗色 ==');
   await metrics(1280, 900, false);

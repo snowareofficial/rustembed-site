@@ -30,6 +30,7 @@ import render
 import markdown as md
 import repo_meta
 import mindmap
+import summary
 import contract as contract_mod
 
 try:  # 中文输出统一走 UTF-8，避免被控制台代码页搞成乱码
@@ -271,8 +272,13 @@ def build_posts(rep, cache, offline):
         text = render.strip_html(html_body)
 
         toc_nodes = [dict(x, anchor="#/post/%s/%s" % (slug, x["id"])) for x in toc]
-        map_svg = mindmap.to_svg(mindmap.from_toc(sml.as_str(d.get("title")), toc_nodes),
-                                 sml.as_str(d.get("title")))
+        # 导图可选：front matter 写 map: true 才生成（默认关闭，正文更轻）
+        want_map = bool(d.get("map"))
+        map_svg = ""
+        if want_map:
+            map_svg = mindmap.to_svg(
+                mindmap.from_toc(sml.as_str(d.get("title")), toc_nodes, number=True),
+                sml.as_str(d.get("title")))
 
         atts = []
         for a in as_list(d.get("attachments")):
@@ -347,12 +353,16 @@ def build_posts(rep, cache, offline):
             "words": len(text),
             "file": rel,
             "html": "p/%s.html" % slug,
-            "map": "p/%s.map.svg" % slug,
+            "map": ("p/%s.map.svg" % slug) if want_map else "",
             "_html": html_body,
             "_text": text,
             "_map": map_svg,
         })
     posts.sort(key=lambda p: (p["date"], p["slug"]), reverse=True)
+
+    summaries_dir = CONTENT / "summaries"
+    for p in posts:
+        p["ai_summary"] = summary.build(p, summaries_dir)
     return posts
 
 
@@ -1019,7 +1029,8 @@ def main():
     (out / "p").mkdir(parents=True, exist_ok=True)
     for p in posts:
         (out / p["html"]).write_text(p["_html"] or "<p>（空）</p>", encoding="utf-8")
-        (out / p["map"]).write_text(p["_map"], encoding="utf-8")
+        if p.get("map"):
+            (out / p["map"]).write_text(p["_map"], encoding="utf-8")
     for base, d, ctx, f in weekly_raw + pages_raw:
         where = f.relative_to(ROOT).as_posix()
         html_body, toc = render_body(d, ctx, 1, rep, where)
@@ -1321,6 +1332,11 @@ def main():
             "",
         ]) + "\n", encoding="utf-8")
 
+    (out / "summaries").mkdir(parents=True, exist_ok=True)
+    for p in posts:
+        (out / "summaries" / (p["slug"] + ".json")).write_text(
+            json.dumps(p.get("ai_summary") or {}, ensure_ascii=False, indent=1),
+            encoding="utf-8")
     for p in posts:
         src = ROOT / Path(p["file"]).parent / "assets"
         if src.exists():

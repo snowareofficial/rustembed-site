@@ -229,6 +229,16 @@ need("childNodes.length" not in js_code, "app.js 代码里出现 childNodes.leng
 need(len(re.findall(r"\.innerHTML\s*=", js_code)) == 1,
      "app.js 里 innerHTML 赋值不止一处（只允许预渲染片段那一处）")
 
+# ---- G2 构建期摘要与可选导图 ----
+need((DIST / "summaries").is_dir(), "dist/summaries/ 不存在（构建期摘要没落盘）")
+for _p in (json.loads((DIST / "manifest.json").read_text(encoding="utf-8")).get("posts") or []):
+    need((DIST / "summaries" / (_p["slug"] + ".json")).exists(),
+         "文章 %s 缺构建期摘要 JSON" % _p["slug"])
+    need(isinstance(_p.get("ai_summary"), dict), "文章 %s 的 manifest 里没有 ai_summary" % _p["slug"])
+need((DIST / "p" / "hello-rec.map.svg").exists(), "front matter 写了 map: true 却没生成导图")
+need(not (DIST / "p" / "md-writing.map.svg").exists(),
+     "未开启 map 的文章不应生成导图（导图默认关闭）")
+
 # ---- H 已修 bug 的回归钉子 ----
 # H1 成员卡：技能芯片必须落在文字列，否则会被塞进 3rem 头像列并压住数字行
 need(re.search(r"\.person\s*>\s*\.chips\s*\{[^}]*grid-column:\s*2", css_nc) is not None,

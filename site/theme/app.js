@@ -167,11 +167,13 @@
     }
     var ml = $('#map-link');
     if (ml) {
-      if (S.mapHref) {
-        ml.setAttribute('href', S.mapHref);
-        if (ml.parentNode && ml.parentNode.style) ml.parentNode.style.display = '';
-      } else if (ml.parentNode && ml.parentNode.style) {
-        ml.parentNode.style.display = 'none';
+      /* 有目录就保留入口；导图是可选开启的，所以文案随是否生成而变 */
+      var hasToc = (S.toc || []).length > 0;
+      if (ml.parentNode && ml.parentNode.style) {
+        ml.parentNode.style.display = (hasToc || S.mapHref) ? '' : 'none';
+      }
+      if (ml.textContent !== undefined) {
+        ml.textContent = S.mapHref ? '章节结构与导图 →' : '章节结构 →';
       }
     }
     spyToc();
@@ -745,10 +747,42 @@
 
     if (S.mapHref) {
       body.appendChild(el('p', 'section-h', '章节导图'));
+      body.appendChild(el('p', 'muted', '拖动平移 · 滚轮缩放 · 双击复位'));
+      var view = el('div', 'map-view');
       var img = el('img', 'map-img');
       img.src = S.mapHref;
       img.alt = '章节导图';
-      body.appendChild(img);
+      img.setAttribute('draggable', 'false');
+      var tx = 0, ty = 0, scale = 1;
+      function apply() {
+        if (img.style) img.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')';
+      }
+      var drag = false, sx = 0, sy = 0, ox = 0, oy = 0;
+      if (view.addEventListener) {
+        view.addEventListener('pointerdown', function (ev) {
+          drag = true; sx = ev.clientX; sy = ev.clientY; ox = tx; oy = ty;
+          if (view.setPointerCapture && ev.pointerId !== undefined) {
+            try { view.setPointerCapture(ev.pointerId); } catch (e) { /* noop */ }
+          }
+        });
+        view.addEventListener('pointermove', function (ev) {
+          if (!drag) return;
+          tx = ox + (ev.clientX - sx);
+          ty = oy + (ev.clientY - sy);
+          apply();
+        });
+        view.addEventListener('pointerup', function () { drag = false; });
+        view.addEventListener('pointercancel', function () { drag = false; });
+        view.addEventListener('wheel', function (ev) {
+          if (ev.preventDefault) ev.preventDefault();
+          scale = Math.min(3, Math.max(0.4, scale + (ev.deltaY < 0 ? 0.12 : -0.12)));
+          apply();
+        }, { passive: false });
+        view.addEventListener('dblclick', function () { tx = 0; ty = 0; scale = 1; apply(); });
+      }
+      view.appendChild(img);
+      body.appendChild(view);
+      apply();
     }
     body.appendChild(el('p', 'muted',
       'AI 摘要：预留接口。构建期可生成提示词（结构清单 + 正文），输出格式待约定后再接。'));
@@ -781,6 +815,30 @@
     }
     setToc([], '', '');
     return Promise.resolve(f);
+  }
+
+
+  function summaryCard(s) {
+    var box = el('aside', 'ai-summary');
+    var h = el('p', 'ai-head');
+    h.appendChild(el('b', '', '摘要'));
+    h.appendChild(el('span', 'ai-src', s.source === 'ai' ? 'AI · 构建期' : '构建期抽取'));
+    box.appendChild(h);
+    if (s.one_line) box.appendChild(el('p', 'ai-line', s.one_line));
+    if ((s.points || []).length) {
+      var ul = el('ul', 'ai-points');
+      for (var i = 0; i < s.points.length; i++) ul.appendChild(el('li', '', s.points[i]));
+      box.appendChild(ul);
+    }
+    if ((s.keywords || []).length) {
+      var tg = el('p', 'row-tags');
+      for (var j = 0; j < s.keywords.length; j++) {
+        if (j) tg.appendChild(document.createTextNode(' '));
+        tg.appendChild(el('span', 'tag', s.keywords[j]));
+      }
+      box.appendChild(tg);
+    }
+    return box;
   }
 
   function viewLibrary(query) {
@@ -1457,6 +1515,7 @@
     f.appendChild(by);
 
     f.appendChild(el('p', 'lede', p.summary || ''));
+    if (p.ai_summary) f.appendChild(summaryCard(p.ai_summary));
 
     /* 文章形态：只由真实内容决定（标签 / 是否有图集块） */
     var form = 'reading';

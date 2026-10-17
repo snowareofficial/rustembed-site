@@ -117,15 +117,26 @@ def to_svg(root, title=""):
     return "\n".join(out)
 
 
-def from_toc(title, toc):
-    """章节树：把扁平的 toc（含 level）转成导图节点树。"""
+def from_toc(title, toc, number=False):
+    """章节树：把扁平的 toc（含 level）转成导图节点树。
+
+    number=True 时按论文式给节点编号（1 / 1.1 / 1.1.1），让「更细的索引」可读。
+    """
     root = {"label": title, "href": None, "children": []}
     stack = [(0, root)]
+    counters = {}
     for item in toc:
-        node = {"label": item.get("text") or item.get("id"), "children": []}
+        label = item.get("text") or item.get("id")
+        node = {"label": label, "children": []}
+        lvl = item.get("level", 2)
+        if number:
+            counters[lvl] = counters.get(lvl, 0) + 1
+            for deeper in [k for k in counters if k > lvl]:
+                counters.pop(deeper, None)
+            num = ".".join(str(counters.get(k, 1)) for k in sorted(counters) if k <= lvl)
+            node["label"] = num + " " + str(label)
         if item.get("anchor"):
             node["href"] = item["anchor"]
-        lvl = item.get("level", 2)
         while stack and stack[-1][0] >= lvl:
             stack.pop()
         parent = stack[-1][1] if stack else root

@@ -1,7 +1,8 @@
-title: "从零点亮一块板子：probe-rs + Rust 的第一步"
+﻿title: "从零点亮一块板子：probe-rs + Rust 的第一步"
 author: sal
 date: 2026-09-19
 updated: 2026-09-19
+map: true
 tags: [ rust embedded probe-rs ]
 summary: "不讲大道理，先把程序烧进去：probe-rs 安装、连接、烧录、打日志的完整最小路径。"
 license: "CC BY-NC-SA 4.0"

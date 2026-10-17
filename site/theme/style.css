@@ -783,3 +783,24 @@ body[data-page="home"] .layout { grid-template-columns: minmax(0, 1fr); }
   color: var(--ink-soft); font-size: 12px; padding: .18rem .55rem; cursor: pointer;
 }
 .video-collapse:hover { color: var(--accent); border-color: var(--accent); }
+
+/* 构建期摘要卡（AI 或抽取式） */
+.ai-summary {
+  margin: .9rem 0 1.2rem; padding: .7rem .9rem;
+  background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+}
+.ai-head { display: flex; align-items: center; gap: .4rem; margin: 0 0 .3rem; font-size: 12px; color: var(--ink-mute); }
+.ai-src { font-size: 11px; border: 1px solid var(--line); border-radius: 3px; padding: 0 .25rem; }
+.ai-line { margin: 0 0 .4rem; font-size: 14px; color: var(--ink); }
+.ai-points { margin: 0 0 .4rem; padding-left: 1.1rem; font-size: 13px; color: var(--ink-soft); }
+.ai-points li { margin: .1rem 0; }
+
+/* 导图：可拖动/缩放视口 */
+.map-view {
+  overflow: hidden; height: 58vh; margin-top: .3rem;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); cursor: grab; touch-action: none;
+}
+.map-view:active { cursor: grabbing; }
+.map-img { transform-origin: 0 0; display: block; max-width: none; }

@@ -18,6 +18,7 @@
   draft: bool optional    # 草稿：true 则不参与构建
   series: Series optional # 系列：自动进侧栏树与上一章/下一章
   video: str optional     # B 站 BV 号
+  map: bool optional      # 是否在构建期生成章节导图（默认关，开启后弹层可拖动缩放）
   attachments: [Attachment] optional
   co_authors: [str] optional
   body: any optional      # SML 写法的正文块数组（Markdown 走 front matter + 正文）
