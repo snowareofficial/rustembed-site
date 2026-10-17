@@ -72,6 +72,57 @@ def _norm(d, host_kind, url):
     }
 
 
+def _norm_langs(raw):
+    """各家的 /languages 归一化成 {语言: 百分比}（1 位小数，降序）。
+
+    GitHub/Gitea 返回 {语言: 字节数}，Gitee 返回 [{name, percentage}]。
+    抓不到或全是 0 就返回空字典 —— 调用方据此决定「不输出该字段」。
+    """
+    items = []
+    if isinstance(raw, dict):
+        items = [(k, v) for k, v in raw.items()]
+    elif isinstance(raw, list):
+        items = [(d.get("name"), d.get("percentage"))
+                 for d in raw if isinstance(d, dict)]
+    vals = [v for _k, v in items if isinstance(v, (int, float))]
+    total = sum(vals)
+    if not items or total <= 0:
+        return {}
+    out = {}
+    for k, v in items:
+        if not k or not isinstance(v, (int, float)):
+            continue
+        pct = round(v * 100.0 / total, 1)
+        if pct >= 0.1:
+            out[str(k)] = pct
+    if not out:
+        return {}
+    # 四舍五入后可能不是 100.0：把误差补到最大项，图上不出现空隙
+    diff = round(100.0 - sum(out.values()), 1)
+    if abs(diff) >= 0.1:
+        top = max(out, key=lambda k: out[k])
+        out[top] = round(out[top] + diff, 1)
+    return dict(sorted(out.items(), key=lambda kv: -kv[1]))
+
+
+def fetch_languages(url):
+    """抓 /languages（GitHub/Gitee/Gitea 三家接口），失败返回 None。"""
+    kind, host, owner, repo = detect(url)
+    if not owner or not repo:
+        return None
+    try:
+        if kind == "github":
+            raw = _get("https://api.github.com/repos/%s/%s/languages" % (owner, repo))
+        elif kind == "gitee":
+            raw = _get("https://gitee.com/api/v5/repos/%s/%s/languages" % (owner, repo))
+        else:
+            raw = _get("https://%s/api/v1/repos/%s/%s/languages" % (host, owner, repo))
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ValueError, OSError) as e:
+        print("  ! 语言占比抓取失败 %s (%s)" % (url, e))
+        return None
+    return _norm_langs(raw) or None
+
+
 def fetch(url):
     kind, host, owner, repo = detect(url)
     if not owner or not repo:
@@ -83,10 +134,14 @@ def fetch(url):
             d = _get("https://gitee.com/api/v5/repos/%s/%s" % (owner, repo))
         else:
             d = _get("https://%s/api/v1/repos/%s/%s" % (host, owner, repo))
-        return _norm(d, kind, url)
+        out = _norm(d, kind, url)
     except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ValueError, OSError) as e:
         print("  ! 元数据抓取失败 %s (%s)" % (url, e))
         return None
+    pct = fetch_languages(url)
+    if pct:
+        out["languages_pct"] = pct
+    return out
 
 
 class Cache:

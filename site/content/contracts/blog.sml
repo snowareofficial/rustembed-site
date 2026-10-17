@@ -123,6 +123,9 @@
   featured: bool optional # 是否上首页精选
   meta_source: enum [ auto manual ] optional
   meta_override: any optional
+  # 里程碑（可选）：有才在时间线上画，没有就不画 —— 前端绝不凭空生成节点
+  # 写法：milestones: [ { date: 2026-10-16 text: "…" why: "…" } ]
+  milestones: any optional
 }
 
 @contract Member {

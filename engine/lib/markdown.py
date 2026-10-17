@@ -23,7 +23,13 @@ def _scalar(v):
         inner = v[1:-1].strip()
         if not inner:
             return []
-        return [_scalar(x) for x in inner.split(",")]
+        # 逗号分隔优先；没有逗号时按空白分隔（兼容 `[ rust embedded ]` 这种写法）。
+        # 空白分支保留引号内空格：`[ "New York" ]` 仍是一个元素。
+        if "," in inner:
+            parts = [x for x in re.split(r"\s*,\s*", inner) if x]
+        else:
+            parts = re.findall(r'"[^"]*"|\'[^\']*\'|[^\s]+', inner)
+        return [_scalar(x) for x in parts]
     if len(v) >= 2 and v[0] == v[-1] and v[0] in "\"'":
         v = v[1:-1]
     low = v.lower()
