@@ -390,7 +390,12 @@ def as_listish(v):
 
 
 def video_embed(ref):
-    """B 站嵌入：只接受 BV 号或 player.bilibili.com 链接，白名单外返回空串。"""
+    """B 站视频：只接受 BV 号，白名单外返回空串。
+
+    不直接嵌 iframe —— 站点约定「零第三方请求」，iframe 会在每次打开页面时
+    连 B 站并暴露访问者 IP。这里输出一个门面卡（poster + 播放按钮），
+    用户点击后才由 app.js 注入 iframe。
+    """
     ref = str(ref).strip()
     bvid = ""
     if ref.startswith("BV") and len(ref) >= 12:
@@ -402,9 +407,13 @@ def video_embed(ref):
     if not bvid:
         return ""
     src = "https://player.bilibili.com/player.html?bvid=%s&high_quality=1" % bvid
+    watch = "https://www.bilibili.com/video/%s" % bvid
     return (
-        '<div class="video"><iframe src="%s" scrolling="no" frameborder="0" '
-        'allowfullscreen loading="lazy"></iframe></div>\n' % esc(src)
+        '<div class="video" data-embed="%s">'
+        '<a class="video-face" href="%s" rel="noopener">'
+        '<span class="video-play" aria-hidden="true">▶</span>'
+        '<span class="video-label">在 B 站观看 %s（点击加载播放器）</span>'
+        '</a></div>\n' % (esc(src), esc(watch), esc(bvid))
     )
 
 

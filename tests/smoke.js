@@ -73,13 +73,12 @@ async function main() {
   console.log('== 骨架 ==');
   const left = document.getElementById('col-left');
   const main = document.getElementById('main');
-  const right = document.getElementById('col-right');
+
   need(!!left, '缺少 #col-left（左栏）');
   need(!!main, '缺少 #main（中栏）');
-  need(!!right, '缺少 #col-right（右栏）');
   need(!!left && left.classList.contains('col-left'), '#col-left 类名不对');
   need(!!main && main.classList.contains('col-main'), '#main 缺少 col-main 类');
-  console.log('  三栏：col-left / col-main / col-right 均存在');
+  console.log('  两栏：col-left / col-main 存在，站点导航在顶栏');
 
   // 左栏：必须有「本文目录」，且不含任何站点级入口
   need(!!left && left.textContent.indexOf('本文目录') >= 0, '左栏缺少「本文目录」');

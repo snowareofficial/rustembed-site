@@ -632,6 +632,138 @@
     return Promise.resolve(f);
   }
 
+
+  /* ---------- 附件：统一文件图标 + 下载渠道 ---------- */
+  var DL_CHANNELS = [
+    ['lanzou', '蓝奏云'], ['lanzn', '蓝奏云'], ['lanrar', '蓝奏云'],
+    ['aliyundrive', '阿里云盘'], ['alipan', '阿里云盘'], ['quark', '夸克'],
+    ['123pan', '123 云盘'], ['pan.baidu', '百度网盘'], ['gitee', 'Gitee'], ['github', 'GitHub']
+  ];
+
+  function dlChannel(url) {
+    var s = String(url || '').toLowerCase();
+    for (var i = 0; i < DL_CHANNELS.length; i++) {
+      if (s.indexOf(DL_CHANNELS[i][0]) >= 0) return DL_CHANNELS[i][1];
+    }
+    return '外链';
+  }
+
+  function extOf(url) {
+    var m = String(url || '').split('?')[0].match(/\.([a-z0-9]{1,6})$/i);
+    return m ? m[1].toLowerCase() : '';
+  }
+
+  /* 统一文件标志：按扩展名给一个内联 SVG（不引图标字体） */
+  function fileIcon(url, kind) {
+    var s = document.createElementNS ? document.createElementNS('http://www.w3.org/2000/svg', 'svg') : el('svg');
+    s.setAttribute('class', 'file-ico');
+    s.setAttribute('viewBox', '0 0 24 24');
+    s.setAttribute('aria-hidden', 'true');
+    var p = document.createElementNS ? document.createElementNS('http://www.w3.org/2000/svg', 'path') : el('path');
+    p.setAttribute('fill', 'none');
+    p.setAttribute('stroke', 'currentColor');
+    p.setAttribute('stroke-width', '1.6');
+    p.setAttribute('stroke-linecap', 'round');
+    p.setAttribute('d', kind === 'image' ? 'M4 5h16v14H4zM8 11l3 3 4-4 3 3' : 'M6 3h8l4 4v14H6zM14 3v5h5');
+    s.appendChild(p);
+    return s;
+  }
+
+  function attachCard(at) {
+    var li = el('li', 'attach-card');
+    li.appendChild(fileIcon(at.url, at.kind));
+    var meta = el('div', 'file-meta');
+    meta.appendChild(el('b', '', at.name || '附件'));
+    var sub = [];
+    var ext = extOf(at.url);
+    if (ext) sub.push(ext.toUpperCase());
+    if (at.size) sub.push(at.size);
+    meta.appendChild(el('span', '', sub.join(' · ') || '文件'));
+    li.appendChild(meta);
+    var href = safeUrl(at.url);
+    if (href) {
+      var a = lnk(href, '下载 · ' + dlChannel(at.url), 'dl-btn');
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener');
+      li.appendChild(a);
+    } else {
+      li.appendChild(el('span', 'muted', '链接无效'));
+    }
+    return li;
+  }
+
+  /* ---------- 章节结构弹层（内联，不跳页） ---------- */
+  function showModal(title) {
+    var m = $('#modal'), t = $('#modal-title');
+    if (!m) return;
+    if (t) { clear(t); t.appendChild(document.createTextNode(title || '章节结构')); }
+    m.removeAttribute('hidden');
+  }
+
+  function hideModal() {
+    var m = $('#modal');
+    if (m) m.setAttribute('hidden', '');
+  }
+
+  function openStructure() {
+    var body = $('#modal-body');
+    if (!body) return;
+    clear(body);
+    body.appendChild(el('p', 'section-h', '结构清单'));
+    var ol = el('ol', 'struct-list');
+    if ((S.toc || []).length) {
+      for (var i = 0; i < S.toc.length; i++) {
+        var t = S.toc[i];
+        if (!t || !t.id) continue;
+        var li = el('li', 'lv' + (t.level || 2));
+        li.appendChild(lnk('#/' + S.tocBase + '/' + t.id, t.text));
+        ol.appendChild(li);
+      }
+    } else {
+      ol.appendChild(el('li', 'muted', '本文没有分节标题'));
+    }
+    body.appendChild(ol);
+
+    if (S.mapHref) {
+      body.appendChild(el('p', 'section-h', '章节导图'));
+      var img = el('img', 'map-img');
+      img.src = S.mapHref;
+      img.alt = '章节导图';
+      body.appendChild(img);
+    }
+    body.appendChild(el('p', 'muted',
+      'AI 摘要：预留接口。构建期可生成提示词（结构清单 + 正文），输出格式待约定后再接。'));
+    showModal('章节结构');
+  }
+
+  /* ---------- 按日期看文章 ---------- */
+  function viewByDate(day) {
+    var m = S.man;
+    var f = document.createDocumentFragment();
+    var list = (m.posts || []).filter(function (p) {
+      return String(p.date || '').slice(0, 10) === String(day);
+    });
+    var head = pageHead('日期', String(day), list.length
+      ? '这一天发了 ' + list.length + ' 篇。'
+      : '这一天没有文章（日期来自 front matter 的 date 字段）。');
+    f.appendChild(head);
+    if (list.length) {
+      var ol = el('ol', 'rows');
+      for (var i = 0; i < list.length; i++) {
+        var p = list[i];
+        var li = el('li', 'row');
+        li.appendChild(el('span', 'row-date', String(p.date).slice(0, 10)));
+        li.appendChild(lnk('#/post/' + p.slug, p.title, 'row-title'));
+        li.appendChild(el('span', 'row-words', num(p.words) + ' 字'));
+        li.appendChild(el('p', 'row-sum', p.summary || ''));
+        ol.appendChild(li);
+      }
+      f.appendChild(ol);
+    }
+    setToc([], '', '');
+    return Promise.resolve(f);
+  }
+
   function viewLibrary(query) {
     var m = S.man;
     var f = document.createDocumentFragment();
@@ -1149,7 +1281,8 @@
     } else if (p.author) {
       by.appendChild(el('span', '', p.author));
     }
-    by.appendChild(el('span', '', p.date));
+    by.appendChild(lnk('#/date/' + encodeURIComponent(String(p.date).slice(0, 10)),
+      String(p.date).slice(0, 10), 'date-link'));
     by.appendChild(el('span', '', num(p.words) + ' 字'));
     by.appendChild(el('span', '', '约 ' + minutes(p.words) + ' 分钟'));
     if (p.updated && p.updated !== p.date) by.appendChild(el('span', '', '更新于 ' + p.updated));
@@ -1170,22 +1303,10 @@
       if ((p.tags || []).length) tail.appendChild(tagLine(p.tags));
       tail.appendChild(el('p', 'license', '许可：' + (p.license || m.site.license || '见站点默认许可')));
       if ((p.attachments || []).length) {
-        var ul = el('ul', 'attachments');
+        tail.appendChild(el('p', 'section-h', '附件'));
+        var ul = el('ul', 'attach-list');
         for (var ai = 0; ai < p.attachments.length; ai++) {
-          var at = p.attachments[ai];
-          var li = el('li');
-          li.appendChild(el('span', 'a-kind', at.kind === 'image' ? '图' : '链'));
-          var href = safeUrl(at.url);
-          if (href) {
-            var a = lnk(href, at.name);
-            a.setAttribute('target', '_blank');
-            a.setAttribute('rel', 'noopener');
-            li.appendChild(a);
-          } else {
-            li.appendChild(document.createTextNode(at.name));
-          }
-          if (at.size) li.appendChild(document.createTextNode('（' + at.size + '）'));
-          ul.appendChild(li);
+          ul.appendChild(attachCard(p.attachments[ai]));
         }
         tail.appendChild(ul);
       }
@@ -1659,6 +1780,7 @@
 
   var VIEWS = {
     home: function () { return viewHome(); },
+    date: function (r) { return viewByDate(r.seg[1] || ''); },
     library: function (r) { return viewLibrary(r.q); },
     posts: function () { return viewLibrary({}); },
     knowledge: function () { return viewKnowledge(); },
@@ -1744,11 +1866,32 @@
     if (typeof window !== 'undefined' && window.addEventListener) {
       window.addEventListener('hashchange', function () { render(); });
     }
-    var q = $('#q');
-    if (q && q.addEventListener) {
-      q.addEventListener('keydown', function (ev) {
-        var val = String((ev && ev.target && ev.target.value) || q.value || '').trim();
-        if (ev && ev.key === 'Enter' && val) goto('#/search/' + encodeURIComponent(val));
+    var sf = $('#search-form');
+    if (sf && sf.addEventListener) {
+      sf.addEventListener('submit', function (ev) {
+        if (ev && ev.preventDefault) ev.preventDefault();
+        var q = $('#q');
+        var val = String((q && q.value) || '').trim();
+        if (val) goto('#/search/' + encodeURIComponent(val));
+      });
+    }
+    var ml = $('#map-link');
+    if (ml && ml.addEventListener) {
+      ml.addEventListener('click', function (ev) {
+        if (ev && ev.preventDefault) ev.preventDefault();
+        openStructure();
+      });
+    }
+    if (typeof document.addEventListener === 'function') {
+      document.addEventListener('click', function (ev) {
+        var t = ev && ev.target;
+        if (t && typeof t.closest === 'function' && t.closest('[data-close]')) {
+          if (ev.preventDefault) ev.preventDefault();
+          hideModal();
+        }
+      });
+      document.addEventListener('keydown', function (ev) {
+        if (ev && ev.key === 'Escape') hideModal();
       });
     }
     /* 代码块复制：事件委托，只写这一处 */
@@ -1756,6 +1899,23 @@
       document.addEventListener('click', function (ev) {
         var t = ev && ev.target;
         if (!t || typeof t.closest !== 'function') return;
+        var face = t.closest('.video-face');
+        if (face) {
+          if (ev.preventDefault) ev.preventDefault();
+          var wrap = face.closest('.video');
+          var src = wrap && wrap.getAttribute ? wrap.getAttribute('data-embed') : '';
+          var safe = safeUrl(src);
+          if (wrap && safe) {
+            clear(wrap);
+            var ifr = el('iframe', 'video-frame');
+            ifr.setAttribute('src', safe);
+            ifr.setAttribute('allowfullscreen', '');
+            ifr.setAttribute('loading', 'lazy');
+            ifr.setAttribute('title', 'B 站视频');
+            wrap.appendChild(ifr);
+          }
+          return;
+        }
         var btn = t.closest('.copy');
         if (!btn) return;
         var box = btn.closest('.code');

@@ -193,14 +193,17 @@ async function main() {
   let r = await cdp.eval(`(() => {
     const g = (s) => document.querySelector(s);
     const rect = (s) => { const e = g(s); return e ? e.getBoundingClientRect() : null; };
-    const left = rect('#col-left'), main = rect('#main'), right = rect('#col-right');
+    const left = rect('#col-left'), main = rect('#main');
     const links = Array.from(document.querySelectorAll('#col-left a')).map(a => a.getAttribute('href'));
+    const input = g('.search-input'), sbtn = g('.search-btn'), drawer = g('#nav-drawer');
     return {
       left: left && { w: left.width, h: left.height, display: getComputedStyle(g('#col-left')).display },
       main: main && { w: main.width },
-      right: right && { w: right.width, display: getComputedStyle(g('#col-right')).display },
+      drawerInTopbar: !!(drawer && drawer.closest('.topbar')),
+      navLeftOfSearch: !!(drawer && input && drawer.getBoundingClientRect().right <= input.getBoundingClientRect().left + 1),
+      btnRightOfInput: !!(sbtn && input && sbtn.getBoundingClientRect().left >= input.getBoundingClientRect().right - 1),
       leftLinks: links,
-      drawerOpen: g('#nav-drawer').hasAttribute('open'),
+      drawerOpen: drawer && drawer.hasAttribute('open'),
       navVisible: g('#site-nav').checkVisibility
         ? g('#site-nav').checkVisibility({ checkVisibilityCSS: true, contentVisibilityAuto: true })
         : null,
@@ -211,11 +214,13 @@ async function main() {
     };
   })()`);
   need(r.left && r.left.display !== 'none' && r.left.w > 0, '文章页左栏存在且可见', r.left && Math.round(r.left.w) + 'px');
-  need(r.right && r.right.display !== 'none' && r.right.w > 0, '右栏存在且可见', r.right && Math.round(r.right.w) + 'px');
+  need(r.drawerInTopbar === true, '站点导航在顶栏里', String(r.drawerInTopbar));
+  need(r.navLeftOfSearch === true, '站点导航在搜索框左侧', String(r.navLeftOfSearch));
+  need(r.btnRightOfInput === true, '搜索按钮在搜索框右侧', String(r.btnRightOfInput));
   need(r.main && r.main.w <= 608.5, '中栏宽度 ≤ 38rem（608px）', r.main && Math.round(r.main.w) + 'px');
-  need(r.drawerOpen === false, '右栏默认收起（details 无 open）');
-  need(r.navVisible === false, '右栏收起时导航不可见', 'checkVisibility=' + r.navVisible);
-  need(r.navCount === 10, '右栏含 10 个站点入口', r.navCount);
+  need(r.drawerOpen === false, '站点导航默认收起（details 无 open）');
+  need(r.navVisible === false, '收起时导航不可见', 'checkVisibility=' + r.navVisible);
+  need(r.navCount === 10, '顶栏含 10 个站点入口', r.navCount);
   need(r.leftLinks.filter((h) => /^#\/(library|knowledge|topics|projects|resources|members|services|weekly|pages|join)$/.test(h)).length === 0,
     '左栏不含任何站点入口', r.leftLinks.join(' ') || '（无链接）');
   need(r.scrollW <= r.clientW + 1, '1280px 无横向滚动', r.scrollW + ' ≤ ' + r.clientW);
@@ -288,7 +293,7 @@ async function main() {
     return {
       leftDisplay: getComputedStyle(g('#col-left')).display,
       tocVisible: g('#mobile-toc').getBoundingClientRect().height > 0,
-      rightPos: getComputedStyle(g('#col-right')).position,
+      drawerInTopbar: !!(g('#nav-drawer') && g('#nav-drawer').closest('.topbar')),
       summaryText: (g('#nav-drawer summary') || {}).textContent || '',
       scrollW: document.documentElement.scrollWidth,
       clientW: document.documentElement.clientWidth,
@@ -297,7 +302,7 @@ async function main() {
   })()`);
   need(mob.leftDisplay === 'none', '窄屏隐藏左栏', mob.leftDisplay);
   need(mob.tocVisible === true, '内容顶部出现「本页目录」折叠条');
-  need(mob.rightPos === 'fixed', '站点导航变顶栏抽屉', mob.rightPos);
+  need(mob.drawerInTopbar === true, '窄屏站点导航仍在顶栏', String(mob.drawerInTopbar));
   need(mob.summaryText.indexOf('站点导航') >= 0, '抽屉按钮文案含「站点导航」', mob.summaryText.trim());
   need(mob.scrollW <= mob.clientW + 1, '375px 无横向滚动', mob.scrollW + ' ≤ ' + mob.clientW);
   await cdp.shot(path.join(SHOTS, 'post-375.png'));
@@ -305,6 +310,14 @@ async function main() {
   await cdp.shot(path.join(SHOTS, 'library-375.png'));
   await cdp.eval('document.getElementById("nav-drawer").setAttribute("open","open")');
   await new Promise((r) => setTimeout(r, 200));
+  const navPop = await cdp.eval(`(() => {
+    const n = document.querySelector('#site-nav');
+    const cs = getComputedStyle(n);
+    return { visible: n.checkVisibility ? n.checkVisibility({ checkVisibilityCSS: true }) : cs.display !== 'none',
+             position: cs.position };
+  })()`);
+  need(navPop.visible === true, '展开后站点导航可见', String(navPop.visible));
+  need(navPop.position === 'absolute', '展开后是浮层（absolute）', navPop.position);
   await cdp.shot(path.join(SHOTS, 'library-375-drawer.png'));
   await cdp.eval('document.getElementById("nav-drawer").removeAttribute("open")');
 
@@ -334,16 +347,15 @@ async function main() {
   console.log('== 首页 ==');
   await go('#/home', 'home');
   const home = await cdp.eval(`(() => {
-    const right = document.querySelector('#col-right');
     const main = document.querySelector('#main').getBoundingClientRect();
     return {
-      right: getComputedStyle(right).display,
+      hasRight: !!document.querySelector('#col-right'),
       left: Math.round(main.left),
       rightGap: Math.round(window.innerWidth - main.right),
       w: Math.round(main.width)
     };
   })()`);
-  need(home.right === 'none', '首页隐藏右侧站点导航栏', home.right);
+  need(home.hasRight === false, '首页没有独立右侧栏（导航已并入顶栏）', String(home.hasRight));
   need(Math.abs(home.left - home.rightGap) <= 2,
     '首页内容水平居中', '左 ' + home.left + ' / 右 ' + home.rightGap + '（宽 ' + home.w + '）');
 

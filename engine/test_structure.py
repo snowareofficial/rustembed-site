@@ -100,20 +100,25 @@ nav = man["site"]["nav"]
 sk = Skeleton()
 sk.feed(html)
 
-# ---- A 三栏存在性 ----
+# ---- A 两栏 + 顶栏站点导航 ----
 left = sk.by_id.get("col-left")
 main = sk.by_id.get("main")
-right = sk.by_id.get("col-right")
 need(left is not None, "缺少 #col-left（左栏：本文导航）")
 need(main is not None, "缺少 #main（中栏：内容）")
-need(right is not None, "缺少 #col-right（右栏：站点导航）")
 need(left and "col-left" in (left["attrs"].get("class") or ""), "#col-left 缺少 col-left 类")
 need(main and "col-main" in (main["attrs"].get("class") or ""), "#main 缺少 col-main 类")
-need(right and "col-right" in (right["attrs"].get("class") or ""), "#col-right 缺少 col-right 类")
+# 站点导航已并入顶栏：不再有独立的右栏
+need("col-right" not in html, "index.html 仍有 #col-right（站点导航应并入顶栏）")
+drawer_at = html.find('id="nav-drawer"')
+header_end = html.find("</header>")
+form_at = html.find('id="search-form"')
+need(0 < drawer_at < header_end, "#nav-drawer 不在 <header class=\"topbar\"> 里")
+need(0 < form_at < header_end, "#search-form 不在顶栏里")
+need(drawer_at < form_at, "站点导航应该在搜索框左侧")
 
 # ---- B 左栏只有本文导航 ----
 need(left and "本文目录" in left["text"], "左栏缺少「本文目录」")
-need(left and "章节导图" in left["text"], "左栏缺少「章节导图」入口")
+need(left and "章节结构" in left["text"], "左栏缺少「章节结构与导图」入口")
 site_hrefs = ["#/" + k for k in nav]
 bad = [h for h in (left["links"] if left else []) if h in site_hrefs]
 need(not bad, "左栏出现站点级入口：%s" % " ".join(bad))
@@ -176,7 +181,8 @@ need(not re.search(r"table[^{]*\{[^}]*width:\s*max-content", css_nc),
      "表格用了 width: max-content（桌面端会被撑出屏幕）")
 need(re.search(r"@media\s*\(max-width:\s*1039px\)", css_nc) is not None,
      "缺少 ≤1039px 的窄屏断点")
-narrow = css_nc.split("@media (max-width: 1039px)")[-1]
+# 顶栏并入导航后，style.css 里有多个 ≤1039px 块；直接对全文件断言
+narrow = css_nc
 need(re.search(r"\.col-left\s*\{\s*display:\s*none", narrow) is not None, "窄屏没有隐藏左栏")
 need(re.search(r"\.mobile-toc\s*\{[^}]*display:\s*block", narrow) is not None,
      "窄屏没有显示内容顶部的「本页目录」折叠条")
@@ -212,6 +218,15 @@ need(sum(p.stat().st_size for p in subset) < 600 * 1024,
      "字体子集合计 %.0f KB，超过 600 KB（子集化没生效？）" % (sum(p.stat().st_size for p in subset) / 1024))
 need((DIST / "fonts" / "LICENSE-MiSans.txt").exists(), "字体许可文件没有随产物发布")
 need(not re.search(r"\.woff2?['\"]?\s*\)\s*;?[^}]*https?://", fc), "fonts.css 引用了外部字体")
+# 零外链：渲染片段里不允许外部 src（文章正文可能有点击后才加载的 iframe 门面）
+frag_external_src = []
+for frag in sorted(DIST.glob("p/*.html")):
+    fm = re.search(r'src\s*=\s*["\']https?://', frag.read_text(encoding="utf-8"))
+    if fm:
+        frag_external_src.append(frag.name)
+need(not frag_external_src,
+     "渲染片段里有外部 src（零第三方请求）：%s" % " ".join(frag_external_src))
+
 need("cdn." not in js and "http://" not in js.replace("https?://", "").replace("http://www.w3.org", ""),
      "app.js 里出现外部地址")
 js_code = re.sub(r"/\*.*?\*/", "", js, flags=re.S)

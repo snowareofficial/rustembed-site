@@ -13,23 +13,40 @@
 
 <header class="topbar">
   <a class="brand" href="#/home"><img id="brand-avatar" alt="" width="22" height="22"><span id="brand-title">Rust嵌入式探讨</span></a>
-  <span class="topbar-tools">
-    <input id="q" class="search-input" type="search" placeholder="搜索（回车）" aria-label="搜索站内内容" autocomplete="off">
-  </span>
+  <span class="topbar-spacer"></span>
+
+  <!-- 站点导航：在搜索左边，方形外框 + 指南针图标；<details> 收起为按钮 -->
+  <details class="nav-drawer" id="nav-drawer">
+    <summary class="nav-summary" aria-label="站点导航">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        <path d="M15.6 8.4l-2.3 5-5 2.3 2.3-5z" fill="currentColor"/>
+      </svg>
+      站点导航
+    </summary>
+    <nav class="site-nav" id="site-nav" aria-label="站点导航">
+<!--BUILD:NAV-->
+    </nav>
+  </details>
+
+  <form class="search-form" id="search-form" role="search">
+    <input id="q" class="search-input" type="search" placeholder="搜索文章 / 项目 / 成员（回车）" aria-label="搜索站内内容" autocomplete="off">
+    <button class="search-btn" type="submit">搜索</button>
+  </form>
 </header>
 
 <div class="layout">
 
-  <!-- 左栏：只有本文导航（本文目录 + 章节导图），不出现任何站点级入口 -->
+  <!-- 左栏：只有本文导航（本文目录 + 章节结构），不出现任何站点级入口 -->
   <aside class="col-left" id="col-left" aria-label="本文导航">
     <div class="col-left-inner">
       <p class="col-title">本文目录</p>
       <nav class="toc" id="toc-nav" aria-label="本文目录"></nav>
-      <p class="col-sub"><a class="map-link" id="map-link" href="map.svg">章节导图 →</a></p>
+      <p class="col-sub"><button class="map-link" id="map-link" type="button">章节结构与导图 →</button></p>
     </div>
   </aside>
 
-  <!-- 中栏：内容，max-width 由 --measure 控制（默认 38rem） -->
+  <!-- 主栏：内容，max-width 由 --measure 控制（默认 38rem） -->
   <main class="col-main" id="main">
     <details class="mobile-toc" id="mobile-toc">
       <summary>本页目录</summary>
@@ -40,19 +57,21 @@
     </div>
   </main>
 
-  <!-- 右栏：站点导航，<details> 默认收起；窄屏时变成顶栏右侧的抽屉 -->
-  <aside class="col-right" id="col-right" aria-label="站点导航">
-    <details class="nav-drawer" id="nav-drawer">
-      <summary class="nav-summary">☰ 站点导航</summary>
-      <nav class="site-nav" id="site-nav" aria-label="站点导航">
-<!--BUILD:NAV-->
-      </nav>
-    </details>
-  </aside>
-
 </div>
 
 <footer class="footer" id="footer"></footer>
+
+<!-- 章节结构 / 导图：内联弹层，不跳页 -->
+<div class="modal" id="modal" hidden>
+  <div class="modal-backdrop" data-close="1"></div>
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-head">
+      <b id="modal-title">章节结构</b>
+      <button class="modal-close" type="button" data-close="1" aria-label="关闭">×</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
 
 <script src="app.js"></script>
 </body>
