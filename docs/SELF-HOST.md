@@ -151,3 +151,43 @@ curl -I https://rec-blog.swebase.cn/feed.xml
 - 容器不加 `--privileged`、不挂 docker socket；只需要读源码、写 `dist/`。
 - AI key 只存在服务器的 systemd 环境里，构建产物里不会出现 key；摘要内容会写进仓库的 `site/content/summaries/`（可选是否提交）。
 - 想同时保留 GitHub Actions 的 PR 门禁：让 Actions 只跑校验（`build.yml` 的 deploy 步骤加 `if: false`），发布交给服务器即可。
+
+---
+
+## 8. 全 CI 模式（不用服务器）
+
+构建、AI 摘要、发布全交给 GitHub Actions；服务器只用来放**加密字体包**（也可以放对象存储）。
+
+### 8.1 字体：加密包 + CI secret
+
+`site/fonts/src/` 是 gitignore 的。合规做法是**加密后入库**，密码只存在 Actions secret：
+
+```bash
+# 本地一次性：压缩 + AES-256 加密（产物约 10 MB）
+FONT_PASSWORD='你定的强密码' bash deploy/fonts-crypt.sh encrypt
+git add site/fonts/misans-fonts.tar.gz.enc
+git commit -m "font: 加密字体包（CI 用 FONT_PASSWORD 解密）"
+```
+
+GitHub → Settings → Secrets → Actions 新增 `FONT_PASSWORD`（同一个密码）。
+工作流里已经有这一步：有加密包 + 密码就解密到 `site/fonts/src/`；没有就 warning 并回退系统字体，不阻断发布。
+
+> 加密包本身不能直接当字体用；但**仍属于字体文件分发**，是否满足 MiSans 许可请以官方条款为准。
+
+### 8.2 AI 摘要：只在构建期、不重复生成
+
+- secrets：`AI_BASE_URL`（形如 `https://网关/v1`）、`AI_API_KEY`、`AI_MODEL`（如 `glm-4.7-flash`）；
+- 工作流顺序：`build` → `ai_summarize.py --write` → `build`（第二次把摘要带进页面）；
+- `summaries/` 用 `actions/cache` 缓存：**已存在的摘要默认跳过**，只有新文章才调用网关；
+- 主动重生成：本地 `--force`，或放 `site/content/summaries/<slug>.refresh` 后跑一次；
+- 网关不可达/失败：步骤 `continue-on-error`，构建退回抽取式摘要，不影响发布。
+
+### 8.3 触发延迟
+
+Gitee 是权威源，GitHub 镜像每 6h 同步一次。合并后想立刻发布：
+
+```bash
+gh workflow run sync-from-gitee.yml --repo <owner>/<repo>
+```
+
+或在 Gitee Webhook 里加一个 relay 调 GitHub `repository_dispatch`（见 `deploy/gitee-webhook.py` 思路）。

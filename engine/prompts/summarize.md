@@ -3,6 +3,22 @@
 给 AI / GUI 用的固定约定。产物落到 `site/content/summaries/<slug>.json`，
 下次 `python engine/cli.py build` 会自动采用，并在页面上标注「AI · 构建期」。
 
+## 算法（v1，实现见 engine/ai_summarize.py）
+
+1. 输入只取构建产物：`title` / `summary` / `tags` / 正文纯文本（去 HTML，截断 6000 字）；
+2. 固定 system prompt + 严格 JSON 要求；
+3. `POST {AI_BASE_URL}/chat/completions`，优先 `response_format={"type":"json_object"}`，
+   网关不支持时去掉该字段重试；
+4. 解析：去 ```json 围栏 → 取第一个 `{...}` → `json.loads`；
+5. 校验：`one_line` ≤60 字、`points` 3–8 条、`keywords` 3–8 个；空结果算失败；
+6. 落盘带 `_meta`：`hash`（输入哈希）/ `prompt`（版本）/ `model` / `at`。
+
+## 不重复生成
+
+- `summaries/<slug>.json` 已存在 → **默认跳过**；
+- 主动重生成：`--force`（全部）或放 `site/content/summaries/<slug>.refresh`（单篇，跑完自动删）；
+- CI 里用 `actions/cache` 缓存该目录，新文章才调用网关。
+
 ## 输入
 
 ```json

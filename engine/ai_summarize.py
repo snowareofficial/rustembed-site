@@ -1,25 +1,38 @@
 #!/usr/bin/env python3
 """构建期 AI 摘要（可选）：调用 OpenAI 兼容网关（如 GLM-4.7-Flash），写 summaries/<slug>.json。
 
-用法（服务器/CI 上，在 build 之后跑一次，再 build 一次即可生效）：
+## 提示词生成算法（v1）
 
-    export AI_BASE_URL="https://your-gateway/v1"
-    export AI_API_KEY="..."
-    export AI_MODEL="glm-4.7-flash"
+1. 输入只取构建产物：`title` / `summary` / `tags` / 正文纯文本（去 HTML，截断 6000 字）；
+2. 固定 system prompt（下方 SYSTEM，版本号 PROMPT_VERSION），要求严格 JSON；
+3. 走 OpenAI 兼容 `/chat/completions`，优先 `response_format={"type":"json_object"}`，
+   网关不支持时自动去掉该字段重试一次；
+4. 解析：去 ```json 围栏 → 取第一个 `{...}` → json.loads；
+5. 校验：`one_line` ≤60 字、`points` 3–8 条、`keywords` 3–8 个；空结果视为失败；
+6. 落盘时写 `_meta`（输入哈希 / prompt 版本 / 模型 / 时间），用于判断「内容是否变过」。
+
+## 不重复生成
+
+- 默认：`summaries/<slug>.json` 已存在就**跳过**（不看内容是否变化）。
+- 主动重生成只有两种方式：
+  - `--force`：全部重生成；
+  - 放一个标记文件 `site/content/summaries/<slug>.refresh`：只重生成这一篇（跑完自动删标记）。
+- `--dry-run` 默认行为（不写文件），`--write` 才落盘。
+
+用法：
+
+    export AI_BASE_URL="https://your-gateway/v1" AI_API_KEY="..." AI_MODEL="glm-4.7-flash"
     python engine/cli.py build --offline
-    python engine/ai_summarize.py --write          # 读 dist/p/*.html 生成摘要
-    python engine/cli.py build --offline           # 第二次构建把摘要带进页面
-
-设计约束：
-- 只在构建期联网；站点运行时仍然零第三方请求。
-- 单篇失败不阻断：打印告警继续，构建会退回抽取式摘要。
-- 已存在的 summaries/<slug>.json 默认跳过（--force 覆盖）。
+    python engine/ai_summarize.py --write
+    python engine/cli.py build --offline
 """
 import argparse
+import hashlib
 import json
 import os
 import re
 import sys
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -28,6 +41,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import config  # noqa: E402
 from lib import render  # noqa: E402
+
+PROMPT_VERSION = "v1"
 
 SYSTEM = (
     "你是技术博客的编辑。只根据给定正文写摘要，不补充外部事实。"
@@ -39,6 +54,14 @@ SYSTEM = (
 
 def strip_html(html):
     return render.strip_html(html or "")
+
+
+def input_hash(title, summary, tags, text):
+    h = hashlib.sha256()
+    for part in (title, summary, " ".join(tags or []), text):
+        h.update(str(part).encode("utf-8"))
+        h.update(b"\x00")
+    return h.hexdigest()[:16]
 
 
 def call_gateway(base, key, model, messages, timeout=60, json_mode=True):
@@ -83,7 +106,7 @@ def normalize(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--write", action="store_true", help="真正写文件（默认只打印）")
-    ap.add_argument("--force", action="store_true", help="覆盖已有摘要")
+    ap.add_argument("--force", action="store_true", help="全部重生成（默认已存在就跳过）")
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--strict", action="store_true", help="任何一篇失败就返回非 0")
     ap.add_argument("--base-url", default=os.environ.get("AI_BASE_URL", ""))
@@ -105,10 +128,14 @@ def main():
         return 2
 
     todo = []
+    skipped = 0
     for p in manifest.get("posts") or []:
         slug = p.get("slug") or ""
         target = out_dir / (slug + ".json")
-        if target.exists() and not args.force:
+        marker = out_dir / (slug + ".refresh")
+        if target.exists() and not args.force and not marker.exists():
+            skipped += 1
+            print("[skip] %s（已存在；要重生成：--force 或放 %s.refresh）" % (slug, slug))
             continue
         todo.append(p)
     if args.limit:
@@ -119,12 +146,13 @@ def main():
         slug = p["slug"]
         html = (config.OUT / (p.get("html") or "")).read_text(encoding="utf-8", errors="replace")
         text = strip_html(html)[:6000]
-        user = json.dumps({
-            "title": p.get("title"), "summary": p.get("summary"),
-            "tags": p.get("tags") or [], "text": text,
-        }, ensure_ascii=False)
-        messages = [{"role": "system", "content": SYSTEM},
-                    {"role": "user", "content": user}]
+        title = p.get("title") or ""
+        summary = p.get("summary") or ""
+        tags = p.get("tags") or []
+        digest = input_hash(title, summary, tags, text)
+        user = json.dumps({"title": title, "summary": summary, "tags": tags, "text": text},
+                          ensure_ascii=False)
+        messages = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}]
         try:
             raw = call_gateway(args.base_url, args.api_key, args.model, messages, args.timeout)
             data = normalize(parse_json(raw))
@@ -132,15 +160,24 @@ def main():
             fail += 1
             print("[warn] %s: %s" % (slug, e))
             continue
+        data["_meta"] = {
+            "hash": digest,
+            "prompt": PROMPT_VERSION,
+            "model": args.model,
+            "at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+        }
         target = out_dir / (slug + ".json")
+        marker = out_dir / (slug + ".refresh")
         if args.write:
             target.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+            if marker.exists():
+                marker.unlink()
             print("[ok] %s -> %s" % (slug, target))
         else:
             print("[dry] %s -> %s" % (slug, json.dumps(data, ensure_ascii=False)))
         ok += 1
 
-    print("完成：成功 %d，失败 %d，跳过 %d" % (ok, fail, len(manifest.get("posts") or []) - len(todo)))
+    print("完成：生成 %d，失败 %d，跳过 %d" % (ok, fail, skipped))
     return 1 if (args.strict and fail) else 0
 
 

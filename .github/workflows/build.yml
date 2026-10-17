@@ -12,6 +12,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: build-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
@@ -21,6 +25,26 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      # 0) 字体：加密包 + secret 解密（没有密码就回退系统字体，不阻断）
+      - name: 恢复字体（加密包 + FONT_PASSWORD）
+        env:
+          FONT_PASSWORD: ${{ secrets.FONT_PASSWORD }}
+        run: |
+          if [ -f site/fonts/misans-fonts.tar.gz.enc ] && [ -n "$FONT_PASSWORD" ]; then
+            bash deploy/fonts-crypt.sh decrypt
+          else
+            echo "::warning::没有加密字体包或 FONT_PASSWORD，本次构建回退系统字体"
+          fi
+
+      # 0.5) AI 摘要缓存：只给新文章生成，已存在的默认跳过
+      - name: 缓存 AI 摘要
+        uses: actions/cache@v4
+        with:
+          path: site/content/summaries
+          key: summaries-${{ hashFiles('site/content/posts/**') }}
+          restore-keys: |
+            summaries-
 
       # 1) 契约引擎自测：钉住每一类错误码的语义
       - name: 契约引擎自测
@@ -42,6 +66,23 @@ jobs:
       # 4.5) 前端结构断言（三栏/版心/零外链/摘要/导图等，纯静态，不需要浏览器）
       - name: 结构断言
         run: python engine/test_structure.py
+
+      # 4.6) AI 摘要（可选；没有 secrets 或调用失败都不阻断）
+      - name: AI 摘要（GLM，构建期）
+        continue-on-error: true
+        env:
+          AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          AI_MODEL: ${{ secrets.AI_MODEL }}
+        run: python engine/ai_summarize.py --write
+
+      # 4.7) 摘要可能更新，重建一次让页面带上
+      - name: 重建（带摘要）
+        continue-on-error: true
+        run: |
+          python engine/build.py
+          python engine/check.py
+          python engine/test_structure.py
 
       # 5) 只在推送到受保护分支时发布；PR 上跑到这里就结束。
       - name: 发布到 Cloudflare Pages
