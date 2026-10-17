@@ -91,10 +91,10 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=rec-blog --branch=main
+          command: pages deploy dist --project-name=rustembed --branch=main
 
 # 说明
-# 1. Cloudflare Pages 项目名默认 rec-blog，首次部署会自动创建；自定义域名在 CF 面板绑定：
+# 1. Cloudflare Pages 项目名 rustembed（https://rustembed.pages.dev），首次部署会自动创建；自定义域名在 CF 面板绑定：
 #    rec-blog.swebase.cn（主）与 rust-embed.swebase.cn（别名），二者都指向同一项目。
 # 2. 若绑定不了（DNS 不在 CF 托管），改用 CNAME 到 <project>.pages.dev。
 # 3. 元数据抓取失败不会中断构建；缓存文件 meta/repos.json 会随提交更新。

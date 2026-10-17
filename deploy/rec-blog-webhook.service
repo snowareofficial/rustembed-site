@@ -11,7 +11,7 @@ Environment=GITEE_WEBHOOK_TOKEN=change-me
 Environment=BRANCH=master
 Environment=PORT=8787
 Environment=DEPLOY=wrangler
-Environment=CF_PROJECT=rec-blog
+Environment=CF_PROJECT=rustembed
 Environment=AI_BASE_URL=
 Environment=AI_API_KEY=
 Environment=AI_MODEL=glm-4.7-flash

@@ -24,7 +24,7 @@ fi
 if command -v wrangler >/dev/null 2>&1; then
   echo "== deploy to Cloudflare Pages =="
   wrangler pages deploy dist \
-    --project-name="${CF_PROJECT:-rec-blog}" \
+    --project-name="${CF_PROJECT:-rustembed}" \
     --branch=main
 else
   echo "未找到 wrangler；产物已生成在 dist/，请自行同步到 web 根目录或用 CI 发布"
