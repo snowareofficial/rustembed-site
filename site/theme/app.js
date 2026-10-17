@@ -1117,32 +1117,100 @@
     setToc([], '', 'map.svg');
     return Promise.resolve(f);
   }
+
   function viewWeekly(id) {
     var m = S.man;
-    if (!id) {
-      var f0 = document.createDocumentFragment();
-      var h0 = el('header', 'page-head');
-      h0.appendChild(el('p', 'kicker', '时间'));
-      h0.appendChild(el('h1', '', '周报'));
-      h0.appendChild(el('p', 'lede', '按时间归档的合并期次。'));
-      f0.appendChild(h0);
-      var ol0 = el('ol', 'rows');
-      for (var i0 = 0; i0 < (m.weekly || []).length; i0++) {
-        var w0 = m.weekly[i0];
-        var li0 = el('li', 'row');
-        li0.appendChild(el('span', 'row-date', w0.period || ''));
-        li0.appendChild(lnk('#/weekly/' + w0.id, w0.title, 'row-title'));
-        li0.appendChild(el('span', 'row-words', (w0.merged || []).length + ' 篇'));
-        li0.appendChild(el('p', 'row-sum', (w0.highlights || []).join('；')));
-        ol0.appendChild(li0);
-      }
-      f0.appendChild(ol0);
-      setToc([], '', 'map.svg');
-      return Promise.resolve(f0);
-    }
-    return viewWeeklyItem(id, null);
-  }
+    if (id) return viewWeeklyItem(id);
+    var f = document.createDocumentFragment();
+    f.appendChild(pageHead('时间', '周报', '按 ISO 周归档；可以多选周，只看关心的期次。'));
 
+    var items = m.weekly || [];
+    var byPeriod = {};
+    for (var i = 0; i < items.length; i++) byPeriod[items[i].period || items[i].id] = items[i];
+
+    var sel = {};
+    var cellRefs = [];
+    var list = el('div', '');
+    var allBtn = el('button', 'page-btn', '全部');
+    allBtn.setAttribute('type', 'button');
+
+    function renderList() {
+      clear(list);
+      var picked = Object.keys(sel);
+      var shown = 0;
+      var ol = el('ol', 'rows');
+      for (var j = 0; j < items.length; j++) {
+        var w = items[j];
+        var key = w.period || w.id;
+        if (picked.length && !sel[key]) continue;
+        var li = el('li', 'row');
+        li.appendChild(el('span', 'row-date', w.period || ''));
+        li.appendChild(lnk('#/weekly/' + w.id, w.title, 'row-title'));
+        li.appendChild(el('span', 'row-words', (w.merged || []).length + ' 篇'));
+        li.appendChild(el('p', 'row-sum', (w.highlights || []).join(' · ')));
+        ol.appendChild(li);
+        shown++;
+      }
+      if (shown) list.appendChild(ol);
+      else list.appendChild(el('p', 'muted', '没有选中任何一期（点上面的周格子多选）。'));
+    }
+
+    /* 周历：按年份铺 1–53 周；有内容的周高亮，可多选 */
+    var years = {};
+    for (var k = 0; k < items.length; k++) {
+      var mm = String(items[k].period || '').match(/^(\d{4})-W(\d{1,2})/);
+      if (mm) {
+        var y = mm[1];
+        (years[y] = years[y] || {})[parseInt(mm[2], 10)] = items[k];
+      }
+    }
+    var ykeys = Object.keys(years).sort();
+    if (!ykeys.length) {
+      list.appendChild(el('p', 'muted', '还没有周报。'));
+    }
+    for (var yi = 0; yi < ykeys.length; yi++) {
+      var year = ykeys[yi];
+      var grid = el('div', 'week-grid');
+      var total = 0;
+      for (var wk = 1; wk <= 53; wk++) {
+        var wItem = years[year][wk];
+        var key2 = year + '-W' + (wk < 10 ? '0' + wk : wk);
+        var cell = el('button', 'week-cell' + (wItem ? ' has' : ''), String(wk));
+        cell.setAttribute('type', 'button');
+        cell.setAttribute('data-week', key2);
+        if (!wItem) cell.setAttribute('disabled', 'disabled');
+        if (wItem && cell.addEventListener) {
+          cell.addEventListener('click', (function (kk) {
+            return function () {
+              if (sel[kk]) delete sel[kk]; else sel[kk] = true;
+              this.className = 'week-cell has' + (sel[kk] ? ' on' : '');
+              renderList();
+            };
+          })(key2));
+        }
+        grid.appendChild(cell);
+        cellRefs.push(cell);
+        total++;
+      }
+      f.appendChild(el('p', 'section-h', year + ' 年（点有数据的周，多选）'));
+      f.appendChild(grid);
+    }
+
+    allBtn.addEventListener && allBtn.addEventListener('click', function () {
+      sel = {};
+      for (var c = 0; c < cellRefs.length; c++) {
+        if (String(cellRefs[c].className).indexOf(' on') >= 0) cellRefs[c].className = 'week-cell has';
+      }
+      renderList();
+    });
+    var bar = el('div', 'filters');
+    bar.appendChild(allBtn);
+    f.appendChild(bar);
+    f.appendChild(list);
+    renderList();
+    setToc([], '', 'map.svg');
+    return Promise.resolve(f);
+  }
   function viewPages() {
     var m = S.man;
     var f = document.createDocumentFragment();
@@ -1221,42 +1289,123 @@
     return Promise.resolve(f);
   }
 
+
   function viewSearch(q) {
     var f = document.createDocumentFragment();
-    var head = el('header', 'page-head');
-    head.appendChild(el('p', 'kicker', '辅助'));
-    head.appendChild(el('h1', '', '搜索：' + (q || '')));
-    f.appendChild(head);
+    var needle = String(q || '').trim();
+    f.appendChild(pageHead('辅助', '搜索：' + (needle || '（空）'), '结果按类型分组，可筛选、可分页。'));
     return fragment('search-index.json').then(function (raw) {
       var idx = [];
       try { idx = JSON.parse(raw) || []; } catch (e) { idx = []; }
-      var needle = String(q || '').toLowerCase();
-      var ol = el('ol', 'rows');
-      var hits = 0;
+      var low = needle.toLowerCase();
+      var hits = [];
       for (var i = 0; i < idx.length; i++) {
-        var it = idx[i];
+        var it = idx[i] || {};
         var hay = (String(it.title || '') + ' ' + String(it.summary || '') + ' ' +
-          String(it.text || '') + ' ' + ((it.tags || []).join(' '))).toLowerCase();
-        if (!needle || hay.indexOf(needle) >= 0) {
-          var li = el('li', 'row');
-          li.appendChild(el('span', 'row-date', ''));
-          li.appendChild(lnk(it.url || '#/library', it.title || '', 'row-title'));
-          li.appendChild(el('span', 'row-words', ''));
-          li.appendChild(el('p', 'row-sum', it.summary || ''));
-          ol.appendChild(li);
-          hits++;
-          if (hits > 60) break;
+          String(it.text || '') + ' ' + ((it.tags || []).join(' ')) + ' ' +
+          String(it.type || '')).toLowerCase();
+        if (!low || hay.indexOf(low) >= 0) hits.push(it);
+      }
+
+      var TYPES = ['文章', '项目', '成员', '词条', '黄页', '资源', '周报', '文档'];
+      var counts = {};
+      for (var hi = 0; hi < hits.length; hi++) {
+        var ty = hits[hi].type || '其他';
+        counts[ty] = (counts[ty] || 0) + 1;
+      }
+
+      var active = '';
+      var page = 0;
+      var PER = 10;
+      var chips = el('div', 'chips');
+      var list = el('div', 'search-list');
+      var pager = el('nav', 'pager');
+
+      function row(it) {
+        var li = el('li', 'row search-row');
+        li.appendChild(el('span', 'row-type', it.type || '其他'));
+        var url = String(it.url || '');
+        var a;
+        if (/^https?:/i.test(url)) {
+          a = outLink(url, it.title || url, 'row-title');
+          a.setAttribute('target', '_blank');
+          a.setAttribute('rel', 'noopener');
+        } else {
+          a = lnk(url || '#/library', it.title || '', 'row-title');
+        }
+        li.appendChild(a);
+        li.appendChild(el('span', 'row-words', ''));
+        li.appendChild(el('p', 'row-sum', it.summary || ''));
+        var tg = el('p', 'row-tags');
+        for (var ti = 0; ti < (it.tags || []).length; ti++) {
+          if (ti) tg.appendChild(document.createTextNode(' '));
+          tg.appendChild(el('span', 'tag', it.tags[ti]));
+        }
+        li.appendChild(tg);
+        return li;
+      }
+
+      function chip(label, value, n, on) {
+        var c = el('span', on ? 'chip on' : 'chip', label + ' (' + n + ')');
+        c.setAttribute('data-type', value);
+        if (c.addEventListener) {
+          c.addEventListener('click', function () {
+            active = (active === value) ? '' : value;
+            page = 0;
+            render();
+          });
+        }
+        return c;
+      }
+
+      function render() {
+        clear(chips);
+        chips.appendChild(chip('全部', '', hits.length, active === ''));
+        for (var k = 0; k < TYPES.length; k++) {
+          if (!counts[TYPES[k]]) continue;
+          chips.appendChild(chip(TYPES[k], TYPES[k], counts[TYPES[k]], active === TYPES[k]));
+        }
+        var filtered = active ? hits.filter(function (it) { return (it.type || '其他') === active; }) : hits;
+        var pages = Math.max(1, Math.ceil(filtered.length / PER));
+        if (page > pages - 1) page = pages - 1;
+
+        clear(list);
+        if (!filtered.length) {
+          list.appendChild(el('p', 'muted', '没有结果。'));
+        } else {
+          var ol = el('ol', 'rows');
+          var from = page * PER;
+          var to = Math.min(filtered.length, from + PER);
+          for (var j = from; j < to; j++) ol.appendChild(row(filtered[j]));
+          list.appendChild(ol);
+        }
+
+        clear(pager);
+        if (pages > 1) {
+          var prev = el('button', 'page-btn', '← 上一页');
+          prev.setAttribute('type', 'button');
+          var next = el('button', 'page-btn', '下一页 →');
+          next.setAttribute('type', 'button');
+          if (prev.addEventListener) {
+            prev.addEventListener('click', function () { if (page > 0) { page--; render(); } });
+          }
+          if (next.addEventListener) {
+            next.addEventListener('click', function () { if (page < pages - 1) { page++; render(); } });
+          }
+          pager.appendChild(prev);
+          pager.appendChild(el('span', 'muted', '第 ' + (page + 1) + ' / ' + pages + ' 页 · 共 ' + filtered.length + ' 条'));
+          pager.appendChild(next);
         }
       }
-      f.appendChild(ol);
-      if (!hits) f.appendChild(el('p', 'muted', '没有结果。'));
+
+      render();
+      f.appendChild(chips);
+      f.appendChild(list);
+      f.appendChild(pager);
       setToc([], '', 'map.svg');
       return f;
     });
   }
-
-  /* ---------- 视图：详情类 ---------- */
-
   function viewPost(slug, anchor) {
     var m = S.man;
     var p = bySlug(m.posts, slug);
@@ -1571,6 +1720,7 @@
     });
   }
 
+
   function viewTopic(id, anchor) {
     var m = S.man;
     var t = byId(m.topics, id);
@@ -1586,51 +1736,102 @@
     h.appendChild(el('span', 'badge', (t.resolved || []).length + ' 篇'));
     f.appendChild(h);
     f.appendChild(el('p', 'define', t.summary || ''));
-    if ((t.tags || []).length) f.appendChild(tagLine(t.tags, 'row-tags'));
+
+    var meta = el('p', 'row-tags');
+    for (var mi = 0; mi < (t.tags || []).length; mi++) {
+      meta.appendChild(el('span', 'tag', t.tags[mi]));
+      meta.appendChild(document.createTextNode(' '));
+    }
+    if (t.file) meta.appendChild(el('span', 'muted', '来源 ' + t.file));
+    f.appendChild(meta);
+
+    /* 本词条要点：直接可跳，不用先读全文 */
+    if ((t.toc || []).length) {
+      f.appendChild(el('p', 'section-h', '要点'));
+      var pts = el('div', 'topic-points');
+      for (var pi = 0; pi < t.toc.length; pi++) {
+        var pt = t.toc[pi];
+        if (!pt || !pt.id) continue;
+        var pa = lnk('#/topic/' + t.id + '/' + pt.id, pt.text, 'topic-point');
+        pts.appendChild(pa);
+      }
+      f.appendChild(pts);
+    }
 
     var g = relGraph(t, m.posts, m.projects, m.topics);
     if (g) { f.appendChild(el('p', 'section-h', '关系图')); f.appendChild(g); }
 
     return proseFragment(t.html).then(function (prose) {
       f.appendChild(prose);
-      if ((t.resolved || []).length) {
+
+      var resolved = [];
+      for (var ri = 0; ri < (t.resolved || []).length; ri++) {
+        var rp = bySlug(m.posts, t.resolved[ri]);
+        if (rp) resolved.push(rp);
+      }
+      /* 同标签文章：词条没显式挂文章时也能自动聚合（实用性的关键） */
+      var byTag = [];
+      for (var qi = 0; qi < (m.posts || []).length; qi++) {
+        var qp = m.posts[qi];
+        var shared = false;
+        for (var ti = 0; ti < (t.tags || []).length; ti++) {
+          if ((qp.tags || []).indexOf(t.tags[ti]) >= 0) shared = true;
+        }
+        if (shared && resolved.indexOf(qp) < 0) byTag.push(qp);
+      }
+
+      if (resolved.length) {
         f.appendChild(el('p', 'section-h', '相关文章'));
         var ol = el('ol', 'rows');
-        for (var i = 0; i < t.resolved.length; i++) {
-          var p = bySlug(m.posts, t.resolved[i]);
-          if (p) ol.appendChild(postRow(p, m.members));
-        }
+        for (var i = 0; i < resolved.length; i++) ol.appendChild(postRow(resolved[i], m.members));
         f.appendChild(ol);
       }
-      var rl = el('ul', 'rel-list');
-      var n = 0;
-      if ((t.tags || []).length) {
-        var li = el('li');
-        li.appendChild(el('b', '', '标签'));
-        for (var ti = 0; ti < t.tags.length; ti++) {
-          if (ti) li.appendChild(document.createTextNode('、'));
-          li.appendChild(el('span', 'tag', t.tags[ti]));
-        }
-        rl.appendChild(li); n++;
+      if (byTag.length) {
+        f.appendChild(el('p', 'section-h', '同标签文章'));
+        var ol2 = el('ol', 'rows');
+        for (var j = 0; j < byTag.length; j++) ol2.appendChild(postRow(byTag[j], m.members));
+        f.appendChild(ol2);
       }
-      if ((t.related || []).length) {
-        var li2 = el('li');
-        li2.appendChild(el('b', '', '相关词条'));
-        for (var ri = 0; ri < t.related.length; ri++) {
-          var rt = byId(m.topics, t.related[ri]);
-          if (ri) li2.appendChild(document.createTextNode('、'));
-          li2.appendChild(lnk('#/topic/' + t.related[ri], rt ? rt.title : t.related[ri]));
-        }
-        rl.appendChild(li2); n++;
+      if (!resolved.length && !byTag.length) {
+        f.appendChild(el('p', 'muted',
+          '这个词条还没有文章归入：写文章时在 front matter 里加上 '
+          + (t.tags || []).map(function (x) { return '#' + x; }).join(' / ')
+          + ' 就会自动出现。'));
       }
-      if (n) f.appendChild(rl);
-      f.appendChild(el('p', 'disc', '觉得缺了什么？提 PR 补词条，或把稿子交给群管理代投。'));
+
+      /* 相关词条：带一句摘要，而不只是一串名字 */
+      var rel = t.related || [];
+      if (rel.length) {
+        f.appendChild(el('p', 'section-h', '相关词条'));
+        var g2 = el('div', 'grid');
+        for (var k = 0; k < rel.length; k++) {
+          var rt = byId(m.topics, rel[k]);
+          if (!rt) continue;
+          var card = el('article', 'card');
+          card.appendChild(lnk('#/topic/' + rt.id, rt.title, 'card-title'));
+          card.appendChild(el('p', 'card-note', rt.summary || ''));
+          g2.appendChild(card);
+        }
+        f.appendChild(g2);
+      }
+
+      /* 编辑入口：直接给仓库编辑链接，作者知道去哪儿补 */
+      var repo = m.site.repo_url || '';
+      if (repo && t.file) {
+        var edit = outLink(repo.replace(/\/$/, '') + '/edit/master/site/' + t.file.replace(/^\/+/, ''),
+          '在仓库里编辑这个词条', 'disc-link');
+        edit.setAttribute('target', '_blank');
+        edit.setAttribute('rel', 'noopener');
+        f.appendChild(el('p', 'disc', '')).appendChild(edit);
+      } else {
+        f.appendChild(el('p', 'disc', '觉得缺了什么？提 PR 补词条，或把稿子交给群管理代投。'));
+      }
+
       setToc(t.toc, 'topic/' + t.id, t.map);
       if (anchor) scrollToId(anchor);
       return f;
     });
   }
-
   function viewWeeklyItem(id, anchor) {
     var m = S.man;
     var w = byId(m.weekly, id);

@@ -730,3 +730,37 @@ body[data-page="home"] .layout { grid-template-columns: minmax(0, 1fr); }
 }
 .video-label { font-size: 13px; }
 .video-frame { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; }
+
+/* ===== 16. 搜索分组 / 词条要点 / 周历 ===== */
+.row-type {
+  font-size: 11px; color: var(--ink-mute); border: 1px solid var(--line);
+  border-radius: 3px; padding: 0 .25rem; align-self: start; margin-top: .18rem;
+}
+.page-btn {
+  border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink-soft);
+  border-radius: 3px; padding: .18rem .55rem; font-size: 12px; cursor: pointer;
+}
+.page-btn:hover { color: var(--accent); border-color: var(--accent); }
+.pager { align-items: center; }
+.topic-points { display: flex; flex-wrap: wrap; gap: .4rem; margin: .4rem 0 1rem; }
+.topic-point {
+  border: 1px solid var(--line); border-radius: 3px; padding: .18rem .5rem;
+  font-size: 12.5px; color: var(--ink-soft); text-decoration: none;
+}
+.topic-point:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+.week-grid {
+  display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: .25rem;
+  max-width: 34rem; margin: .4rem 0 1rem;
+}
+.week-cell {
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink-mute);
+  border-radius: 3px; padding: .16rem 0; font-size: 11px; cursor: default;
+}
+.week-cell.has { color: var(--ink-soft); border-color: var(--line-strong); cursor: pointer; }
+.week-cell.has:hover { border-color: var(--accent); color: var(--accent); }
+.week-cell.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.week-cell[disabled] { opacity: .35; }
+@media (max-width: 640px) { .week-grid { grid-template-columns: repeat(9, minmax(0, 1fr)); } }
+/* 词条关系图：只做小图，不抢正文（内容至上） */
+.relgraph { display: flex; justify-content: center; }
+.relgraph svg { width: auto; max-width: 100%; max-height: 13rem; height: auto; }

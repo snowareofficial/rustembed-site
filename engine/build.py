@@ -1156,21 +1156,37 @@ def main():
 
     search = []
     for p in posts:
-        search.append({"title": p["title"], "summary": p["summary"], "tags": p["tags"],
-                       "url": "#/post/" + p["slug"], "text": p["_text"][:4000]})
+        search.append({"type": "文章", "title": p["title"], "summary": p["summary"],
+                       "tags": p["tags"], "url": "#/post/" + p["slug"],
+                       "text": p["_text"][:4000]})
     for pr in projects:
-        search.append({"title": pr["name"], "summary": pr["one_liner"], "tags": pr["languages"],
-                       "url": "#/projects", "text": pr["one_liner"]})
+        search.append({"type": "项目", "title": pr["name"], "summary": pr["one_liner"],
+                       "tags": pr["languages"], "url": "#/project/" + pr["id"],
+                       "text": pr["one_liner"]})
     for m in members:
-        search.append({"title": m["name"], "summary": m["signature"], "tags": m["skills"],
-                       "url": "#/member/" + m["id"], "text": m["signature"]})
+        search.append({"type": "成员", "title": m["name"], "summary": m["signature"],
+                       "tags": m["skills"], "url": "#/member/" + m["id"],
+                       "text": " ".join([m["signature"]] + (m["skills"] or []))})
     for s in services:
-        search.append({"title": s["name"], "summary": " / ".join(s["skills"]),
+        search.append({"type": "黄页", "title": s["name"], "summary": " / ".join(s["skills"]),
                        "tags": s["skills"] + s["wants"],
                        "url": "#/service/" + s["id"], "text": s["text"]})
     for r in resources:
-        search.append({"title": r["title"], "summary": r.get("note", ""), "tags": r.get("tags", []),
-                       "url": "#/resources", "text": r.get("note", "")})
+        search.append({"type": "资源", "title": r["title"], "summary": r.get("note", ""),
+                       "tags": r.get("tags", []), "url": r.get("url") or "#/resources",
+                       "ext": True, "text": r.get("note", "")})
+    for t in topics:
+        search.append({"type": "词条", "title": t["title"], "summary": t["summary"],
+                       "tags": t["tags"], "url": "#/topic/" + t["id"],
+                       "text": (t.get("summary") or "") + " " + " ".join(t["tags"])})
+    for w in weekly:
+        search.append({"type": "周报", "title": w["title"], "summary": w.get("period", ""),
+                       "tags": [], "url": "#/weekly/" + w["id"],
+                       "text": (w.get("period") or "") + " " + " ".join(w.get("merged") or [])})
+    for pg in pages:
+        search.append({"type": "文档", "title": pg["title"], "summary": pg.get("group", ""),
+                       "tags": [], "url": "#/page/" + pg["id"],
+                       "text": (pg.get("text") or "")[:2000]})
     (out / "search-index.json").write_text(json.dumps(search, ensure_ascii=False), encoding="utf-8")
 
     # AI 可读的站点文档（llms.txt 约定）：索引放 llms.txt，正文合并放 llms-full.txt
