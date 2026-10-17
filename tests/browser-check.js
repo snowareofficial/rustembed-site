@@ -202,6 +202,8 @@ async function main() {
       drawerInTopbar: !!(drawer && drawer.closest('.topbar')),
       navLeftOfSearch: !!(drawer && input && drawer.getBoundingClientRect().right <= input.getBoundingClientRect().left + 1),
       btnRightOfInput: !!(sbtn && input && sbtn.getBoundingClientRect().left >= input.getBoundingClientRect().right - 1),
+      navBtnW: drawer ? Math.round(drawer.querySelector('summary').getBoundingClientRect().width) : -1,
+      searchBtnW: sbtn ? Math.round(sbtn.getBoundingClientRect().width) : -1,
       leftLinks: links,
       drawerOpen: drawer && drawer.hasAttribute('open'),
       navVisible: g('#site-nav').checkVisibility
@@ -217,6 +219,8 @@ async function main() {
   need(r.drawerInTopbar === true, '站点导航在顶栏里', String(r.drawerInTopbar));
   need(r.navLeftOfSearch === true, '站点导航在搜索框左侧', String(r.navLeftOfSearch));
   need(r.btnRightOfInput === true, '搜索按钮在搜索框右侧', String(r.btnRightOfInput));
+  need(Math.abs(r.navBtnW - r.searchBtnW) <= 1,
+    '导航与搜索按钮等宽', r.navBtnW + ' vs ' + r.searchBtnW);
   need(r.main && r.main.w <= 608.5, '中栏宽度 ≤ 38rem（608px）', r.main && Math.round(r.main.w) + 'px');
   need(r.drawerOpen === false, '站点导航默认收起（details 无 open）');
   need(r.navVisible === false, '收起时导航不可见', 'checkVisibility=' + r.navVisible);
@@ -295,6 +299,10 @@ async function main() {
       tocVisible: g('#mobile-toc').getBoundingClientRect().height > 0,
       drawerInTopbar: !!(g('#nav-drawer') && g('#nav-drawer').closest('.topbar')),
       summaryText: (g('#nav-drawer summary') || {}).textContent || '',
+      summaryLabel: (g('#nav-drawer summary') || {}).getAttribute
+        ? g('#nav-drawer summary').getAttribute('aria-label') : '',
+      summaryIcon: !!g('#nav-drawer summary .ico'),
+      searchIcon: !!g('.search-btn .ico'),
       scrollW: document.documentElement.scrollWidth,
       clientW: document.documentElement.clientWidth,
       mainW: g('#main').getBoundingClientRect().width
@@ -303,7 +311,9 @@ async function main() {
   need(mob.leftDisplay === 'none', '窄屏隐藏左栏', mob.leftDisplay);
   need(mob.tocVisible === true, '内容顶部出现「本页目录」折叠条');
   need(mob.drawerInTopbar === true, '窄屏站点导航仍在顶栏', String(mob.drawerInTopbar));
-  need(mob.summaryText.indexOf('站点导航') >= 0, '抽屉按钮文案含「站点导航」', mob.summaryText.trim());
+  need(mob.summaryLabel === '站点导航', '导航按钮 aria-label 是「站点导航」', String(mob.summaryLabel));
+  need(mob.summaryIcon === true, '导航按钮有指南针 SVG', String(mob.summaryIcon));
+  need(mob.searchIcon === true, '搜索按钮有放大镜 SVG', String(mob.searchIcon));
   need(mob.scrollW <= mob.clientW + 1, '375px 无横向滚动', mob.scrollW + ' ≤ ' + mob.clientW);
   await cdp.shot(path.join(SHOTS, 'post-375.png'));
   await go('#/library', 'library');

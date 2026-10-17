@@ -17,12 +17,11 @@
 
   <!-- 站点导航：在搜索左边，方形外框 + 指南针图标；<details> 收起为按钮 -->
   <details class="nav-drawer" id="nav-drawer">
-    <summary class="nav-summary" aria-label="站点导航">
+    <summary class="nav-summary" aria-label="站点导航" title="站点导航">
       <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
         <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/>
         <path d="M15.6 8.4l-2.3 5-5 2.3 2.3-5z" fill="currentColor"/>
       </svg>
-      站点导航
     </summary>
     <nav class="site-nav" id="site-nav" aria-label="站点导航">
 <!--BUILD:NAV-->
@@ -31,7 +30,12 @@
 
   <form class="search-form" id="search-form" role="search">
     <input id="q" class="search-input" type="search" placeholder="搜索文章 / 项目 / 成员（回车）" aria-label="搜索站内内容" autocomplete="off">
-    <button class="search-btn" type="submit">搜索</button>
+    <button class="search-btn" type="submit" aria-label="搜索" title="搜索">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M15.6 15.6L20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
   </form>
 </header>
 

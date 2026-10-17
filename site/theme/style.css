@@ -764,3 +764,14 @@ body[data-page="home"] .layout { grid-template-columns: minmax(0, 1fr); }
 /* 词条关系图：只做小图，不抢正文（内容至上） */
 .relgraph { display: flex; justify-content: center; }
 .relgraph svg { width: auto; max-width: 100%; max-height: 13rem; height: auto; }
+
+/* 顶栏右侧：站点导航与搜索两个等宽方形图标按钮（只留 SVG，无文字） */
+.nav-summary, .search-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 2.15rem; height: 2.15rem; padding: 0; gap: 0;
+  border: 1px solid var(--line-strong); border-radius: 3px;
+  background: var(--surface); color: var(--ink-soft); font-size: 0;
+}
+.nav-summary .ico, .search-btn .ico { width: 1.05rem; height: 1.05rem; }
+.nav-summary:hover, .search-btn:hover { color: var(--accent); border-color: var(--accent); }
+.search-input { height: 2.15rem; }
