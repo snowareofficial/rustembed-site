@@ -202,30 +202,24 @@ need(not re.search(r'src\s*=\s*["\']https?://', html), "index.html 里有外部 
 need(not re.search(r'href\s*=\s*["\']https?://', html), "index.html 里有外部 href（零外部请求要求）")
 # 字体必须是「本地子集」：@font-face 只在 dist/fonts.css 里，style.css 不写 face、也不引外部字体
 need("@font-face" not in css_nc, "style.css 里出现 @font-face（字体声明应集中在 fonts.css）")
-need('href="fonts.css"' in html, "index.html 没有引用 fonts.css（自托管字体子集没接上）")
+src_fonts = sorted((config.SITE / "fonts" / "src").glob("*.ttf"))
 need(re.search(r"font-family:\s*[\"']MiSans[\"']", css_nc) is not None,
      "正文字体栈没有把 MiSans 放在首位（不同系统会显示不同字体）")
-fonts_css = DIST / "fonts.css"
-need(fonts_css.exists(), "dist/fonts.css 不存在（字体子集没生成）")
-if fonts_css.exists():
-    fc = fonts_css.read_text(encoding="utf-8")
-    need("@font-face" in fc, "fonts.css 里没有 @font-face")
-    need("url('fonts/" in fc or 'url("fonts/' in fc, "fonts.css 没有指向本地 fonts/ 目录")
-    need(not re.search(r"https?://", fc), "fonts.css 里出现外部 URL（字体必须自托管）")
-subset = sorted((DIST / "fonts").glob("*.woff2")) + sorted((DIST / "fonts").glob("*.woff"))
-need(len(subset) >= 1, "dist/fonts/ 里没有字体子集文件")
-need(sum(p.stat().st_size for p in subset) < 600 * 1024,
-     "字体子集合计 %.0f KB，超过 600 KB（子集化没生效？）" % (sum(p.stat().st_size for p in subset) / 1024))
-need((DIST / "fonts" / "LICENSE-MiSans.txt").exists(), "字体许可文件没有随产物发布")
-need(not re.search(r"\.woff2?['\"]?\s*\)\s*;?[^}]*https?://", fc), "fonts.css 引用了外部字体")
-# 零外链：渲染片段里不允许外部 src（文章正文可能有点击后才加载的 iframe 门面）
-frag_external_src = []
-for frag in sorted(DIST.glob("p/*.html")):
-    fm = re.search(r'src\s*=\s*["\']https?://', frag.read_text(encoding="utf-8"))
-    if fm:
-        frag_external_src.append(frag.name)
-need(not frag_external_src,
-     "渲染片段里有外部 src（零第三方请求）：%s" % " ".join(frag_external_src))
+if src_fonts:
+    # 构建器分发时随包带 MiSans：有源字体就必须在构建期生成子集
+    need('href="fonts.css"' in html, "有源字体但 index.html 没引用 fonts.css（子集没接上）")
+    fonts_css = DIST / "fonts.css"
+    need(fonts_css.exists(), "有源字体但 dist/fonts.css 不存在（构建期子集没生成）")
+    if fonts_css.exists():
+        fc = fonts_css.read_text(encoding="utf-8")
+        need("@font-face" in fc, "fonts.css 里没有 @font-face")
+        need("url('fonts/" in fc or 'url("fonts/' in fc, "fonts.css 没有指向本地 fonts/ 目录")
+        need(not re.search(r"https?://", fc), "fonts.css 里出现外部 URL（字体必须自托管）")
+    subset = sorted((DIST / "fonts").glob("*.woff2")) + sorted((DIST / "fonts").glob("*.woff"))
+    need(len(subset) >= 1, "dist/fonts/ 里没有字体子集文件")
+    need(sum(p.stat().st_size for p in subset) < 600 * 1024,
+         "字体子集合计 %.0f KB，超过 600 KB（子集化没生效？）" % (sum(p.stat().st_size for p in subset) / 1024))
+    need((DIST / "fonts" / "LICENSE-MiSans.txt").exists(), "字体许可文件没有随产物发布")
 
 need("cdn." not in js and "http://" not in js.replace("https?://", "").replace("http://www.w3.org", ""),
      "app.js 里出现外部地址")

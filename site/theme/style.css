@@ -775,3 +775,11 @@ body[data-page="home"] .layout { grid-template-columns: minmax(0, 1fr); }
 .nav-summary .ico, .search-btn .ico { width: 1.05rem; height: 1.05rem; }
 .nav-summary:hover, .search-btn:hover { color: var(--accent); border-color: var(--accent); }
 .search-input { height: 2.15rem; }
+
+/* 视频载入后的工具条：可收起，回到零请求的静态门面 */
+.video-bar { display: flex; justify-content: flex-end; margin-bottom: .35rem; }
+.video-collapse {
+  border: 1px solid var(--line-strong); border-radius: 3px; background: var(--surface);
+  color: var(--ink-soft); font-size: 12px; padding: .18rem .55rem; cursor: pointer;
+}
+.video-collapse:hover { color: var(--accent); border-color: var(--accent); }

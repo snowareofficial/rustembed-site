@@ -15,7 +15,7 @@ MiSans 由小米发布，**可免费商用，允许网页嵌入与自托管**；
 ```
 site/fonts/
 ├─ src/     源字体（MiSans-Regular.ttf …）—— 不入库（.gitignore），从官方包重新获取
-├─ subset/  子集产物（misans-regular.woff …）—— 入库，CI 直接复用
+├─ subset/  子集产物（misans-regular.woff …）—— **构建期生成，不入库**
 └─ LICENSE-MiSans.txt  字体许可 —— 入库并随产物发布
 engine/vendor/fontTools/  vendored fontTools（仓库组件，非 pip 依赖；MIT 许可见 engine/vendor/fontTools-LICENSE）
 ```
@@ -36,7 +36,7 @@ python engine/fonts_import.py MiSans.zip --list                   # 只看包里
 python engine/cli.py build      # 不需要 pip install fonttools（用 engine/vendor 里的）
 ```
 
-3. **子集提交进仓库，CI 不需要源字体**；本地放了源字体才会重新生成（签名 `.stamp.json` 变了才重建）。
+3. **子集在构建期生成，不提交**；构建器分发时随包带 MiSans 源字体（`site/fonts/src/`），所以任何一台机器 `build` 都能得到同样的字体。签名 `.stamp.json` 没变时复用缓存。
 4. 没有源字体也没有子集时**什么都不做**，`font-family` 自动回退到系统字体。
 
 ## 子集策略（尽量小）

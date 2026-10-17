@@ -3,9 +3,11 @@ __pycache__/
 *.pyc
 .preview.log
 
-# 字体：压缩包与源字体不入库（15 MB×2）；子集 site/fonts/subset/ 入库，见 docs/FONTS.md
+# 字体：压缩包 / 源字体 / 子集都不入库。子集在构建期由 site/fonts/src 生成；
+# 构建器分发时随包带 MiSans 源字体，见 docs/FONTS.md
 *.zip
 site/fonts/src/
+site/fonts/subset/
 *.ttf
 *.otf
 

@@ -654,18 +654,36 @@
   }
 
   /* 统一文件标志：按扩展名给一个内联 SVG（不引图标字体） */
+  /* 统一文件标志：按扩展名画三种（文档 / 图片 / 压缩包），外链用链环 */
+  var FILE_PATHS = {
+    doc: ['M7 3h7l4 4v14H7z', 'M14 3v5h5', 'M10 13h5', 'M10 16h5'],
+    image: ['M4 5h16v14H4z', 'M8 12l3 3 4-4 3 3', 'M9 8.6a.6.6 0 1 0 0-.01'],
+    archive: ['M4 7h16v12H4z', 'M6 7l2-4h8l2 4', 'M12 7v5', 'M10.4 10h3.2'],
+    link: ['M10 14l4-4', 'M8.5 12.5l-2 2a3 3 0 1 0 4.2 4.2l2-2',
+           'M15.5 11.5l2-2a3 3 0 1 0-4.2-4.2l-2 2']
+  };
+
   function fileIcon(url, kind) {
+    var ext = extOf(url);
+    var shape = kind === 'image' ? 'image'
+      : (ext === 'zip' || ext === '7z' || ext === 'rar' || ext === 'tar' || ext === 'gz') ? 'archive'
+      : /^https?:/i.test(String(url || '')) && !ext ? 'link'
+      : 'doc';
     var s = document.createElementNS ? document.createElementNS('http://www.w3.org/2000/svg', 'svg') : el('svg');
-    s.setAttribute('class', 'file-ico');
+    s.setAttribute('class', 'file-ico file-' + shape);
     s.setAttribute('viewBox', '0 0 24 24');
     s.setAttribute('aria-hidden', 'true');
-    var p = document.createElementNS ? document.createElementNS('http://www.w3.org/2000/svg', 'path') : el('path');
-    p.setAttribute('fill', 'none');
-    p.setAttribute('stroke', 'currentColor');
-    p.setAttribute('stroke-width', '1.6');
-    p.setAttribute('stroke-linecap', 'round');
-    p.setAttribute('d', kind === 'image' ? 'M4 5h16v14H4zM8 11l3 3 4-4 3 3' : 'M6 3h8l4 4v14H6zM14 3v5h5');
-    s.appendChild(p);
+    var paths = FILE_PATHS[shape] || FILE_PATHS.doc;
+    for (var i = 0; i < paths.length; i++) {
+      var p = document.createElementNS ? document.createElementNS('http://www.w3.org/2000/svg', 'path') : el('path');
+      p.setAttribute('d', paths[i]);
+      p.setAttribute('fill', 'none');
+      p.setAttribute('stroke', 'currentColor');
+      p.setAttribute('stroke-width', '1.6');
+      p.setAttribute('stroke-linecap', 'round');
+      p.setAttribute('stroke-linejoin', 'round');
+      s.appendChild(p);
+    }
     return s;
   }
 
@@ -677,7 +695,8 @@
     var sub = [];
     var ext = extOf(at.url);
     if (ext) sub.push(ext.toUpperCase());
-    if (at.size) sub.push(at.size);
+    else if (at.kind === 'link') sub.push('外链');
+    if (at.size && at.size !== '—') sub.push(at.size);
     meta.appendChild(el('span', '', sub.join(' · ') || '文件'));
     li.appendChild(meta);
     var href = safeUrl(at.url);
@@ -2107,13 +2126,30 @@
           var src = wrap && wrap.getAttribute ? wrap.getAttribute('data-embed') : '';
           var safe = safeUrl(src);
           if (wrap && safe) {
+            wrap.__face = face;           /* 收起时把门面卡原样放回 */
             clear(wrap);
+            var bar = el('div', 'video-bar');
+            var close = el('button', 'video-collapse', '收起视频');
+            close.setAttribute('type', 'button');
+            bar.appendChild(close);
+            wrap.appendChild(bar);
             var ifr = el('iframe', 'video-frame');
             ifr.setAttribute('src', safe);
             ifr.setAttribute('allowfullscreen', '');
             ifr.setAttribute('loading', 'lazy');
             ifr.setAttribute('title', 'B 站视频');
             wrap.appendChild(ifr);
+          }
+          return;
+        }
+        var col = t.closest('.video-collapse');
+        if (col) {
+          if (ev.preventDefault) ev.preventDefault();
+          var box = col.closest('.video');
+          if (box && box.__face) {
+            clear(box);
+            box.appendChild(box.__face);   /* 移除 iframe：回到零请求的静态门面 */
+            box.__face = null;
           }
           return;
         }

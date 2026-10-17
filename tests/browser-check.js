@@ -331,6 +331,30 @@ async function main() {
   await cdp.shot(path.join(SHOTS, 'library-375-drawer.png'));
   await cdp.eval('document.getElementById("nav-drawer").removeAttribute("open")');
 
+  /* ---------- 视频门面 / 附件卡片 ---------- */
+  await go('#/post/hello-rec', 'post');
+  const vid = await cdp.eval(`(async () => {
+    const face = document.querySelector('.video-face');
+    if (!face) return { found: false };
+    face.click();
+    await new Promise((r) => setTimeout(r, 300));
+    const hasFrame = !!document.querySelector('.video-frame');
+    const close = document.querySelector('.video-collapse');
+    if (close) close.click();
+    await new Promise((r) => setTimeout(r, 200));
+    return { found: true, hasFrame, closed: !document.querySelector('.video-frame') && !!document.querySelector('.video-face') };
+  })()`);
+  need(vid.found === true, '文章有视频门面卡');
+  need(vid.hasFrame === true, '点击后注入播放器 iframe');
+  need(vid.closed === true, '收起后 iframe 移除、门面恢复');
+
+  const att = await cdp.eval(`(() => ({
+    cards: document.querySelectorAll('.attach-card').length,
+    icon: !!document.querySelector('.attach-card .file-ico')
+  }))()`);
+  need(att.cards >= 1, '附件渲染成卡片', String(att.cards));
+  need(att.icon === true, '附件有统一文件图标', String(att.icon));
+
   /* ---------- 暗色 1280×900 ---------- */
   console.log('== 1280×900 暗色 ==');
   await metrics(1280, 900, false);
