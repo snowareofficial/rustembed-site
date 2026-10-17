@@ -39,6 +39,10 @@ jobs:
       - name: 产物自检
         run: python engine/check.py
 
+      # 4.5) 前端结构断言（三栏/版心/零外链/摘要/导图等，纯静态，不需要浏览器）
+      - name: 结构断言
+        run: python engine/test_structure.py
+
       # 5) 只在推送到受保护分支时发布；PR 上跑到这里就结束。
       - name: 发布到 Cloudflare Pages
         if: github.event_name == 'push'
