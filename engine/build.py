@@ -733,6 +733,9 @@ def build_fonts(rep, out, manifest, bodies=()):
                 stamp.write_text(json.dumps({"sig": sig, "files": [p.name for p in made]},
                                             ensure_ascii=False, indent=1), encoding="utf-8")
 
+    if not srcs and not existing:
+        rep.warn("fonts", "没有 site/fonts/src 也没有子集：本次不生成字体（"
+                          "分发构建器时应随包带 MiSans 源字体）")
     use = made or existing
     if not use:
         return ""
