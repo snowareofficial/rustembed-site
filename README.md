@@ -17,13 +17,16 @@ python engine/cli.py preview                               # 构建 + 预览 htt
 
 投稿三步：fork → 在 `site/content/posts/<年份>/<英文短名>/index.md` 写文章 → 提 PR。
 不方便用 git 的，把稿子交给有仓库权限的群管理代投（署名仍是作者本人）。
+**完整文件结构、git 写作流程、全链路验证见 [`docs/WORKFLOW.md`](docs/WORKFLOW.md)。**
 
 ## 目录结构
 
 ```
 engine/                   工具体系（与本站内容无关，可整体复制给别的站点复用）
 ├─ build.py check.py preview.py cli.py test_contracts.py config.py
-└─ lib/                   sml / markdown / render / contract / mindmap / repo_meta
+├─ lib/                   sml / markdown / render / contract / mindmap / repo_meta / summary
+├─ prompts/summarize.md   AI 摘要的输入输出约定（构建期用，离线）
+└─ vendor/fontTools/      vendored fontTools（字体子集化，不是 pip 依赖）
                          详见 engine/README.md（每个文件职责 + 常见改动怎么做）
 
 site/                     本站点本身
@@ -36,13 +39,14 @@ site/                     本站点本身
 │  ├─ projects/<id>.sml   项目（仓库元数据构建期自动抓取）
 │  ├─ resources/<id>.sml  资源库
 │  ├─ weekly/<期>.sml     周报 / 月刊
+│  ├─ summaries/<slug>.json  可选：AI 摘要产物（没有则用构建期抽取式摘要）
 │  └─ contracts/*.sml     内容契约（字段即文档）
 ├─ theme/                 前端壳（index.html / app.js / style.css）
 │  └─ fonts/             可选：自托管字体（如 MiSans-*.ttf，构建期子集化，见 docs/FONTS.md）
 ├─ meta/repos.json        仓库元数据缓存
 └─ *.jpg                  群 logo（同时作为站点 favicon）
 
-docs/                     开发者文档（架构、部署、路线图）
+docs/                     开发者文档（架构、部署、字体、治理、路线图、工作流）
 dist/                     构建产物（gitignore）
 ```
 

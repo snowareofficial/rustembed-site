@@ -235,9 +235,13 @@ for _p in (json.loads((DIST / "manifest.json").read_text(encoding="utf-8")).get(
     need((DIST / "summaries" / (_p["slug"] + ".json")).exists(),
          "文章 %s 缺构建期摘要 JSON" % _p["slug"])
     need(isinstance(_p.get("ai_summary"), dict), "文章 %s 的 manifest 里没有 ai_summary" % _p["slug"])
-need((DIST / "p" / "hello-rec.map.svg").exists(), "front matter 写了 map: true 却没生成导图")
-need(not (DIST / "p" / "md-writing.map.svg").exists(),
-     "未开启 map 的文章不应生成导图（导图默认关闭）")
+_posts = json.loads((DIST / "manifest.json").read_text(encoding="utf-8")).get("posts") or []
+for _p in _posts:
+    _svg = DIST / "p" / (_p["slug"] + ".map.svg")
+    if _p.get("map"):
+        need(_svg.exists(), "front matter 写了 map: true 却没生成导图：%s" % _p["slug"])
+    else:
+        need(not _svg.exists(), "未开启 map 的文章不应生成导图：%s" % _p["slug"])
 
 # ---- H 已修 bug 的回归钉子 ----
 # H1 成员卡：技能芯片必须落在文字列，否则会被塞进 3rem 头像列并压住数字行

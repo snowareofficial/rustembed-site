@@ -9,6 +9,7 @@ series:
   title: Rust 嵌入式入门
   order: 2
 license: "CC BY-NC-SA 4.0"
+map: true
 ---
 
 ## 为什么不用逼你学 SML
