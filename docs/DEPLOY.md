@@ -1,5 +1,8 @@
 # 部署方案
 
+> 当前线上（2026-10-18 首次发布）：**<https://rustembed.pages.dev>**
+> Cloudflare Pages 项目 `rustembed`，生产分支 `main`；自定义域名尚未绑定。
+
 ```
 作者/管理员 ──push──► Gitee（权威源）
                         │  每 6 小时单向镜像（sync-from-gitee.yml）
