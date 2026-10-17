@@ -49,8 +49,8 @@ rec-blog/
 │  │  ├─ weekly/<期>.sml   周报 / 月刊
 │  │  └─ contracts/*.sml   内容契约（字段即文档；自动生成契约文档页）
 │  ├─ theme/               前端壳：index.html + app.js（路由/视图）+ style.css
-│  ├─ fonts/               可选自托管字体：src/ 放源字体（已 gitignore，体积大不入库）；
-│  │                       subset/ 子集化产物**提交进仓库**，CI 无需 fonttools/brotli
+│  ├─ fonts/               自托管 MiSans 子集：src/ 放源字体（已 gitignore，15 MB×2）；
+│  │                       subset/ 子集入库（约 127 KB×2，CI 直接复用）；许可随产物发布
 │  └─ meta/repos.json      仓库元数据缓存（入库）
 ├─ docs/                   ARCHITECTURE / DEPLOY / FONTS / GOVERNANCE / ROADMAP
 ├─ dist/                   构建产物（gitignore；固定输出到 <repo>/dist）

@@ -1,56 +1,65 @@
-# 字体（MiSans）
+# 字体（MiSans 自托管子集）
+
+> **2026-10-18 起恢复自托管**：为让不同系统显示一致，站点重新使用 MiSans 子集。
+> 与上一版的区别：**fontTools 已 vendor 进仓库**（`engine/vendor/fontTools/`），构建不再依赖 `pip install fonttools`；
+> 子集只保留**站点实际用到的字符**，产物 15.4 MB → 约 254 KB（woff，两个权重）。
 
 ## 能不能用
 
-可以。MiSans 由小米发布，**可免费商用，允许网页嵌入与自托管**；限制主要是：
+MiSans 由小米发布，**可免费商用，允许网页嵌入与自托管**；限制主要是：
 **不能单独售卖字体文件本身**、不能改名字后当成自己的字体发布、不得用于违法用途。
 上线前请对照官方《MiSans 字体知识产权许可协议》确认当前条款（许可可能更新，以官方页面为准）。
 
-## 怎么接（当前实现）
+## 目录约定
 
 ```
 site/fonts/
-├─ src/     源字体（MiSans-Regular.ttf …）—— 不入库（.gitignore），可从官方包重新获取
-├─ subset/  子集产物（misans-regular.woff …）—— 入库，体积很小
-└─ LICENSE-*  字体自带许可文件（若压缩包内有）—— 入库并随产物发布
+├─ src/     源字体（MiSans-Regular.ttf …）—— 不入库（.gitignore），从官方包重新获取
+├─ subset/  子集产物（misans-regular.woff …）—— 入库，CI 直接复用
+└─ LICENSE-MiSans.txt  字体许可 —— 入库并随产物发布
+engine/vendor/fontTools/  vendored fontTools（仓库组件，非 pip 依赖；MIT 许可见 engine/vendor/fontTools-LICENSE）
 ```
 
-1. 从压缩包挑权重（不整包解压，只认文件名尾段的权重名，避免 `bold` 命中 `demibold`）：
+## 怎么接
+
+1. 从压缩包挑权重（不整包解压，避免 `bold` 命中 `demibold`）：
 
 ```bash
 python engine/fonts_import.py MiSans.zip --weights Regular,Bold   # → site/fonts/src/
 python engine/fonts_import.py MiSans.zip --list                   # 只看包里有什么
 ```
 
-2. 构建期**子集化**：只保留站点实际用到的字符，产出 `site/fonts/subset/*` + `dist/fonts.css`，
-   并在页面 `<head>` 注入样式链接。已实测：MiSans Regular + Bold 源文件 15.4 MB →
-   **子集 236 KB**（woff）。
+2. 构建期**子集化**：`site/fonts/src/*.ttf` → `site/fonts/subset/*` + `dist/fonts.css`，
+   并在 `<head>` 注入 `<link rel="stylesheet" href="fonts.css">`。
 
 ```bash
-python -m pip install fonttools   # 子集化依赖；brotli 可选（有则输出 woff2，没有就退化为 woff）
-python engine/cli.py build
+python engine/cli.py build      # 不需要 pip install fonttools（用 engine/vendor 里的）
 ```
 
-3. **子集提交进仓库，CI 不需要装 fonttools**；本地放了源字体才会重新生成（源文件比子集新时自动重建）。
-4. 没有字体文件时**什么都不做**，`font-family` 自动回退到系统字体（PingFang SC / 微软雅黑等）。
+3. **子集提交进仓库，CI 不需要源字体**；本地放了源字体才会重新生成（签名 `.stamp.json` 变了才重建）。
+4. 没有源字体也没有子集时**什么都不做**，`font-family` 自动回退到系统字体。
 
-为什么必须子集化：MiSans 全字集单权重是十几 MB，直接托管会拖垮首屏。**不引入第三方字体 CDN**——
-符合站点「静态资源全自托管」的隐私约定。
+## 子集策略（尽量小）
 
-## 字体栈
+- 字符集 = manifest + 所有预渲染正文 + `site/theme/*.{js,css,html}` 里出现的字符（宁可多收，不漏字）。
+- `--layout-features=kern`（只留字距）、`--no-hinting`、`--desubroutinize`、`--name-IDs=1,2`。
+- 缺 `brotli` 时退化为 woff（浏览器都支持），有 brotli 时输出 woff2（体积约减半）。
+- 实测：Regular + Bold 各约 127 KB（woff），合计 **254 KB**。
+
+## 字体栈（当前生效）
 
 ```css
-font: 16px/1.75 "MiSans", -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+font-family: "MiSans", system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 ```
 
-即：优先用子集化的 MiSans；没有该字体（或请求失败）时逐级回退，不影响阅读。
+`--mono` 同理走等宽系统栈。正文、标题分别用 400 / 700 两个子集。
 
 ## 常见问题
 
 | 现象 | 原因 / 处理 |
 |---|---|
-| 构建提示「有源字体但缺 fonttools」 | `python -m pip install fonttools`；或只依赖已入库的子集（CI 场景） |
-| 提示「缺 brotli，子集改用 woff」 | 正常降级（子集只有一两百 KB，woff 与 woff2 差别可忽略）；要 woff2 就装 brotli |
-| 字体没生效 | 看 `dist/fonts.css` 是否生成、`site/fonts/subset/` 是否有文件、`<head>` 是否引用了 `fonts.css` |
-| 有字显示成方块 | 子集漏字：站点文字取自构建数据，若在 CSS/JS 里硬编码了额外文字，把它们也纳入子集（改 `engine/build.py` 的 `site_text()`） |
-| 体积偏大 | 只放需要的权重（Regular + Bold 够用）；不要提交 `src/` 下的源字体 |
+| 构建提示「有源字体但缺 fonttools」 | 不应出现：fontTools 已 vendored；若删了 `engine/vendor/` 再 `pip install fonttools` |
+| 提示「缺 brotli，子集改用 woff」 | 正常降级；要 woff2 就 `pip install brotli`（CI 可在 workflow 里装） |
+| 字体没生效 | 看 `dist/fonts.css`、`site/fonts/subset/`、`<head>` 是否引用了 `fonts.css`；浏览器里 `document.fonts.check('17px MiSans')` 应为 true |
+| 有字显示成方块 | 子集漏字：站点文字取自构建数据，若 CSS/JS 里硬编码了额外文字，把它们纳入子集（改 `engine/build.py` 的 `site_text()`） |
+| 体积偏大 | 只留需要的权重；不要提交 `src/` 下的源字体 |

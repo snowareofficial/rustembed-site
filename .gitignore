@@ -3,11 +3,14 @@ __pycache__/
 *.pyc
 .preview.log
 
-# 字体：源文件与压缩包不入库（体积大，可从官方重新获取）；只提交子集 site/fonts/subset/
+# 字体：压缩包与源字体不入库（15 MB×2）；子集 site/fonts/subset/ 入库，见 docs/FONTS.md
 *.zip
 site/fonts/src/
 *.ttf
 *.otf
+
+# 前端验收截图（node tests/browser-check.js 的产物，报告引用但不入库）
+tests/shots/
 
 # SML 原生后端：本机编译的 cdylib（体积 + 跨平台差异，不入库；
 # 缺它时 sml.py 自动退回内置子集解析器，CI 无需安装 Rust）

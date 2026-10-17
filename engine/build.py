@@ -19,6 +19,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+# fontTools 作为仓库组件 vendored 在 engine/vendor（不依赖 pip 安装）
+VENDOR_DIR = Path(__file__).resolve().parent / "vendor"
+if VENDOR_DIR.is_dir():
+    sys.path.insert(0, str(VENDOR_DIR))
+
 import config
 import sml
 import render
@@ -384,6 +389,15 @@ def build_projects(rep, cache, offline):
             item["meta"].update({k: sml.as_str(v) for k, v in override.items()})
         elif override:
             item["meta"] = dict(item["meta"] or {}, **{k: sml.as_str(v) for k, v in override.items()})
+        # 里程碑：写了才透传（前端「有数据才画时间线」，空字段不进 manifest）
+        ms = d.get("milestones")
+        if isinstance(ms, list):
+            ms = [{"date": sml.as_str(x.get("date", "")),
+                   "text": sml.as_str(x.get("text", "")),
+                   "why": sml.as_str(x.get("why", ""))}
+                  for x in ms if isinstance(x, dict)]
+            if ms:
+                item["milestones"] = ms
         out.append(item)
     out.sort(key=lambda p: (not p["featured"], p["name"]))
     return out
@@ -704,8 +718,10 @@ def build_fonts(rep, out, manifest, bodies=()):
                     continue
                 try:
                     ftsubset.main([str(f), "--text=%s" % text, "--flavor=%s" % flavor,
-                                   "--output-file=%s" % dst, "--layout-features=*",
-                                   "--no-hinting", "--desubroutinize"])
+                                   "--output-file=%s" % dst,
+                                   "--layout-features=kern",
+                                   "--no-hinting", "--desubroutinize",
+                                   "--name-IDs=1,2"])
                 except BaseException as e:  # noqa: BLE001
                     rep.warn("fonts", "子集化失败 %s：%s" % (f.name, e))
                     continue
@@ -782,6 +798,105 @@ def inject_head(rep, out, manifest, avatar, fonts_css=""):
                            "type": MIME.get(Path(icon).suffix.lower(), "image/jpeg")}]}
         (out / "site.webmanifest").write_text(json.dumps(mani, ensure_ascii=False, indent=1),
                                               encoding="utf-8")
+
+
+NAV_LABEL = {
+    "library": "文章库", "knowledge": "文章知识", "topics": "主题词条", "projects": "项目",
+    "resources": "资源", "members": "成员", "services": "能力与合作", "weekly": "周报",
+    "pages": "站文档", "join": "加入我们",
+}
+
+
+def inject_shell(rep, out, manifest, posts):
+    """把「站点导航 + 最近文章」的静态 HTML 写进 index.html。
+
+    渐进增强：JS 起来前页面已经有站名、10 个站点入口与最近文章列表（不是空白）；
+    JS 起来后接管 #view / #site-nav（补当前项高亮）。右栏导航同时以静态形式存在，
+    结构断言可以直接对 dist/index.html 断言，不依赖 JS。
+    """
+    idx = out / "index.html"
+    if not idx.exists():
+        return
+    site = manifest["site"]
+    nav = site.get("nav") or []
+    nav_html = "\n".join('        <a href="#/%s">%s</a>' % (esc(k), esc(NAV_LABEL.get(k, k)))
+                         for k in nav)
+    NAV_DESC = {
+        "library": "按年份浏览全部文章", "knowledge": "系列 / 标签 / 作者索引",
+        "topics": "主题词条与关系图", "projects": "仓库元数据与活跃度比较",
+        "resources": "书 / 教程 / 工具 / 视频", "members": "成员档案与作品",
+        "services": "能力与合作黄页", "weekly": "周报 / 月刊",
+        "pages": "制度与写作文档", "join": "加入 QQ 群",
+    }
+    NAV_ICON = {
+        "library": "M3 5h18M3 10h18M3 15h12",
+        "knowledge": "M4 3h9l3 3v13H4zM8 9h5M8 12h5M8 15h3",
+        "topics": "M3 5h7v6H3zM10 5h7v6h-7zM3 11h7v6H3zM10 11h7v6h-7z",
+        "projects": "M3 6h6l2 2h7v9H3z",
+        "resources": "M4 4h7v13H4zM13 4h7v13h-7z",
+        "members": "M8 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 18c0-3 3-5 6-5s6 2 6 5M16 8h6M19 5v6",
+        "services": "M3 7h18v11H3zM3 11h18M9 7v11",
+        "weekly": "M4 5h16v15H4zM8 3v4M16 3v4M4 10h16",
+        "pages": "M5 3h9l4 4v14H5zM14 3v5h5",
+        "join": "M9 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21c0-4 3-6 7-6M17 9v6M14 12h6",
+    }
+    counts = {
+        "library": len(manifest.get("posts") or []),
+        "topics": len(manifest.get("topics") or []),
+        "projects": len(manifest.get("projects") or []),
+        "resources": len(manifest.get("resources") or []),
+        "members": len(manifest.get("members") or []),
+        "services": len(manifest.get("services") or []),
+        "weekly": len(manifest.get("weekly") or []),
+        "pages": len(manifest.get("pages") or []),
+    }
+    avatar = site.get("avatar") or ""
+    first = ['<section class="home-hero">\n']
+    if avatar:
+        first.append('  <img class="home-logo" src="%s" alt="" width="56" height="56">\n' % esc(avatar))
+    first.append('  <h1 class="home-title">%s</h1>\n' % esc(site.get("title", "")))
+    first.append('  <p class="home-tagline">%s</p>\n' % esc(site.get("tagline", "")))
+    first.append('  <form class="home-search" role="search" action="#/search/">\n'
+                 '    <input class="home-input" type="search" name="q" '
+                 'placeholder="全站搜索：文章 / 项目 / 成员 / 资源（回车）" aria-label="全站搜索">\n'
+                 '    <button class="home-btn" type="submit">搜索</button>\n'
+                 '  </form>\n</section>\n')
+    first.append('<div class="nav-cards">\n')
+    for k in nav:
+        if k not in NAV_ICON:
+            continue
+        c = counts.get(k)
+        first.append(
+            '  <a class="nav-card" href="#/%s">'
+            '<svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true">'
+            '<path d="%s" fill="none" stroke="currentColor" stroke-width="1.6" '
+            'stroke-linecap="round"/></svg>'
+            '<b>%s</b><span>%s</span>%s</a>\n'
+            % (esc(k), NAV_ICON[k], esc(NAV_LABEL.get(k, k)), esc(NAV_DESC.get(k, "")),
+               ('<em>%d 项</em>' % c) if c is not None else ""))
+    first.append('</div>\n')
+    first.append('<p class="section-h">最近更新</p>\n<ol class="rows">\n')
+    n = 0
+    for p in posts[:3]:
+        first.append('  <li class="row">\n'
+                     '    <span class="row-date">%s</span>\n'
+                     '    <a class="row-title" href="#/post/%s">%s</a>\n'
+                     '    <span class="row-words">%d 字</span>\n'
+                     '  </li>\n'
+                     % (esc(str(p["date"])[:10]), esc(p["slug"]), esc(p["title"]), p["words"]))
+        n += 1
+    first.append('</ol>\n')
+    if not n:
+        first.append('<p class="muted">还没有文章。</p>\n')
+
+    html = idx.read_text(encoding="utf-8")
+    html = html.replace("<!--BUILD:NAV-->", nav_html)
+    html = html.replace("<!--BUILD:FIRST-->", "".join(first))
+    html = re.sub(r'(<span id="brand-title">)[^<]*(</span>)',
+                  lambda m: m.group(1) + esc(site.get("title", "")) + m.group(2), html)
+    if "<!--BUILD:NAV-->" in html or "<!--BUILD:FIRST-->" in html:
+        rep.warn("index.html", "静态首屏/导航占位没被替换（主题缺少占位注释）")
+    idx.write_text(html, encoding="utf-8")
 
 
 def main():
@@ -1157,6 +1272,36 @@ def main():
     feed.append("</channel></rss>")
     (out / "feed.xml").write_text("\n".join(feed), encoding="utf-8")
 
+    # Cloudflare Pages 的 _headers：给纯文本/AI 索引显式声明 UTF-8。
+    # 不声明时，中文系统上直接打开 llms.txt 会按 GBK 解码成乱码（内容本身是 UTF-8）。
+    (out / "_headers").write_text(
+        "\n".join([
+            "/*",
+            "  X-Content-Type-Options: nosniff",
+            "",
+            "/llms.txt",
+            "  Content-Type: text/plain; charset=utf-8",
+            "",
+            "/llms-full.txt",
+            "  Content-Type: text/plain; charset=utf-8",
+            "",
+            "/feed.xml",
+            "  Content-Type: application/rss+xml; charset=utf-8",
+            "",
+            "/sitemap.xml",
+            "  Content-Type: application/xml; charset=utf-8",
+            "",
+            "/manifest.json",
+            "  Content-Type: application/json; charset=utf-8",
+            "",
+            "/search-index.json",
+            "  Content-Type: application/json; charset=utf-8",
+            "",
+            "/site.webmanifest",
+            "  Content-Type: application/manifest+json; charset=utf-8",
+            "",
+        ]) + "\n", encoding="utf-8")
+
     for p in posts:
         src = ROOT / Path(p["file"]).parent / "assets"
         if src.exists():
@@ -1180,6 +1325,8 @@ def main():
         for f in site_dir.iterdir():
             if f.is_file():
                 shutil.copy2(f, out / f.name)
+
+    inject_shell(rep, out, manifest, posts)      # 静态首屏：站名 + 站点导航 + 最近文章
 
     bodies = [p["_html"] for p in posts] + [x.get("_html", "") for x in pages + weekly + topics + services]
     fonts_css = build_fonts(rep, out, manifest, bodies)

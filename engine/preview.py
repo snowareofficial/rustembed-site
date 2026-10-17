@@ -29,6 +29,18 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *a, **kw):
         super().__init__(*a, directory=str(DIST), **kw)
 
+    # 文本类资源一律声明 UTF-8：否则中文 Windows 上浏览器会按 GBK 解码，
+    # llms.txt / feed.xml 之类打开就是乱码（内容本身没问题）。
+    _TEXTUAL = ("text/", "application/json", "application/xml",
+                "application/rss+xml", "application/manifest+json",
+                "application/javascript", "image/svg+xml")
+
+    def guess_type(self, path):
+        ctype = super().guess_type(path)
+        if ctype.startswith(self._TEXTUAL):
+            return ctype.split(";")[0] + "; charset=utf-8"
+        return ctype
+
     def end_headers(self):
         self.send_header("Cache-Control", "no-store")
         super().end_headers()
