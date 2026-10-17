@@ -1,0 +1,20 @@
+﻿const fs=require("fs");const {spawn}=require("child_process");
+const P=9333;
+const b="C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
+const child=spawn(b,["--headless=new","--remote-debugging-port="+P,"--user-data-dir="+fs.mkdtempSync(require("os").tmpdir()+"\\x"),"--window-size=1280,900","about:blank"],{stdio:"ignore"});
+(async()=>{
+ await new Promise(r=>setTimeout(r,2500));
+ const list=await (await fetch("http://127.0.0.1:"+P+"/json/list")).json();
+ const t=list.find(x=>x.type==="page");
+ const ws=new WebSocket(t.webSocketDebuggerUrl);
+ let id=0;const pend=new Map();
+ const send=(m,p)=>new Promise((res,rej)=>{const i=++id;pend.set(i,{res,rej});ws.send(JSON.stringify({id:i,method:m,params:p||{}}))});
+ ws.addEventListener("message",(e)=>{const m=JSON.parse(e.data);if(m.id&&pend.has(m.id)){const q=pend.get(m.id);pend.delete(m.id);m.error?q.rej(new Error(JSON.stringify(m.error))):q.res(m.result)}});
+ await new Promise(r=>ws.addEventListener("open",r));
+ await send("Runtime.enable");
+ await send("Page.navigate",{url:"http://127.0.0.1:8080/#/library"});
+ await new Promise(r=>setTimeout(r,3000));
+ const ev=async(x)=>(await send("Runtime.evaluate",{expression:x,returnByValue:true})).result.value;
+ console.log(JSON.stringify(await ev(`(()=>{const n=document.querySelector("#site-nav");const a=n.querySelector("a");return {display:getComputedStyle(n).display, h:n.getBoundingClientRect().height, ah:a.getBoundingClientRect().height, vis:n.checkVisibility?n.checkVisibility({checkVisibilityCSS:true,contentVisibilityAuto:true}):null, sumDisplay:getComputedStyle(document.querySelector("#nav-drawer")).display};})()`),null,1));
+ ws.close();child.kill();
+})();
