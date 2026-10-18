@@ -281,8 +281,13 @@ def cmd_list(args):
     for f in sorted((config.CONTENT / "posts").glob("*/*/index.*")):
         if f.suffix.lower() not in (".md", ".markdown", ".sml"):
             continue
-        d, _ = (sml.load_doc(f) if f.suffix.lower() == ".sml"
-                else mdmod.split_front_matter(f.read_text(encoding="utf-8")))
+        try:
+            d, _ = (sml.load_doc(f) if f.suffix.lower() == ".sml"
+                    else mdmod.split_front_matter(f.read_text(encoding="utf-8")))
+        except sml.SmlError as e:
+            # 文章里的语法笔误：人话提示（消息自带 文件:行号），不甩 traceback
+            print("SML 解析失败：%s" % e)
+            return 1
         tags = d.get("tags") or []
         if args.tag and args.tag not in tags:
             continue
@@ -503,7 +508,12 @@ def cmd_gen(args):
 def cmd_contracts(args):
     reg = {}
     for f in sorted((config.CONTENT / "contracts").glob("*.sml")):
-        _, cs = sml.load_doc(f)
+        try:
+            _, cs = sml.load_doc(f)
+        except sml.SmlError as e:
+            # 契约文件里的语法笔误：人话退出（消息自带 文件:行号），不甩 traceback
+            print("SML 解析失败：%s" % e)
+            return 1
         reg.update(cs)
     if not reg:
         print("没有契约（%s 是空的）。" % (config.CONTENT / "contracts").relative_to(config.REPO))

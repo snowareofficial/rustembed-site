@@ -72,6 +72,20 @@ class _Parser:
         line = self.s.count("\n", 0, self.i) + 1
         raise SmlError("%s:%d: %s" % (self.path, line, msg))
 
+    def _hex_cp(self, hexs, hint):
+        """`\\u` 转义的码点校验：必须是 4 位以上十六进制、且 ≤ 0x10FFFF。
+
+        非法输入（`\\uZZZZ` / `\\u{110000}` / 不足 4 位）一律走 self.err 抛
+        SmlError（带 path:line），不许把 ValueError / 越界 chr() 泄漏给投稿者 ——
+        两条后端都经过这里（原生路径的 _strip_directives 也调 string()）。
+        """
+        if len(hexs) < 4 or re.search(r"[^0-9a-fA-F]", hexs):
+            self.err("%s，实得 %r" % (hint, hexs))
+        cp = int(hexs, 16)
+        if cp > 0x10FFFF:
+            self.err("\\u 码点超出 Unicode 范围（> 0x10FFFF）：%s" % hexs)
+        return cp
+
     def skip(self):
         while self.i < self.n:
             c = self.s[self.i]
@@ -132,10 +146,14 @@ class _Parser:
                         j = self.s.find("}", self.i)
                         if j < 0:
                             self.err("未闭合 \\u{}")
-                        buf.append(chr(int(self.s[self.i + 1:j], 16)))
+                        cp = self._hex_cp(self.s[self.i + 1:j],
+                                          "\\u{...} 里不是十六进制数字")
+                        buf.append(chr(cp))
                         self.i = j + 1
                     else:
-                        buf.append(chr(int(self.s[self.i:self.i + 4], 16)))
+                        cp = self._hex_cp(self.s[self.i:self.i + 4],
+                                          "\\u 后需要 4 位十六进制数字（如 \\u4e2d）")
+                        buf.append(chr(cp))
                         self.i += 4
                 else:
                     buf.append(e)
@@ -310,22 +328,32 @@ def _put(obj, key, val):
         obj[key] = [cur, val]
 
 
-def _expand(node, frags):
-    """展开片段引用：`@名字 { ... }` 定义、`&名字` 以值形式引用；@ 开头的指令/定义不进结果。"""
+def _expand(node, frags, _active=()):
+    """展开片段引用：`@名字 { ... }` 定义、`&名字` 以值形式引用；@ 开头的指令/定义不进结果。
+
+    _active 记录展开链上的片段名：自引用（`@a { k: &a }`）与互相引用
+    （`@a { k: &b }` + `@b { k: &a }`）会成环，抛 SmlError 并给出成环链 ——
+    以前这里是裸 RecursionError，投稿者看到的是 traceback 而不是 path:line。
+    原生后端对同类输入报 E-INCLUDE-006（见 _map_native_error），口径一致。
+    """
     if isinstance(node, list):
-        return [_expand(x, frags) for x in node]
+        return [_expand(x, frags, _active) for x in node]
     if isinstance(node, dict):
         out = {}
         for k, v in node.items():
             if isinstance(k, str) and k.startswith("@"):
                 continue
             if isinstance(v, str) and v.startswith("&") and len(v) > 1 and v[1:] in frags:
-                sub = _expand(copy.deepcopy(frags[v[1:]]), frags)
+                name = v[1:]
+                if name in _active:
+                    chain = " -> ".join(list(_active) + [name])
+                    raise SmlError("片段引用成环：&%s（%s）" % (name, chain))
+                sub = _expand(copy.deepcopy(frags[name]), frags, _active + (name,))
                 if isinstance(sub, dict):
                     sub = {k2: v2 for k2, v2 in sub.items() if not k2.startswith("__")}
                 out[k] = sub
                 continue
-            out[k] = _expand(v, frags)
+            out[k] = _expand(v, frags, _active)
         return out
     return node
 
@@ -536,16 +564,16 @@ def _read_is_arg(p):
     return val.strip() if isinstance(val, str) else str(val)
 
 
-def _strip_directives(text):
+def _strip_directives(text, path="<sml>"):
     """剥掉 rec-blog 侧契约指令，返回 (干净文本, 契约表, __is 值)。
-
     `@contract 名 { ... }` / `@is 名` 必须由内置契约引擎处理（默认映射、
     loose、文档页、错误码文案都在 Python 侧），不能让上游解析期消费 ——
     上游的契约表只有「本文件内定义」，且校验后不进结果。其余 @ 指令
     （@frag、@when…）原样留给上游。剥掉的区间用等长空格回填（保留换行），
     上游错误报告的行号才不会漂。
+    path 透给内部 _Parser：串内坏转义（\\uZZZZ 等）报错时带真实文件路径。
     """
-    p = _Parser(text)
+    p = _Parser(text, path)
     buf = list(text)
     contracts = {}
     is_name = ""
@@ -619,7 +647,7 @@ _TEXT_INCLUDE_HINT = "文本入口不展开 include，请用文件入口 load_do
 
 def _native_parse_doc(text, path):
     mod = _native_mod()
-    clean, contracts, is_name = _strip_directives(text)
+    clean, contracts, is_name = _strip_directives(text, path)
     try:
         val = mod.loads(clean, flags=feature_flags())
     except mod.SmlError as e:
@@ -638,7 +666,7 @@ def _native_load_doc(path):
     p = os.path.abspath(path)
     with open(p, "r", encoding="utf-8") as fh:
         text = fh.read()
-    clean, contracts, is_name = _strip_directives(text)
+    clean, contracts, is_name = _strip_directives(text, path)
     stem, ext = os.path.splitext(os.path.basename(p))
     tmp = os.path.join(os.path.dirname(p), "_%s.native-%d%s" % (stem, os.getpid(), ext))
     try:

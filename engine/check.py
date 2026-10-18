@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """产物自检：跑完 build.py 后执行，验证关键文件与不变量。
 
-python tools/check.py
+python engine/check.py
 """
 
 import argparse

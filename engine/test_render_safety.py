@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""渲染安全与构建守卫的回归测试。
+r"""渲染安全与构建守卫的回归测试。
 
     python engine/test_render_safety.py
 
-钉住四类「改错了不会有人发现」的问题：
+钉住五类「改错了不会有人发现」的问题：
 
   1. 契约名拼进 HTML 属性时未转义 → 可执行 XSS
      （契约文档页由 build.py 的 build_contract_page() 生成）
@@ -11,6 +11,9 @@
      带 & 的 {link:} 变成坏链
   3. Markdown 嵌套列表把 Python list 的 repr 打印到页面，或直接抛 TypeError
   4. --out 指向源码目录 → clean_out() 会递归清空它
+  5. SML 解析器的异常类型不受控：坏 \u 转义抛 ValueError、片段引用成环抛
+     RecursionError，投稿笔换换来的是 traceback 而不是 文件:行号 人话错误
+     （builtin / native 两个后端都必须抛 SmlError；build 侧透出 E-SML-001）
 
 这些用例都对应实际发生过的缺陷，属于「加你踩过的坑当断言」。
 """
@@ -564,6 +567,87 @@ def test_url_allowlist():
         [{"__type": "img", "src": "javascript:alert", "alt": "x"}], R.Ctx()))
 
 
+# ------------------------------------ 10. SML 错误类型（双后端口径一致）
+def test_sml_error_types():
+    print("[10] SML 解析器错误类型（builtin / native 双后端）")
+
+    # 全部必须是 SmlError（消息带 path:line），不许泄漏 ValueError / RecursionError：
+    # 投稿文件里一个笔误就让构建以 traceback 结束，是审计里真实发生过的问题。
+    hostile = [
+        ("u-bad-hex", 'x: "\\uZZZZ"'),
+        ("u-out-of-range", 'x: "\\u{110000}"'),
+        ("u-short", 'x: "\\u12"'),
+        ("u-empty-braces", 'x: "\\u{}"'),
+        ("self-ref-frag", "@a { k: &a }\nb: &a"),
+        ("mutual-frag", "@a { k: &b }\n@b { k: &a }\nc: &a"),
+    ]
+    # 合法面：\u / \u{} 转义与片段链照常工作（防止把校验写成一刀切拒绝）
+    benign = [
+        ("ok-escapes", 'x: "\\u4e2d\\u{6587}\\n\\t"', "中文\n\t"),
+        ("ok-frag-chain", "@a { k: 1 }\n@b { k: &a }\nc: &b", None),
+    ]
+
+    def run(backend, src, path="<test>"):
+        sml.set_backend(backend)
+        try:
+            return sml.parse(src, path=path), None
+        except sml.SmlError as e:
+            return None, str(e)
+        except Exception as e:                       # noqa: BLE001 —— 就是要抓它
+            return None, "%s: %s" % (type(e).__name__, e)
+        finally:
+            sml.set_backend("auto")
+
+    sml.set_backend("native")
+    native_ok = sml.backend() == "native"
+    sml.set_backend("auto")
+    backends = ["builtin"] + (["native"] if native_ok else [])
+    if not native_ok:
+        print("  （native 后端不可用，只测 builtin —— CI 即此路径）")
+
+    for backend in backends:
+        for name, src in hostile:
+            val, err = run(backend, src)
+            case("%s：%s 抛 SmlError" % (backend, name),
+                 val is None and err is not None and not err.startswith(("ValueError", "RecursionError")),
+                 err)
+        for name, src, want in benign:
+            val, err = run(backend, src)
+            ok = err is None and val is not None and (want is None or val.get("x") == want)
+            case("%s：%s 合法输入不受影响" % (backend, name), ok, err or repr(val))
+
+    # 错误消息必须带 文件:行号（投稿者按它定位）；行号按 \u 所在行算
+    _val, err = run("builtin", 'ok: 1\nx: "\\uZZZZ"\n', path="posts/2026/x/index.sml")
+    case("错误消息带 文件:行号",
+         err is not None and err.startswith("posts/2026/x/index.sml:2:"), err)
+
+    # build 侧必须把人话消息透出（E-SML-001），而不是 traceback
+    import subprocess
+    with tempfile.TemporaryDirectory() as d:
+        site = Path(d) / "site"
+        (site / "content" / "contracts").mkdir(parents=True)
+        (site / "content" / "posts" / "2026" / "p1").mkdir(parents=True)
+        (site / "content" / "site.sml").write_text(
+            'title: "测试站"\nurl: "https://example.com"\ntagline: "t"\n', encoding="utf-8")
+        (site / "content" / "contracts" / "blog.sml").write_text(
+            "@contract BlogPost {\n  title: str\n}\n", encoding="utf-8")
+        bad = site / "content" / "posts" / "2026" / "p1" / "index.sml"
+        bad.write_text('title: "坏转义"\nauthor: sal\ndate: 2026-10-19\n'
+                       'tags: [rust]\nsummary: s\nx: "\\uZZZZ"\n', encoding="utf-8")
+        out = Path(d) / "out"
+        r = subprocess.run(
+            [sys.executable, str(ENGINE / "build.py"), "--site", str(site),
+             "--out", str(out), "--offline"],
+            cwd=str(ENGINE.parent), capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=180)
+        both = (r.stdout or "") + (r.stderr or "")
+        case("build：坏 \\u 转义退出码为 1", r.returncode == 1, r.returncode)
+        case("build：输出 E-SML-001 人话错误", "E-SML-001" in both, both[-400:])
+        case("build：不出现 traceback", "Traceback" not in both, both[-400:])
+        case("build：错误定位到文件与行号",
+             "index.sml" in both and ":6:" in both, both[-400:])
+
+
 def main():
     print("== rec-blog 渲染安全回归 ==")
     test_contract_page_escaping()
@@ -576,6 +660,7 @@ def main():
     test_code_block_consistency()
     test_assets_generator()
     test_url_allowlist()
+    test_sml_error_types()
     print("\n%d 项断言" % COUNT[0])
     if FAILS:
         print("失败 %d 项：" % len(FAILS))

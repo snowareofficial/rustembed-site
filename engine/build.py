@@ -2,9 +2,9 @@
 """rec-blog 构建器：.sml → manifest.json + 预渲染 HTML 片段 + 静态站点产物。
 
 用法：
-    python tools/build.py              # 完整构建
-    python tools/build.py --offline    # 不联网，只用仓库元数据缓存
-    python tools/build.py --warn-only  # 校验问题只告警，不中断构建
+    python engine/build.py              # 完整构建
+    python engine/build.py --offline    # 不联网，只用仓库元数据缓存
+    python engine/build.py --warn-only  # 校验问题只告警，不中断构建
 """
 
 import argparse
@@ -976,7 +976,7 @@ def inject_shell(rep, out, manifest, posts):
     idx.write_text(html, encoding="utf-8")
 
 
-def main():
+def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=str(OUT))
     ap.add_argument("--offline", action="store_true")
@@ -985,7 +985,19 @@ def main():
     ap.add_argument("--contract-loose", action="store_true",
                     help="放宽 E-CONTRACT-004（未声明字段）——临时允许契约外的字段")
     config.add_site_arg(ap)
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
+    try:
+        return _run(args)
+    except sml.SmlError as e:
+        # 投稿文件里的语法笔误（坏 \u 转义、未闭合串/块、片段引用成环…）
+        # 必须人话退出：SmlError 的消息本就带 path:line，直接透出即可，
+        # 不许把 ValueError / RecursionError 的 traceback 甩给投稿者。
+        print("\n[E-SML-001] SML 解析失败：%s" % e)
+        print("           按上面的 文件:行号 改内容文件；字段类问题另有 E-CONTRACT-* 提示。")
+        return 1
+
+
+def _run(args):
     out = guard_out(args.out)
     rep = Report()
 

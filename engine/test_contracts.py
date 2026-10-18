@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """契约引擎自测：用最小样例钉住错误码语义（对齐 SML 上游 sml-codes）。
 
-    python tools/test_contracts.py
+    python engine/test_contracts.py
 """
 
 import sys
