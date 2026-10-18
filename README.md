@@ -5,8 +5,10 @@ QQ 群「Rust嵌入式探讨」的共建博客。**内容写 Markdown（默认�
 
 ## 五分钟上手
 
+要求 **Python 3.8+**（开发/CI 用 3.11；无需 pip 装任何东西，fontTools 已 vendored）。
+
 ```bash
-python engine/cli.py new "文章标题" --tags rust,embedded   # 生成文章骨架
+python engine/cli.py new "文章标题" --tags rust,embedded --author sal   # 生成文章骨架
 python engine/cli.py list --tag rust                       # 列文章
 python engine/cli.py contracts                             # 终端里看契约字段表
 python engine/cli.py build                                 # 构建（含契约校验）
@@ -24,10 +26,25 @@ python engine/cli.py preview                               # 构建 + 预览 htt
 ```
 engine/                   工具体系（与本站内容无关，可整体复制给别的站点复用）
 ├─ build.py check.py preview.py cli.py test_contracts.py config.py
-├─ lib/                   sml / markdown / render / contract / mindmap / repo_meta / summary
+├─ test_render_safety.py  渲染安全回归（转义/内联角色/嵌套列表/--out 守卫/双后端 SML 错误类型）
+├─ test_structure.py      产物结构断言（纯静态，不需要浏览器）
+├─ verify_parity.py       MD ↔ SML 渲染一致性证据脚本
+├─ ai_summarize.py        构建期 AI 摘要（OpenAI 兼容网关，写 summaries/<slug>.json）
+├─ fonts_import.py        从字体压缩包里挑权重到 site/fonts/src/
+├─ git_ready.py           入库前检查（大文件/忽略规则）；--commit 可本地提交（不 push）
+├─ gui.py gui_api.py      写作台 API（--port/--site；GUI_TOKEN；stdout 打印 GUI_PORT=）
+├─ lib/                   sml / markdown / render / contract / mindmap / repo_meta /
+│                          mathml / summary / urls / _swsml
+├─ native/                SML 原生加速载体（sml.dll，已 gitignore；没有就回退内置解析器）
 ├─ prompts/summarize.md   AI 摘要的输入输出约定（构建期用，离线）
-└─ vendor/fontTools/      vendored fontTools（字体子集化，不是 pip 依赖）
-                         详见 engine/README.md（每个文件职责 + 常见改动怎么做）
+└─ vendor/                vendored fontTools / latex2mathml（构建期，不是 pip 依赖）
+                          详见 engine/README.md（每个文件职责 + 常见改动怎么做）
+
+gui/                     写作台（Rust 启动器 + 内嵌 Web UI；cargo install rec-blog-gui）
+tests/                   前端验收（Node：smoke.js / browser-check.js）+ gui_api_test.py（Python）
+deploy/                  自托管：entrypoint / build / rebuild / gitee-webhook / fonts-crypt
+Cargo.toml / Cargo.lock  Rust workspace（members=["gui"]）
+Dockerfile               自托管构建器镜像
 
 site/                     本站点本身
 ├─ content/               内容：改这里就够了
@@ -36,17 +53,19 @@ site/                     本站点本身
 │  ├─ pages/*.sml         站文档（投稿指南、写作速查、附件规则、创作制度、加入我们）
 │  ├─ topics/*.(md|sml)   主题词条（同标签文章自动归入）
 │  ├─ members/<id>.sml    成员档案（自愿制；同目录放 <id>.jpg 即自动作为头像）
+│  ├─ services/<id>.sml   能力与合作黄页（纯展示）
 │  ├─ projects/<id>.sml   项目（仓库元数据构建期自动抓取）
 │  ├─ resources/<id>.sml  资源库
 │  ├─ weekly/<期>.sml     周报 / 月刊
 │  ├─ summaries/<slug>.json  可选：AI 摘要产物（没有则用构建期抽取式摘要）
 │  └─ contracts/*.sml     内容契约（字段即文档）
 ├─ theme/                 前端壳（index.html / app.js / style.css）
-│  └─ fonts/             可选：自托管字体（如 MiSans-*.ttf，构建期子集化，见 docs/FONTS.md）
+│  └─ fonts/             自托管字体（src/ 与 subset/ 均不入库；CI 用加密包 + FONT_PASSWORD
+│                          解密，见 docs/FONTS.md）
 ├─ meta/repos.json        仓库元数据缓存
 └─ *.jpg                  群 logo（同时作为站点 favicon）
 
-docs/                     开发者文档（架构、部署、字体、治理、路线图、工作流）
+docs/                     开发者文档（架构、部署、字体、治理、路线图、工作流、自托管、GUI）
 dist/                     构建产物（gitignore）
 ```
 
@@ -104,4 +123,6 @@ git push sitegen master    # 示例源（可选，推同一个提交）
 ## 许可
 
 文章默认 `CC BY-NC-SA 4.0`（可在文章里用 `license` 覆盖），站点代码 MulanPSL-2。
+许可文件：`LICENSE`（代码，MulanPSL-2）、`LICENSE-CONTENT`（内容，CC BY-NC-SA 4.0）、
+`site/fonts/LICENSE-MiSans.txt`（自托管字体，随产物发布到 `dist/fonts/`）。
 成员页展示的联系方式均为本人自愿提供并授权展示。

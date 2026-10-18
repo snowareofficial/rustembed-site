@@ -3,6 +3,8 @@
 面向群友与管理员的最小说明。**完整制度在站点上**，仓库里这份只是入口。
 **文件结构、git 写作流程、全链路验证见 [`docs/WORKFLOW.md`](docs/WORKFLOW.md)。**
 
+要求 **Python 3.8+**（开发/CI 用 3.11；无需 pip 装任何东西）。
+
 ## 我是群友，想投一篇
 
 1. fork 仓库，新建 `site/content/posts/<年份>/<英文短名>/index.md`；
@@ -23,10 +25,12 @@ summary: "一两句摘要"
 4. 本地自检：
 
 ```bash
-python engine/cli.py test      # 契约自测
-python engine/cli.py build     # 构建（会校验字段与附件）
-python engine/cli.py check     # 产物自检
-python engine/cli.py preview   # 本地预览 http://127.0.0.1:8080/
+python engine/cli.py test                # 契约自测
+python engine/test_render_safety.py      # 渲染安全回归（转义/内联角色/嵌套列表）
+python engine/cli.py build               # 构建（会校验字段与附件）
+python engine/cli.py check               # 产物自检
+python engine/test_structure.py          # 产物结构断言
+python engine/cli.py preview             # 本地预览 http://127.0.0.1:8080/
 ```
 
 5. 提 PR。不想用 git：把稿子发给任意管理员代投，署名仍是你的。

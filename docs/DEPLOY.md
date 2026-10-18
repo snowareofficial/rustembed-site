@@ -77,7 +77,11 @@ Cloudflare 侧配置（Workers & Pages → 项目 → Settings → Build）：
 **发布前自检（本地）**
 
 ```bash
-python engine/cli.py test && python engine/cli.py build && python engine/cli.py check
+python engine/test_contracts.py         # 契约自测
+python engine/test_render_safety.py     # 渲染安全回归
+python engine/cli.py build              # 构建（含契约校验）
+python engine/cli.py check              # 产物自检
+python engine/test_structure.py         # 结构断言
 ```
 
 ## 0.5 两个源（同一份代码）
@@ -114,7 +118,8 @@ GitHub 侧仍是只读镜像 + 构建发布，与这两个 Gitee 源无关。
 1. 建项目 `rustembed`（首次 `wrangler pages deploy` 会自动创建）；
 2. 绑定域名：`rec-blog.swebase.cn`（主）与 `rust-embed.swebase.cn`（别名）指向同一项目；
 3. 若 DNS 不在 Cloudflare 托管，用 CNAME 指到 `<project>.pages.dev`；
-4. 构建命令与产物目录由 Actions 负责（`python engine/build.py` + 上传 `dist`），CF 侧不需要再设构建命令。
+4. 构建命令与产物目录由 Actions 负责（`build.yml` 做校验门禁，`publish-pages.yml` 构建并把 `dist`
+   强推到 `pages` 分支），CF 侧只读 `pages` 分支，不需要再设构建命令。
 
 ## 3. 构建产物
 
@@ -135,7 +140,9 @@ GitHub 侧仍是只读镜像 + 构建发布，与这两个 Gitee 源无关。
 ```bash
 python engine/build.py         # 构建（含契约校验）
 python engine/test_contracts.py
+python engine/test_render_safety.py
 python engine/check.py         # 产物自检
+python engine/test_structure.py
 python engine/preview.py       # http://127.0.0.1:8080/
 ```
 

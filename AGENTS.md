@@ -23,7 +23,9 @@ rec-blog/
 │  ├─ check.py             产物自检不变量（CI 用）；只读 dist/、不比对源码时间戳，dist/ 缺失直接退出
 │  ├─ cli.py               命令行入口：new / list / contracts / build / check / test / preview
 │  ├─ test_contracts.py    契约引擎自测（错误码语义，对齐 SML 上游 sml-codes）
-│  ├─ test_render_safety.py 渲染安全回归（契约页转义 / 内联角色 / 嵌套列表 / --out 守卫 / URL 白名单）
+│  ├─ test_render_safety.py 渲染安全回归（契约页转义 / 内联角色 / 嵌套列表 / --out 守卫 /
+│  │                        URL 白名单 / safe_url 单元 / assets 改写 / 双后端 SML 错误类型）
+│  ├─ test_structure.py     产物结构断言（纯静态，不需要浏览器）
 │  ├─ preview.py           本地静态服务（后台运行 + 日志，默认 127.0.0.1:8080）
 │  ├─ gui.py               写作台 API 入口（--port/--site；GUI_TOKEN；stdout 打印 GUI_PORT=）
 │  ├─ gui_api.py           写作台 /api/*：树 / 文档读写 / 校验 / 预览 / 新建 / 资源 / PR
@@ -60,8 +62,9 @@ rec-blog/
 │  │  ├─ weekly/<期>.sml   周报 / 月刊
 │  │  └─ contracts/*.sml   内容契约（字段即文档；自动生成契约文档页）
 │  ├─ theme/               前端壳：index.html + app.js（路由/视图）+ style.css
-│  ├─ fonts/               自托管 MiSans 子集：src/ 放源字体（已 gitignore，15 MB×2）；
-│  │                       subset/ 子集入库（约 127 KB×2，CI 直接复用）；许可随产物发布
+│  ├─ fonts/               自托管 MiSans：src/ 与 subset/ 均 gitignore（克隆里没有字体）；
+│  │                       加密包 misans-fonts.tar.gz.enc 入库，CI 用 FONT_PASSWORD 解密
+│  │                       （deploy/fonts-crypt.sh）；许可随产物发布到 dist/fonts/
 │  └─ meta/repos.json      仓库元数据缓存（入库）
 ├─ tests/                  smoke.js / browser-check.js / gui_api_test.py / dom-stub.js
 ├─ deploy/                 自托管：entrypoint / build / rebuild / gitee-webhook / fonts-crypt
@@ -119,9 +122,9 @@ python engine/cli.py check                              # check.py（跑在 buil
 python engine/cli.py preview                            # 构建 + 本地预览
 ```
 
-提交前四连（与 `.github/workflows/build.yml` 的门禁逐步一致）：
+提交前五连（与 `.github/workflows/build.yml` 的门禁一致）：
 `python engine/test_contracts.py` → `python engine/test_render_safety.py` →
-`python engine/build.py` → `python engine/check.py`，全绿才算完成。
+`python engine/build.py` → `python engine/check.py` → `python engine/test_structure.py`，全绿才算完成。
 注意：CI 跑的是**联网** build（元数据抓取失败不中断，回退 `meta/repos.json` 缓存）；
 本地求快可加 `--offline`，但抓取降级路径只在联网构建里能复现。
 另：`cli.py test` 只跑 `test_contracts.py`；渲染安全回归要直接跑 `engine/test_render_safety.py`。

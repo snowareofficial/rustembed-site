@@ -14,11 +14,18 @@ MiSans 由小米发布，**可免费商用，允许网页嵌入与自托管**；
 
 ```
 site/fonts/
-├─ src/     源字体（MiSans-Regular.ttf …）—— 不入库（.gitignore），从官方包重新获取
-├─ subset/  子集产物（misans-regular.woff …）—— **构建期生成，不入库**
-└─ LICENSE-MiSans.txt  字体许可 —— 入库并随产物发布
+├─ src/     源字体（MiSans-Regular.ttf …）—— 不入库（.gitignore），从官方包或加密包获取
+├─ subset/  子集产物（misans-regular.woff …）—— 构建期生成，同样不入库
+├─ misans-fonts.tar.gz.enc  源字体的 AES-256 加密包（**入库**；没有密码解不开，不能直接当字体用）
+└─ LICENSE-MiSans.txt  字体许可 —— 入库并随产物发布（build.py 拷到 dist/fonts/）
 engine/vendor/fontTools/  vendored fontTools（仓库组件，非 pip 依赖；MIT 许可见 engine/vendor/fontTools-LICENSE）
 ```
+
+> **加密包是 CI/自托管的字体来源**：`src/` 与 `subset/` 都不入库，克隆里没有源字体。
+> CI 在构建前跑 `bash deploy/fonts-crypt.sh decrypt`（`FONT_PASSWORD` 存 GitHub secret，
+> 本地则放在环境变量里），解密出 `src/*.ttf` 后照常构建期子集化；没有密码就回退系统字体，不阻断构建。
+> 重新加密（改了源字体后）：`FONT_PASSWORD='...' bash deploy/fonts-crypt.sh encrypt`。
+> 密码只存 CI secret / 服务器环境变量，**不进仓库、不进群聊**。
 
 ## 怎么接
 
@@ -36,7 +43,8 @@ python engine/fonts_import.py MiSans.zip --list                   # 只看包里
 python engine/cli.py build      # 不需要 pip install fonttools（用 engine/vendor 里的）
 ```
 
-3. **子集在构建期生成，不提交**；构建器分发时随包带 MiSans 源字体（`site/fonts/src/`），所以任何一台机器 `build` 都能得到同样的字体。签名 `.stamp.json` 没变时复用缓存。
+3. **子集在构建期生成，不提交**；源字体来自加密包解密或本机放置（见上文目录约定），
+   签名 `.stamp.json` 没变时复用现有子集。
 4. 没有源字体也没有子集时**什么都不做**，`font-family` 自动回退到系统字体。
 
 ## 子集策略（尽量小）

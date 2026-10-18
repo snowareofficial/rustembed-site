@@ -1,7 +1,7 @@
 # 文件结构 · git 写作流程 · 全链路
 
 面向两类人：**第一次投稿的群友**（只想写一篇）和**维护站点的人**（要改前端/引擎/发布）。
-所有命令都在仓库根目录执行，Python 3.11+，不需要 Node（前端零构建；`tests/browser-check.js` 才需要 Node）。
+所有命令都在仓库根目录执行，Python 3.8+（CI 用 3.11），不需要 Node（前端零构建；`tests/browser-check.js` 才需要 Node）。
 
 ---
 
@@ -16,13 +16,22 @@ rec-blog/
 │  ├─ preview.py              本地静态服务（带 charset，后台运行）
 │  ├─ config.py               站点路径解析（--site）
 │  ├─ fonts_import.py         从 MiSans.zip 挑权重到 site/fonts/src
-│  ├─ test_contracts.py       契约引擎自测（19 项）
-│  ├─ test_render_safety.py   渲染安全回归（112 条）
-│  ├─ test_structure.py       产物结构断言（84 条）
+│  ├─ ai_summarize.py         构建期 AI 摘要（OpenAI 兼容网关 → summaries/<slug>.json）
+│  ├─ git_ready.py            入库前检查；--commit 可本地提交（不 push）
+│  ├─ gui.py gui_api.py       写作台 API（GUI 任务用，见 docs/GUI.md）
+│  ├─ native/                 SML 原生后端 sml.dll（gitignore；没有就回退内置解析器）
+│  ├─ test_contracts.py       契约引擎自测（21 项）
+│  ├─ test_render_safety.py   渲染安全回归（182 条）
+│  ├─ test_structure.py       产物结构断言（88 条）
 │  ├─ verify_parity.py        Markdown ↔ SML 渲染一致性证据
-│  ├─ lib/                    sml / markdown / render / contract / mindmap / repo_meta / summary
+│  ├─ lib/                    sml / markdown / render / contract / mindmap / repo_meta /
+│  │                          mathml / summary / urls / _swsml
 │  ├─ prompts/summarize.md    AI 摘要的输入输出约定（构建期离线步骤用）
-│  └─ vendor/fontTools/       vendored fontTools（子集化；不是 pip 依赖）
+│  └─ vendor/                 vendored fontTools 与 latex2mathml（不是 pip 依赖）
+│
+├─ gui/                       写作台（Rust 启动器 + 内嵌 Web UI；cargo install rec-blog-gui）
+├─ Cargo.toml / Cargo.lock    Rust workspace（members=["gui"]）
+├─ Dockerfile                 自托管构建器镜像
 │
 ├─ site/                      本站点（内容都在这里）
 │  ├─ content/
@@ -31,22 +40,27 @@ rec-blog/
 │  │  ├─ pages/*.sml          站文档（投稿指南、写作速查、附件规则、制度…）
 │  │  ├─ topics/*.(md|sml)    主题词条（同标签文章自动归入）
 │  │  ├─ members/<id>.sml     成员档案（同目录 <id>.jpg 自动当头像）
+│  │  ├─ services/<id>.sml    能力与合作黄页（纯展示）
 │  │  ├─ projects/<id>.sml    项目（构建期抓仓库元数据）
 │  │  ├─ resources/<id>.sml   资源库
 │  │  ├─ weekly/<期>.sml      周报
 │  │  ├─ summaries/<slug>.json  可选：AI 摘要产物（有就用，没有退回抽取式）
 │  │  └─ contracts/*.sml      内容契约（字段即文档；改契约=改校验=改契约页）
 │  ├─ theme/                  index.html / app.js / style.css（hash 路由 SPA，零构建）
-│  ├─ fonts/                  src/（MiSans 源，gitignore）→ 构建期子集到 dist/fonts
+│  ├─ fonts/                  src/ 与 subset/ 均 gitignore；CI 解密加密包（FONT_PASSWORD）再子集化
 │  └─ meta/repos.json         仓库元数据缓存（入库）
 │
 ├─ tests/                     前端验收（Node）
-│  ├─ smoke.js                23 条路由的 DOM 冒烟
-│  ├─ browser-check.js        无头 Edge 51 项：布局/溢出/对比度/摘要/导图拖动
-│  └─ dom-stub.js             DOM 桩（跑 app.js 视图用）
+│  ├─ smoke.js                路由的 DOM 冒烟
+│  ├─ browser-check.js        无头 Edge 检查：布局/溢出/对比度/摘要/导图拖动
+│  ├─ dom-stub.js             DOM 桩（跑 app.js 视图用）
+│  └─ gui_api_test.py         写作台 API 回归（Python 标准库，起真实服务）
 │
-├─ docs/                      ARCHITECTURE / DEPLOY / FONTS / GOVERNANCE / ROADMAP / 本文
-├─ .github/workflows/         build.yml（构建 + Cloudflare 发布）、sync-from-gitee.yml
+├─ deploy/                    自托管：entrypoint / build / rebuild / gitee-webhook / fonts-crypt
+├─ docs/                      ARCHITECTURE / DEPLOY / FONTS / GOVERNANCE / ROADMAP / SELF-HOST /
+│                             GUI / WORKFLOW（本文）
+├─ .github/workflows/         build.yml（校验门禁）、publish-pages.yml（构建+发布）、
+│                             sync-from-gitee.yml（镜像）
 ├─ dist/                      构建产物（gitignore）
 └─ CONTRIBUTING.md / README.md
 ```
@@ -62,7 +76,7 @@ rec-blog/
 ```bash
 git clone https://gitee.com/rustembed/site.git
 cd site
-python --version          # 3.11+；无需 pip 安装任何东西
+python --version          # 3.8+；无需 pip 安装任何东西
 ```
 
 ### 2.2 建骨架（推荐）
@@ -110,7 +124,7 @@ attachments:
 ### 2.5 本地验证（四连）
 
 ```bash
-python engine/cli.py test      # 契约自测（19 项）
+python engine/cli.py test      # 契约自测（21 项）
 python engine/cli.py build     # 构建 + 字段校验 + 字体子集 + RSS/llms
 python engine/cli.py check     # 产物自检
 python engine/cli.py preview   # http://127.0.0.1:8080/
@@ -137,13 +151,13 @@ PR 模板在 `.github/PULL_REQUEST_TEMPLATE.md`；合并前审稿人看：事实
 |---|---|---|
 | 建骨架 | `cli.py new` | `site/content/posts/2026/demo-chain/index.md` |
 | 构建 | `cli.py build --offline` | `dist/manifest.json`、`dist/p/<slug>.html`、`dist/summaries/<slug>.json`、`dist/fonts/*.woff`、`feed.xml`、`llms.txt`、`_headers` |
-| 契约 | `cli.py test` | `契约自测 ALL PASS（5 个契约，19 项断言）` |
+| 契约 | `cli.py test` | `契约自测 ALL PASS（5 个契约，21 项断言）` |
 | 产物自检 | `cli.py check` | `ALL PASS`（告警不阻断） |
 | 预览 | `cli.py preview` | `http://127.0.0.1:8080/`（`text/html; charset=utf-8`） |
-| 前端验收 | `node tests/browser-check.js` | `BROWSER PASS（51 项）` |
-| 结构断言 | `python engine/test_structure.py` | `STRUCTURE PASS（84 条）` |
-| 渲染安全 | `python engine/test_render_safety.py` | `ALL PASS（112 条）` |
-| 发布 | `git push origin master` | Gitee 权威源 → GitHub 镜像 → Actions `build.yml` → `wrangler pages deploy dist` |
+| 前端验收 | `node tests/browser-check.js` | `BROWSER PASS（N 项）` |
+| 结构断言 | `python engine/test_structure.py` | `STRUCTURE PASS（88 条）` |
+| 渲染安全 | `python engine/test_render_safety.py` | `ALL PASS（182 条）` |
+| 发布 | `git push origin master` | Gitee 权威源 → GitHub 镜像 → Actions `build.yml`（门禁）/ `publish-pages.yml`（构建+发布） → Cloudflare Pages |
 
 **实测记录（2026-10-18）**：`new` 建 `demo-chain` → build 文章 3 篇 → check/build/test 全绿 →
 HTTP 取到 `p/demo-chain.html`（408 B）与 `summaries/demo-chain.json`（182 B）→ browser 51 项通过 → 删除演示文章并重新构建回 2 篇。

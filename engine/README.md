@@ -13,16 +13,25 @@
 | `lib/contract.py` | 契约校验（错误码对齐上游 sml-codes） | 加类型、改错误码文案 |
 | `lib/mindmap.py` | 导图 SVG 生成（整齐树布局） | 改导图样式/布局 |
 | `lib/repo_meta.py` | 仓库元数据抓取（GitHub/Gitee/Codeberg/Gitea）+ 缓存 | 加平台、改字段 |
-| `build.py` | 构建主流程：校验 → manifest → 预渲染 → 索引/RSS/sitemap/llms/favicon | 加产物、改流程顺序 |
+| `lib/mathml.py` | LaTeX → MathML（构建期，失败回退 `math-raw`） | 改公式渲染 |
+| `lib/summary.py` | 摘要：优先 `summaries/*.json`，否则抽取式 | 改摘要策略 |
+| `lib/urls.py` | URL 协议白名单（http/https/mailto/tel、`#`、相对路径）—— 所有拼 href/src 的用户输入都必须过 `safe_url()` | 改白名单（先读 test_render_safety [9]/[11]） |
+| `lib/_swsml.py` | SML 原生绑定（vendored from swsml 0.6.4，MulanPSL-2） | 别就地改，升级 vendor 时以上游为准 |
+| `native/` | 原生后端载体 `sml.dll`（已 gitignore；缺失自动回退内置解析器） | 换平台/升级 swsml |
+| `build.py` | 构建主流程：校验 → manifest → 预渲染 → 索引/RSS/sitemap/llms/字体子集/_headers | 加产物、改流程顺序 |
 | `check.py` | 产物自检（不变量，CI 用） | 加你踩过的坑当断言 |
 | `preview.py` | 本地静态服务（后台运行 + 日志） | 改端口/日志 |
-| `cli.py` | 命令行入口：`new/list/contracts/build/check/test/preview` | 加子命令 |
-| `test_contracts.py` | 契约引擎自测（19 项断言，钉住错误码语义） | 加断言 |
-| `test_render_safety.py` | 渲染安全回归（契约页转义 / 内联角色 / 嵌套列表 / `--out` 守卫 / 6 个结构化块 / 代码块外壳 / assets 生成器） | 加你踩过的坑当用例 |
+| `cli.py` | 命令行入口：`new/list/assets/gen/contracts/build/check/test/preview` | 加子命令 |
+| `test_contracts.py` | 契约引擎自测（断言数动态计数，钉住错误码语义） | 加断言 |
+| `test_render_safety.py` | 渲染安全回归（契约页转义 / 内联角色 / 嵌套列表 / `--out` 守卫 / URL 白名单 / 双后端 SML 错误类型 / assets 改写 / 代码块外壳 / assets 生成器） | 加你踩过的坑当用例 |
+| `test_structure.py` | 产物结构断言（三栏/版心/零外链/摘要/导图，纯静态） | 加结构不变量 |
 | `verify_parity.py` | MD ↔ SML 渲染一致性**证据脚本**（打印「一致 N / 不一致 M」，不一致时退出码 1）；CI 门禁在 `test_render_safety.py` §5，改对照表时两处同步 | 加对照用例 |
 | `ai_summarize.py` | 构建期 AI 摘要：调 OpenAI 兼容网关（GLM-4.7-Flash），写 `site/content/summaries/<slug>.json`；失败自动退回抽取式 | 改提示词 / 换模型 |
 | `fonts_import.py` | 从字体压缩包里挑权重到 `site/fonts/src/`（不整包解压） | 改权重匹配、加许可文件识别 |
+| `git_ready.py` | 入库前检查（大文件 / 忽略规则 / 已被跟踪但应忽略）；`--commit` 本地提交（**不 push**） | 改忽略清单、改阈值 |
+| `gui.py` / `gui_api.py` | 写作台 API 入口与 `/api/*`（树 / 文档读写 / 校验 / 预览 / 新建 / 资源 / PR） | GUI 侧改动（另见 docs/GUI.md） |
 | `vendor/fontTools/` | **vendored** 的 fontTools（字体子集化用；仓库组件，不依赖 pip）；许可见 `vendor/fontTools-LICENSE` | 升级时整体替换该目录 |
+| `vendor/latex2mathml/` | **vendored** 的 latex2mathml（`$...$` → MathML；同样是仓库组件） | 升级时整体替换该目录 |
 
 ## 目录约定（站点根目录，默认 `<repo>/site`）
 
@@ -64,8 +73,13 @@ python /path/to/other-site/engine/cli.py build
 ## 验证（提交前）
 
 ```bash
-python engine/cli.py test       # 契约自测
-python engine/cli.py build      # 构建（含契约校验）
-python engine/cli.py check      # 产物自检
-python engine/cli.py preview    # 本地看
+python engine/test_contracts.py         # 契约自测
+python engine/test_render_safety.py     # 渲染安全回归
+python engine/cli.py build              # 构建（含契约校验）
+python engine/check.py                  # 产物自检
+python engine/test_structure.py         # 结构断言
+python engine/cli.py preview            # 本地看
 ```
+
+要求 Python 3.8+（开发/CI 用 3.11）；渲染安全与结构断言要直接跑脚本
+（`cli.py test` 只跑契约自测）。
