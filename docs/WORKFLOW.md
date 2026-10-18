@@ -152,6 +152,24 @@ HTTP 取到 `p/demo-chain.html`（408 B）与 `summaries/demo-chain.json`（182 
 
 ---
 
+## 3.5 头像怎么放
+
+优先级（从高到低）：
+
+1. `avatar:` 字段（`site/content/members/<id>.sml`）——可以是本地路径或 `https://` 链接；
+2. `site/content/members/<id>.jpg|png|webp`；
+3. `site/content/avatars/<id>.…`；
+4. 站点根 `site/<id>.…`。
+
+远端链接（GitHub / Gitee 头像都行）会在**构建期下载**到 `site/meta/avatars/` 缓存，
+再把本地路径写进 manifest。好处：
+
+- 访客运行时**零外部请求**（不连 githubusercontent.com，也不受国内网络影响）；
+- 不需要给站点配"GitHub 加速"；
+- 下载失败会 warning 并回退占位圆，不会阻断构建。
+
+站点 logo 用 `site/p.qlogo.jpg`（同时作为 favicon）。
+
 ## 4. 常见问题
 
 | 现象 | 原因 / 处理 |

@@ -5,6 +5,7 @@
 """
 
 import json
+import os
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -37,7 +38,17 @@ def detect(url):
 
 
 def _get(url):
-    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/json"})
+    headers = {"User-Agent": UA, "Accept": "application/json"}
+    # 构建期可选鉴权：GitHub 60 次/小时、Gitee 匿名更紧，CI 里带 token 更稳
+    if "api.github.com" in url:
+        tok = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+        if tok:
+            headers["Authorization"] = "Bearer " + tok
+    elif "gitee.com" in url:
+        tok = os.environ.get("GITEE_TOKEN")
+        if tok:
+            headers["Authorization"] = "token " + tok
+    req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
         return json.loads(r.read().decode("utf-8", "replace"))
 

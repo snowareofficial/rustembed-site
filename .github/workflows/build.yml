@@ -38,6 +38,14 @@ jobs:
           fi
 
       # 0.5) AI 摘要缓存：只给新文章生成，已存在的默认跳过
+      - name: 缓存远端头像
+        uses: actions/cache@v4
+        with:
+          path: site/meta/avatars
+          key: avatars-${{ hashFiles('site/content/members/**') }}
+          restore-keys: |
+            avatars-
+
       - name: 缓存 AI 摘要
         uses: actions/cache@v4
         with:
@@ -57,6 +65,9 @@ jobs:
       # 3) 构建。**不加 --warn-only**：契约与附件错误必须让流水线失败，
       #    否则「字段写错会被契约拦下」这句对投稿者的承诺在发布链路上不成立。
       - name: 构建
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: python engine/build.py
 
       # 4) 产物不变量自检

@@ -229,6 +229,15 @@ need("childNodes.length" not in js_code, "app.js 代码里出现 childNodes.leng
 need(len(re.findall(r"\.innerHTML\s*=", js_code)) == 1,
      "app.js 里 innerHTML 赋值不止一处（只允许预渲染片段那一处）")
 
+# ---- G1 头像：构建期本地化 ----
+for _m in (json.loads((DIST / "manifest.json").read_text(encoding="utf-8")).get("members") or []):
+    _av = _m.get("avatar") or ""
+    if not _av:
+        continue
+    need(not _av.lower().startswith(("http://", "https://")),
+         "成员 %s 的头像还是远端 URL（应在构建期下载本地化）" % _m["id"])
+    need((DIST / _av).exists(), "成员 %s 的头像文件不存在：%s" % (_m["id"], _av))
+
 # ---- G2 构建期摘要与可选导图 ----
 need((DIST / "summaries").is_dir(), "dist/summaries/ 不存在（构建期摘要没落盘）")
 for _p in (json.loads((DIST / "manifest.json").read_text(encoding="utf-8")).get("posts") or []):

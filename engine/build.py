@@ -13,6 +13,7 @@ import json
 import re
 import shutil
 import sys
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -426,6 +427,45 @@ def find_avatar(mid):
     return None
 
 
+AVATAR_CACHE = ROOT / "meta" / "avatars"   # 构建期下载的远端头像缓存（不入库）
+
+
+def fetch_remote_avatar(rep, url, mid):
+    """把远端头像下载到本地缓存，返回 Path；失败返回 None。
+
+    站点运行时零外部请求：GitHub/Gitee 头像都在构建期本地化，
+    不依赖访问者能连上 githubusercontent.com。
+    """
+    AVATAR_CACHE.mkdir(parents=True, exist_ok=True)
+    for ext in AVATAR_EXT:
+        p = AVATAR_CACHE / (mid + ext)
+        if p.exists() and p.stat().st_size > 0:
+            return p
+    req = urllib.request.Request(url, headers={"User-Agent": "rec-blog-builder"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            data = r.read(2 * 1024 * 1024 + 1)
+            ctype = (r.headers.get("Content-Type") or "").lower()
+    except Exception as e:  # noqa: BLE001
+        rep.warn("avatar", "%s 下载失败（%s），改用占位图" % (mid, e))
+        return None
+    if len(data) > 2 * 1024 * 1024:
+        rep.warn("avatar", "%s 超过 2 MB，已忽略" % mid)
+        return None
+    ext = ".jpg"
+    for cand in AVATAR_EXT:
+        if cand in ctype:
+            ext = cand
+            break
+    else:
+        m = re.search(r"\.(jpe?g|png|webp)(?:$|[?#])", url, re.I)
+        if m:
+            ext = "." + m.group(1).lower().replace("jpeg", "jpg")
+    p = AVATAR_CACHE / (mid + ext)
+    p.write_bytes(data)
+    return p
+
+
 def build_members(rep):
     out = []
     for f in docs_in(CONTENT / "members"):
@@ -439,7 +479,8 @@ def build_members(rep):
         avatar = ""
         src = None
         if av.startswith(("http://", "https://")):
-            avatar = av
+            # 远端头像：构建期下载到本地缓存，运行时不再直连（零外部请求）
+            src = fetch_remote_avatar(rep, av, f.stem)
         else:
             if av:
                 p = ROOT / av
@@ -449,6 +490,8 @@ def build_members(rep):
                     rep.warn(where, "avatar 指向的文件不存在：%s" % av)
             if src is None:
                 src = find_avatar(f.stem)
+        if src is not None:
+            avatar = "assets/members/%s%s" % (f.stem, src.suffix.lower())
         out.append({
             "id": f.stem,
             "name": sml.as_str(pick(d, ["name"], f.stem)),
@@ -1345,7 +1388,7 @@ def main():
             shutil.copytree(src, dst)
     for m in members:
         src_rel = m.pop("_avatar_src", "")
-        if not src_rel or m["avatar"]:
+        if not src_rel:
             continue
         src = Path(src_rel)
         dst = out / "assets" / "members" / ("%s%s" % (m["id"], src.suffix.lower()))

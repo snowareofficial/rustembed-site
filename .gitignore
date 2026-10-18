@@ -23,3 +23,6 @@ site/content/summaries/
 .wrangler/
 # 字体加密包的本机密码（设置成 CI secret 后删掉）
 site/fonts/FONT_PASSWORD.txt
+
+# 构建期下载的远端头像缓存（GitHub/Gitee 头像本地化；不入库）
+site/meta/avatars/
