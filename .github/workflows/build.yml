@@ -96,8 +96,9 @@ jobs:
           python engine/test_structure.py
 
       # 5) 只在推送到受保护分支时发布；PR 上跑到这里就结束。
+      # 没配 CLOUDFLARE_API_TOKEN 时跳过发布（构建照样跑、PR 照样绿）
       - name: 发布到 Cloudflare Pages
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && env.CLOUDFLARE_API_TOKEN != ''
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

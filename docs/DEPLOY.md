@@ -1,5 +1,8 @@
 # 部署方案
 
+> **发布方式二选一**：Cloudflare Pages 的「Git 集成」与 GitHub Actions 里的 `wrangler pages deploy`
+> 不要同时启用，否则同一份内容会被两个发布者互相覆盖。当前选用 **GitHub Actions**。
+>
 > 当前线上（2026-10-18 首次发布）：**<https://rustembed.pages.dev>**
 > Cloudflare Pages 项目 `rustembed`，生产分支 `main`；自定义域名尚未绑定。
 
