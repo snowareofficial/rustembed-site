@@ -24,6 +24,8 @@
    - 内嵌 Web UI（`include_dir!`）、本地 axum 服务、`/api/*` 反代；
    - 启动并守护 `python3 engine/gui.py`（用环境变量 `GUI_TOKEN` 传会话密钥，不放 argv）；
    - 钥匙串（keyring）、打开浏览器；`--features desktop` 时用 Tauri 系统 WebView；
+   - **Tauri 必须实测**：M3 跑 `cargo check/build --features desktop` 并贴结果；
+     失败记录完整错误，不得以「不保证」跳过。
    - `rec-blog update` 拉引擎并提示重装。
 2. **Python API**：`engine/gui.py` + `engine/gui_api.py`
    - 只用标准库；复用 `engine/lib/{render,markdown,sml,contract,mindmap,summary}.py`；

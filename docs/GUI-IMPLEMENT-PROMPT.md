@@ -41,6 +41,11 @@ cargo install rec-blog-gui  →  二进制 rec-blog
         └─ 可选 feature `desktop`：用 Tauri 打开原生窗口；默认打开浏览器
 ```
 
+> **Tauri 必须实测**：本机已具备 rustc MSVC、VS BuildTools 与 WebView2 Runtime。
+> M3 要实际跑 `cargo check --features desktop` 与 `cargo build --features desktop`，
+> 成功就写「已验证」；失败就贴完整错误（命令 / crate 版本 / 错误码）并记录，
+> **不得**以「不保证」跳过，也不得静默删掉该特性。
+
 ### 2.1 cargo 安装 / 更新
 
 根目录新增 workspace：
