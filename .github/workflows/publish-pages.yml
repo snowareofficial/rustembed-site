@@ -30,8 +30,9 @@ jobs:
         with:
           python-version: "3.11"
 
-      # 内容源：优先 Gitee master；若 Gitee 落后于当前 GitHub，则先用 GitHub（避免回退）
-      - name: 选择内容源（Gitee 优先）
+      # 代码永远来自 GitHub（engine/theme/workflows）；内容只从 Gitee 取 site/content。
+      # 这样投稿者只需要往 Gitee 推内容，不必维护 GitHub master。
+      - name: 取 Gitee 内容（只覆盖 site/content）
         id: src
         env:
           GITEE_USER: ${{ secrets.GITEE_USER }}
@@ -42,19 +43,22 @@ jobs:
           else
             URL="https://gitee.com/rustembed/site.git"
           fi
-          if git fetch "$URL" master --quiet; then
-            if git merge-base --is-ancestor FETCH_HEAD HEAD; then
-              echo "Gitee 落后于 GitHub，本次用 GitHub master 构建"
-              echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-            else
-              git checkout -B build FETCH_HEAD
-              echo "Gitee 领先/一致，使用 Gitee master"
-              echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-            fi
-          else
-            echo "::warning::Gitee 拉取失败，改用 GitHub master"
+          if ! git fetch "$URL" master --quiet; then
+            echo "::warning::Gitee 拉取失败，本次用 GitHub 里的内容"
             echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          # GitHub 上 site/content 比 Gitee 新（比如刚合并、Gitee 还没更新）→ 先用 GitHub，避免内容回退
+          AHEAD=$(git rev-list --count FETCH_HEAD..HEAD -- site/content)
+          if [ "$AHEAD" -gt 0 ]; then
+            echo "GitHub 的 site/content 比 Gitee 新 $AHEAD 个提交，本次用 GitHub 内容"
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git checkout FETCH_HEAD -- site/content
+          echo "已用 Gitee 内容：$(git rev-parse --short FETCH_HEAD)"
+          echo "sha=$(git rev-parse FETCH_HEAD)" >> "$GITHUB_OUTPUT"
+
 
       - name: 恢复字体（加密包 + FONT_PASSWORD）
         env:
