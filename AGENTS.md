@@ -120,6 +120,14 @@ python engine/git_ready.py                              # 入库前检查（大�
 python engine/cli.py test                               # test_contracts.py
 python engine/cli.py check                              # check.py（跑在 build 之后）
 python engine/cli.py preview                            # 构建 + 本地预览
+
+# 写作台（gui/ + engine/gui.py）：Rust 只做外壳，引擎仍是 Python
+cargo fmt --check && cargo clippy -- -D warnings && cargo test   # Rust 门禁（workspace 根）
+python tests/gui_api_test.py                            # 写作台 API 回归（起真实服务 + 临时站点）
+cargo install --path gui                                # 安装二进制 rec-blog；--force 即更新
+rec-blog --site . --no-open --port 8788                 # 起写作台（--site 吃仓库根或站点目录）
+rec-blog --version                                      # crate 版本 + 引擎 commit
+rec-blog update                                         # 引擎 git pull --ff-only，二进制要自己重装
 ```
 
 提交前五连（与 `.github/workflows/build.yml` 的门禁一致）：
@@ -164,6 +172,16 @@ python engine/cli.py preview                            # 构建 + 本地预览
 - 已知缺陷（未修）：`lib/sml.py` 内置解析器报错行号偏 1 —— `entry()` 在 `p.skip()` **之后**才取 `head`，
   所以单行文件的「多余的值」会报 `line=2`。投稿者按行号定位会找错一行，修时顺手加一条用例。
 - 解析器内部字段（`__is` / `__md_body` / `__type`；注意 `__type` 在每个 SML 块上，不只是文件顶部）以 `_` 前缀统一被挡在 manifest 外（check.py 有断言）。
+- **写作台红线**（`gui/` + `engine/gui*.py`；实现说明见 `docs/GUI-IMPLEMENT.md`）：
+  - Rust 只做外壳：参数、引擎发现、进程守护、内嵌 UI 托管、`/api/*` 反代、钥匙串、打开窗口；
+    **不写 UI、不重写引擎**（解析/渲染/契约/构建一律走 `engine/`）。UI 是 `gui/assets/` 的
+    HTML/CSS/JS（vanilla，零构建、不引 Node、不引 CDN，视觉基准 `docs/gui-mock/`）。
+  - 令牌只进系统钥匙串或进程内存：不写配置文件、不进日志（两侧都脱敏成 `***`）、
+    不进 URL、不进 argv（`GUI_TOKEN` 走环境变量）。钥匙串不可用只能降级为「仅本次会话」，不得回退到文件。
+  - 路径白名单：`realpath` 必须落在 `site/content/**` 或 `site/theme/**`，否则 **403**。
+  - 保存一律 UTF-8 **无 BOM**、LF、末尾换行，且保存前跑契约，**422 不写盘**。
+  - 永不 `git push --force`、永不直接推 master；PR 一律走分支（fork 兜底也要走分支）。
+  - 没实现的接口返回 501 + 说明，不假装成功。
 
 ### 6.1 契约与编辑器（VS Code 扩展）的分工（2026-10-16 实测）
 
