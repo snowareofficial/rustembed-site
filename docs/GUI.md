@@ -53,7 +53,7 @@
 
 - 左：内容树（类型 → 年份/分组 → 条目；搜索、草稿标记）
 - 中：**按契约生成的表单** + **SML 块编辑器**（块面板插入/拖排序，每块一个小表单，可切原文）
-- 右：实时预览（复用 `render`/`markdown`）、检查器、PR 信息
+- 右：手动预览（点按钮才渲染，复用 `render`/`markdown`）、检查器、PR 信息
 
 ## 4. 内容类型覆盖（整个 demo）
 
@@ -140,6 +140,32 @@ API：
 - 提交 PR 后 Gitee 上能看到分支、提交、PR 与审核人；
 - 断网时除「PR/AI」外全部可用；
 - 与 CLI 结果一致（同一份文件，GUI 保存后 CLI 构建结果不变）。
+
+## 12. 新建与草稿
+
+新建入口在内容树顶部：**[+ 新建]** → 类型卡片（文章/词条/成员/项目/资源/周报/站文档）
+→ 标题、短名（slug）、作者、标签 → 路径预览 → 可选「草稿」→ 创建并打开。
+
+- 路径由类型 + 年份 + slug 自动拼出（文章：`posts/<年>/<slug>/index.md`）；
+- slug 只允许小写字母/数字/连字符，重复会提示；
+- **草稿 = `draft: true`**：构建期直接跳过（`build.py` 里 `if d.get("draft") is True: continue`），
+  不进站点、不进搜索索引、不进 RSS；左侧树单独「草稿」分组，草稿不参与发布。
+
+## 13. Tauri 与 Web 双形态
+
+**一套前端 + 一套本地 API，Tauri 只做外壳**：
+
+```
+桌面（有 Tauri）:  Tauri 启动 → spawn `engine/gui.py --port 0` → webview 打开 127.0.0.1:<port>
+浏览器（无 Tauri）: 用户执行 `python engine/gui.py` → 打开同一 URL
+```
+
+- 两端**共用同一个 `gui_web/` 和同一个 Python API**，功能不分叉；
+- 端口用 0 让系统分配，启动后通过 stdout 握手行读回实际端口；
+- 退出 Tauri 时杀掉子进程；端口冲突/防火墙只影响本地回环；
+- 打包（可选，M4）：PyInstaller 把 `engine/` + Python 运行时打成 sidecar，
+  用 Tauri `externalBin` 带进安装包，用户不需要装 Python；MVP 阶段先要求本机 Python；
+- 文件对话框（选图/另存）在 Tauri 里可用原生能力，Web 模式用 `<input type=file>` 兜底。
 
 ## 11. 待确认
 
