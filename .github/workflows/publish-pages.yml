@@ -1,0 +1,111 @@
+name: 构建并发布到 pages 分支（Cloudflare 从这里取内容）
+
+# 拓扑：Gitee（权威）→ 定时/手动 → 构建 → 强推静态产物到 pages 分支
+#       → Cloudflare Pages（Git 集成，生产分支 pages，无构建命令）自动发布
+# 不需要 CLOUDFLARE_API_TOKEN；GitHub Actions 只负责产出分支。
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+  repository_dispatch:
+    types: [gitee-update]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # 内容源：优先 Gitee master；若 Gitee 落后于当前 GitHub，则先用 GitHub（避免回退）
+      - name: 选择内容源（Gitee 优先）
+        id: src
+        env:
+          GITEE_USER: ${{ secrets.GITEE_USER }}
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: |
+          if [ -n "$GITEE_TOKEN" ]; then
+            URL="https://${GITEE_USER}:${GITEE_TOKEN}@gitee.com/rustembed/site.git"
+          else
+            URL="https://gitee.com/rustembed/site.git"
+          fi
+          if git fetch "$URL" master --quiet; then
+            if git merge-base --is-ancestor FETCH_HEAD HEAD; then
+              echo "Gitee 落后于 GitHub，本次用 GitHub master 构建"
+              echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+            else
+              git checkout -B build FETCH_HEAD
+              echo "Gitee 领先/一致，使用 Gitee master"
+              echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "::warning::Gitee 拉取失败，改用 GitHub master"
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 恢复字体（加密包 + FONT_PASSWORD）
+        env:
+          FONT_PASSWORD: ${{ secrets.FONT_PASSWORD }}
+        run: |
+          if [ -f site/fonts/misans-fonts.tar.gz.enc ] && [ -n "$FONT_PASSWORD" ]; then
+            bash deploy/fonts-crypt.sh decrypt
+          else
+            echo "::warning::没有字体加密包或 FONT_PASSWORD，回退系统字体"
+          fi
+
+      - name: 构建
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+          BUILT_AT: ${{ github.event.repository.updated_at }}
+        run: |
+          # 用提交时间做 built_at，保证同一提交产物可复现（pages 分支避免无意义变更）
+          export BUILT_AT="$(git log -1 --format=%cI)"
+          python engine/build.py
+          python engine/check.py
+          python engine/test_structure.py
+
+      - name: 发布到 pages 分支（内容未变则跳过）
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd dist
+          git init -q
+          git config user.name "pages-bot"
+          git config user.email "pages-bot@users.noreply.github.com"
+          git add -A
+          git commit -q -m "pages: $(git -C .. rev-parse --short HEAD)"
+          NEW_TREE="$(git rev-parse HEAD^{tree})"
+
+          git fetch --quiet "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" pages 2>/dev/null || true
+          OLD_TREE=""
+          if git rev-parse FETCH_HEAD^{tree} >/dev/null 2>&1; then
+            OLD_TREE="$(git rev-parse FETCH_HEAD^{tree})"
+          fi
+
+          if [ "$NEW_TREE" = "$OLD_TREE" ]; then
+            echo "内容未变（tree $NEW_TREE），跳过推送"
+            exit 0
+          fi
+
+          git push --force "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:pages
+          echo "已发布 pages 分支：$NEW_TREE"
+
+      - name: 摘要
+        run: |
+          echo "### pages 发布" >> "$GITHUB_STEP_SUMMARY"
+          echo "- 源提交：${{ steps.src.outputs.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- 产物：dist/ 已同步到 \`pages\` 分支" >> "$GITHUB_STEP_SUMMARY"

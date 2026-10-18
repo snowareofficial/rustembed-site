@@ -10,6 +10,7 @@
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import sys
@@ -75,6 +76,10 @@ SERVICE_DISCLAIMER = (
 
 
 def now_iso():
+    """构建时间。CI 里用 BUILT_AT 注入提交时间，保证同一提交重复构建产物一致。"""
+    forced = os.environ.get("BUILT_AT", "").strip()
+    if forced:
+        return forced
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 

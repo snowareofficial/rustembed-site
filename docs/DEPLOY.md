@@ -8,15 +8,37 @@
 
 ```
 作者/管理员 ──push──► Gitee（权威源）
-                        │  每 6 小时单向镜像（sync-from-gitee.yml）
+                        │
+                        │  ① 每 6h 镜像（sync-from-gitee.yml）
                         ▼
-                     GitHub 镜像 ──Actions──► python engine/build.py ──► dist/
-                                                       │
-                                              wrangler pages deploy
-                                                       ▼
-                                    Cloudflare Pages ──► rec-blog.swebase.cn
-                                                     └─► rust-embed.swebase.cn（别名）
+                     GitHub master
+                        │
+                        │  ② publish-pages.yml：每 30min / 手动
+                        │     取 Gitee（领先时）或 GitHub master
+                        │     build → dist → 强推 `pages` 分支
+                        ▼
+                   GitHub `pages` 分支（纯静态产物，单提交）
+                        │
+                        │  ③ Cloudflare Pages Git 集成：生产分支 = pages
+                        │     构建命令留空、输出目录 = /
+                        ▼
+              Cloudflare Pages ──► rustembed.pages.dev
+                               └─► rec-blog.swebase.cn（别名 rust-embed.swebase.cn）
 ```
+
+**这条链路不需要 Cloudflare API token**：CF 只读 `pages` 分支，Actions 只负责产出分支。
+
+Cloudflare 侧配置（Workers & Pages → 项目 → Settings → Build）：
+
+| 项 | 值 |
+|---|---|
+| 生产分支 | `pages` |
+| 框架预设 | 无 |
+| 构建命令 | 留空（或 `exit 0`） |
+| 构建输出目录 | `/` |
+| 环境变量 | 不需要 |
+
+> 首次要等 `publish-pages.yml` 跑一次把 `pages` 分支建出来，再去连仓库。
 
 > **两条发布路径，二选一或并存：**
 > - GitHub Actions（本文下半部分）：镜像 → Actions → Cloudflare Pages；

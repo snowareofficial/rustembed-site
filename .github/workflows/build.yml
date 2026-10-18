@@ -1,4 +1,4 @@
-name: 构建并发布到 Cloudflare Pages
+name: 构建与校验（发布见 publish-pages.yml）
 
 on:
   push:
@@ -95,15 +95,8 @@ jobs:
           python engine/check.py
           python engine/test_structure.py
 
-      # 5) 只在推送到受保护分支时发布；PR 上跑到这里就结束。
-      # 没配 CLOUDFLARE_API_TOKEN 时跳过发布（构建照样跑、PR 照样绿）
-      - name: 发布到 Cloudflare Pages
-        if: github.event_name == 'push' && env.CLOUDFLARE_API_TOKEN != ''
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=rustembed --branch=main
+      # 5) 发布不在本文件：publish-pages.yml 会把 dist 推到 `pages` 分支，
+      #    Cloudflare Pages 的 Git 集成直接取那个分支（不需要 CF token）。
 
 # 说明
 # 1. Cloudflare Pages 项目名 rustembed（https://rustembed.pages.dev），首次部署会自动创建；自定义域名在 CF 面板绑定：

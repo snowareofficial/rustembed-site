@@ -94,8 +94,9 @@ git push origin master     # 权威源（必做）
 git push sitegen master    # 示例源（可选，推同一个提交）
 ```
 
-`.github/workflows/sync-from-gitee.yml` 每 6 小时把它单向镜像到
-GitHub，`build.yml` 在 Actions 里构建并用 `wrangler pages deploy dist` 发布到 Cloudflare Pages。
+`.github/workflows/sync-from-gitee.yml` 每 6 小时把它单向镜像到 GitHub；
+`publish-pages.yml` 定时构建并把静态产物强推到 **`pages` 分支**，Cloudflare Pages 直接取那个分支发布（不需要 CF token）。
+`build.yml` 只做 PR/推送校验。
 需要的 secret：`GITEE_USER` / `GITEE_TOKEN`（只读即可）、`CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`；字体用 `FONT_PASSWORD` 解密加密包，AI 摘要用 `AI_BASE_URL` / `AI_API_KEY` / `AI_MODEL`（都可选，缺了自动降级）。
 
 也可以不用 Actions：**自建服务器（Docker 容器构建 + GLM 生成构建期摘要 + 发布）** 见 [`docs/SELF-HOST.md`](docs/SELF-HOST.md)，一条 Gitee Webhook 触发全链路。
