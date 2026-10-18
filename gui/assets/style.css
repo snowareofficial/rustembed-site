@@ -193,5 +193,32 @@ body.dark .btn.primary{color:var(--accent-ink)}
 body.dark .banner.bad{border-color:#6a3a24;color:#e0a080}
 body.dark .toast{background:var(--surface-2);color:var(--ink)}
 
+/* ---------- M2：插入菜单 / 附件 / 弹层补充 ---------- */
+[hidden]{display:none !important}
+
+.insert{position:relative}
+.insert summary{display:inline-flex;align-items:center;gap:.25rem;height:1.75rem;padding:0 .4rem;border:0;border-radius:4px;background:none;color:var(--ink-soft);cursor:pointer;list-style:none;font-size:11.5px}
+.insert summary::-webkit-details-marker{display:none}
+.insert summary svg{width:.95rem;height:.95rem}
+.insert summary:hover{background:var(--surface);color:var(--accent)}
+.insert .pop{position:absolute;left:0;top:calc(100% + .3rem);z-index:9;width:16rem;max-height:18rem;overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:.25rem;background:var(--surface);border:1px solid var(--line-strong);border-radius:8px;box-shadow:0 10px 28px rgba(0,0,0,.12);padding:.5rem}
+.insert .blk{border:1px solid var(--line);border-radius:5px;background:var(--surface-2);padding:.25rem .4rem;font:inherit;font-size:11.5px;color:var(--ink-soft);cursor:pointer;text-align:left}
+.insert .blk:hover{border-color:var(--accent);color:var(--accent)}
+
+.attach-box{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);padding:.5rem .7rem;margin-bottom:.8rem}
+.attach-head{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-mute);margin-bottom:.3rem}
+.attach-box .card{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.35rem}
+.attach-box .card:last-child{margin-bottom:0}
+.attach-box .card b{font-size:12.5px;color:var(--ink)}
+.attach-box .card .row{margin:0;font-size:11.5px;color:var(--ink-soft)}
+.muted{color:var(--ink-mute)}
+
+.chip.on{border-color:var(--accent);color:var(--accent)}
+.danger-btn{border:1px solid #d9b3a3;color:#a8471f;background:var(--surface)}
+.code-chip{display:inline-flex;align-items:center;gap:.25rem;border:1px dashed var(--line-strong);border-radius:4px;padding:.1rem .35rem;font:inherit;font-size:11px;color:var(--ink-soft);background:var(--surface-2);white-space:nowrap;cursor:pointer}
+.code-chip svg{width:.8rem;height:.8rem}
+.code-chip:hover{border-color:var(--accent);color:var(--accent)}
+.item .badge.d{color:#a8471f;border-color:#e3c7b8;background:#fbf1ea}
+
 @media (max-width:1200px){ .topbar .actions .btn span{display:none} }
 @media (max-width:1100px){ .main{grid-template-columns:0 minmax(0,1fr) 22rem} .tree{display:none} }

@@ -25,8 +25,21 @@
   <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l9 17H3z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 9v5M12 17v.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
   <symbol id="i-branch" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="6" cy="18" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="18" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6 8.4v7.2M8.4 6h4.2a3 3 0 013 3v.6" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-img" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="10" r="1.4" fill="currentColor"/><path d="M4 17l5-5 4 4 3-3 4 4" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M16 10l5-3v10l-5-3z" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-math" viewBox="0 0 24 24"><path d="M5 5h6l4 7 4-7M5 19h6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M15 12v7M11.5 15.5h7" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-bold" viewBox="0 0 24 24"><path d="M7 4h6a4 4 0 010 8H7zM7 12h7a4 4 0 010 8H7z" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+  <symbol id="i-italic" viewBox="0 0 24 24"><path d="M10 4h8M6 20h8M14 4l-4 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14l4-4M8.5 12.5l-2 2a3 3 0 004.2 4.2l2-2M15.5 11.5l2-2a3 3 0 00-4.2-4.2l-2 2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6v.01M4 12v.01M4 18v.01" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 10h18M9 10v9M15 10v9" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-quote" viewBox="0 0 24 24"><path d="M7 7h6v6H7zM7 13c0 3-2 4-4 4M15 7h6v6h-6zM15 13c0 3-2 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6h6l2 3h10v10H3z" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
   <symbol id="i-panel-left" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 4v16" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
   <symbol id="i-panel-right" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M15 4v16" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v3M12 18v3M4.5 7.5l2 2M17.5 14.5l2 2M3 12h3M18 12h3M4.5 16.5l2-2M17.5 9.5l2-2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
 </svg>
 
 <div class="app">
@@ -45,7 +58,7 @@
       <button class="btn" id="btn-save" title="保存（Ctrl+S）"><svg><use href="#i-check"/></svg><span>确认写入</span></button>
       <button class="btn" id="btn-preview" title="生成预览（Ctrl+P）"><svg><use href="#i-eye"/></svg><span>预览</span></button>
       <button class="btn primary" id="btn-pr" title="M3 提供（需登录）" disabled><svg><use href="#i-send"/></svg><span>提交 PR</span></button>
-      <button class="icon-btn" id="btn-settings" title="M3 提供" disabled><svg><use href="#i-gear"/></svg></button>
+      <button class="icon-btn" id="btn-settings" title="M3 提供" disabled><svg><use href="#i-settings"/></svg></button>
     </div>
   </header>
 
@@ -60,6 +73,17 @@
         <button class="btn new-btn" id="btn-new"><svg><use href="#i-plus"/></svg><span>新建</span></button>
       </div>
       <div id="tree-groups"></div>
+
+      <div class="ctx" id="ctx">
+        <div class="ctx-h" id="ctx-title">—</div>
+        <button id="ctx-open">打开</button>
+        <button id="ctx-rename">重命名…</button>
+        <button id="ctx-draft">转到草稿</button>
+        <button id="ctx-link">复制站内链接</button>
+        <div class="sep"></div>
+        <button class="danger" id="ctx-delete">删除…</button>
+        <div class="ctx-hint">删除走 git rm，可在 PR 合并前撤回</div>
+      </div>
     </aside>
 
     <section class="pane editor">
@@ -74,7 +98,7 @@
         </div>
       </div>
 
-      <details class="meta" id="meta" open>
+      <details class="meta" id="meta">
         <summary>
           <svg class="caret"><use href="#i-chev"/></svg>
           <b>元数据</b>
@@ -83,12 +107,35 @@
         <div class="field-grid" id="fields"></div>
       </details>
 
+      <div class="attach-box" id="attach-box" hidden>
+        <div class="attach-head">附件 <span class="muted" id="attach-hint"></span></div>
+        <div id="attach-list"></div>
+      </div>
+
       <div class="editor-card">
-        <div class="toolbar">
-          <span class="hint" id="editor-hint">Markdown 正文</span>
+        <div class="toolbar" id="toolbar">
+          <button class="tool" data-cmd="bold" title="粗体 Ctrl+B"><svg><use href="#i-bold"/></svg><span>粗体</span></button>
+          <button class="tool" data-cmd="italic" title="斜体 Ctrl+I"><svg><use href="#i-italic"/></svg><span>斜体</span></button>
+          <button class="tool" data-cmd="code" title="行内代码"><svg><use href="#i-code"/></svg><span>代码</span></button>
+          <span class="sep"></span>
+          <button class="tool" data-cmd="link" title="链接 Ctrl+K"><svg><use href="#i-link"/></svg><span>链接</span></button>
+          <button class="tool" data-cmd="image" title="插入图片"><svg><use href="#i-img"/></svg><span>图片</span></button>
+          <button class="tool" data-cmd="video" title="B 站视频（BV 号）"><svg><use href="#i-video"/></svg><span>视频</span></button>
+          <button class="tool" data-cmd="math" title="公式"><svg><use href="#i-math"/></svg><span>公式</span></button>
+          <span class="sep"></span>
+          <button class="tool" data-cmd="ul" title="无序列表"><svg><use href="#i-list"/></svg><span>列表</span></button>
+          <button class="tool" data-cmd="table" title="表格"><svg><use href="#i-table"/></svg><span>表格</span></button>
+          <button class="tool" data-cmd="quote" title="引用"><svg><use href="#i-quote"/></svg><span>引用</span></button>
+          <span class="sep"></span>
+          <details class="insert" id="insert">
+            <summary title="插入结构化块"><svg><use href="#i-plus"/></svg><span>插入</span></summary>
+            <div class="pop" id="insert-pop"></div>
+          </details>
+          <span class="hint">图片拖进正文即上传 · 自动存 assets/</span>
         </div>
         <textarea class="editor-body" id="editor" spellcheck="false" placeholder="选择左侧内容，或点「新建」"></textarea>
       </div>
+      <input type="file" id="file-picker" accept="image/*" hidden>
     </section>
 
     <aside class="pane side">
@@ -103,7 +150,7 @@
   <footer class="statusbar">
     <span class="mono" id="sb-path">—</span>
     <span id="sb-words">0 字</span>
-    <span id="sb-save">未保存</span>
+    <span id="sb-save">未打开</span>
     <span class="changes" id="sb-changes">改动 0</span>
     <span class="spacer"></span>
     <span id="sb-branch">—</span>
@@ -138,6 +185,72 @@
       <div class="spacer"></div>
       <button class="btn" id="new-cancel"><svg><use href="#i-x"/></svg>取消</button>
       <button class="btn primary" id="new-create"><svg><use href="#i-check"/></svg>创建并打开</button>
+    </div>
+  </div>
+</div>
+
+<!-- 选择资源作为附件 -->
+<div class="modal" id="res-modal" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="rt">
+    <div class="panel-h">
+      <h3 id="rt">选择资源作为附件</h3>
+      <span class="sub">引用资源 id —— 资源改了，附件自动跟着变</span>
+      <div class="spacer"></div>
+      <button class="icon-btn" id="res-close"><svg><use href="#i-x"/></svg></button>
+    </div>
+    <div class="panel-b">
+      <div class="res-search"><svg><use href="#i-search"/></svg><input id="res-q" placeholder="搜资源名 / 标签 / 文件夹…"></div>
+      <div class="chips" id="res-filters" style="margin-bottom:.7rem"></div>
+      <div class="res-list" id="res-list"></div>
+      <div class="res-picked" id="res-picked" hidden></div>
+      <label class="check" style="margin-top:.7rem">
+        <input type="checkbox" id="res-copy"> 复制为独立附件（固定当前值，之后资源更新不影响这篇）
+      </label>
+    </div>
+    <div class="panel-f">
+      <span class="hint-line" style="margin:0">插入后会生成 <code>attachments</code> 项：name / kind / 资源或 url / 提取码</span>
+      <div class="spacer"></div>
+      <button class="btn" id="res-cancel"><svg><use href="#i-x"/></svg>取消</button>
+      <button class="btn primary" id="res-insert"><svg><use href="#i-check"/></svg>插入为附件</button>
+    </div>
+  </div>
+</div>
+
+<!-- 删除确认（要手输短名） -->
+<div class="modal" id="del-modal" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="dt">
+    <div class="panel-h"><h3 id="dt">删除确认</h3><span class="sub" id="del-sub">—</span>
+      <div class="spacer"></div><button class="icon-btn" id="del-close"><svg><use href="#i-x"/></svg></button>
+    </div>
+    <div class="panel-b">
+      <p class="hint-line">这会执行 <code>git rm</code>，合并 PR 前都能撤回。请输入短名确认。</p>
+      <div class="field"><label>输入短名</label><input id="del-input" placeholder="短名"></div>
+      <div class="error-line" id="del-error"></div>
+    </div>
+    <div class="panel-f">
+      <div class="spacer"></div>
+      <button class="btn" id="del-cancel">取消</button>
+      <button class="btn danger-btn" id="del-go">删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 写入前确认 -->
+<div class="modal" id="confirm-modal" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="ct">
+    <div class="panel-h">
+      <h3 id="ct">写入前确认</h3>
+      <span class="sub" id="confirm-sub">将要写入的内容</span>
+      <div class="spacer"></div>
+      <button class="icon-btn" id="confirm-close"><svg><use href="#i-x"/></svg></button>
+    </div>
+    <div class="panel-b" id="confirm-rows"></div>
+    <div class="panel-f">
+      <span class="hint-line" style="margin:0" id="confirm-count"></span>
+      <div class="spacer"></div>
+      <button class="btn" id="confirm-cancel">取消</button>
+      <button class="btn" id="confirm-all">全部写入</button>
+      <button class="btn primary" id="confirm-some">写入选中项</button>
     </div>
   </div>
 </div>

@@ -32,6 +32,16 @@
     save: function (payload) { return request('PUT', '/api/doc', payload); },
     validate: function (payload) { return request('POST', '/api/validate', payload); },
     preview: function (payload) { return request('POST', '/api/preview', payload); },
-    create: function (payload) { return request('POST', '/api/new', payload); }
+    create: function (payload) { return request('POST', '/api/new', payload); },
+    asset: function (payload) { return request('POST', '/api/asset', payload); },
+    resources: function (q, kind, folder) {
+      var qs = [];
+      if (q) { qs.push('q=' + encodeURIComponent(q)); }
+      if (kind) { qs.push('kind=' + encodeURIComponent(kind)); }
+      if (folder) { qs.push('folder=' + encodeURIComponent(folder)); }
+      return request('GET', '/api/resources' + (qs.length ? '?' + qs.join('&') : ''));
+    },
+    remove: function (payload) { return request('POST', '/api/delete', payload); },
+    rename: function (payload) { return request('POST', '/api/rename', payload); }
   };
 })(window);
