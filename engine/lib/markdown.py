@@ -155,7 +155,7 @@ def md_inline(s):
                       '<span class="math-inline">%s</span>' % mm if mm
                       else '<code class="math-raw">%s</code>' % R.esc(expr))
     for i, code in enumerate(store):
-        s = s.replace("\x00%d\x00" % i, "<code>%s</code>" % code)
+        s = s.replace("\x00%d\x00" % i, "<code>%s</code>" % R.esc(code))
     return s
 
 
