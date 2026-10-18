@@ -66,13 +66,39 @@ jobs:
             echo "::warning::没有字体加密包或 FONT_PASSWORD，回退系统字体"
           fi
 
-      - name: 构建
+      # 摘要与头像都是构建期产物：缓存起来，避免每次重新调网关/下载
+      - name: 缓存 AI 摘要 / 远端头像
+        uses: actions/cache@v4
+        with:
+          path: |
+            site/content/summaries
+            site/meta/avatars
+          key: pages-cache-${{ hashFiles('site/content/posts/**', 'site/content/members/**') }}
+          restore-keys: |
+            pages-cache-
+
+      - name: 构建（先出骨架）
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
-          BUILT_AT: ${{ github.event.repository.updated_at }}
         run: |
-          # 用提交时间做 built_at，保证同一提交产物可复现（pages 分支避免无意义变更）
+          export BUILT_AT="$(git log -1 --format=%cI)"
+          python engine/build.py
+          python engine/check.py
+
+      - name: AI 摘要（可选，GLM 构建期；失败不阻断）
+        continue-on-error: true
+        env:
+          AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          AI_MODEL: ${{ secrets.AI_MODEL }}
+        run: python engine/ai_summarize.py --write
+
+      - name: 构建（带摘要）+ 自检
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: |
           export BUILT_AT="$(git log -1 --format=%cI)"
           python engine/build.py
           python engine/check.py
