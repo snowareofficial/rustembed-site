@@ -95,6 +95,7 @@ def _yaml_subset(lines):
 
 
 def split_front_matter(text):
+    text = text[1:] if text.startswith("\ufeff") else text
     lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
     if not lines or lines[0].strip() not in ("---", "+++"):
         return {}, text
@@ -115,10 +116,22 @@ def _inline_code_stash(s, store):
     return re.sub(r"`([^`]+)`", repl, s)
 
 
+def _inline_math_stash(s, store):
+    """先于转义把 $...$ / $$...$$ 抠出来，避免 LaTeX 反斜杠被 esc 破坏。"""
+    def repl(m):
+        store.append(m.group(1))
+        return "\x01%d\x01" % (len(store) - 1)
+    s = re.sub(r"\$\$([^$]+?)\$\$", repl, s)
+    s = re.sub(r"(?<![\\$])\$([^$\n]+?)\$", repl, s)
+    return s
+
+
 def md_inline(s):
-    s = R.esc(s)
     store = []
-    s = _inline_code_stash(s, store)
+    mathstore = []
+    s = _inline_code_stash(s, store)      # 行内代码优先（里面的 $ 不处理）
+    s = _inline_math_stash(s, mathstore)
+    s = R.esc(s)
 
     def img(m):
         alt, src = m.group(1), m.group(2)
@@ -136,6 +149,11 @@ def md_inline(s):
     s = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"<em>\1</em>", s)
     s = re.sub(r"~~([^~]+)~~", r"<del>\1</del>", s)
     s = R.apply_roles(s)
+    for i, expr in enumerate(mathstore):
+        mm = R.mathml.render(expr, display=False)
+        s = s.replace("\x01%d\x01" % i,
+                      '<span class="math-inline">%s</span>' % mm if mm
+                      else '<code class="math-raw">%s</code>' % R.esc(expr))
     for i, code in enumerate(store):
         s = s.replace("\x00%d\x00" % i, "<code>%s</code>" % code)
     return s
@@ -412,6 +430,9 @@ def render(text, ctx=None, level=1):
             buf.append(lines[i])
             i += 1
         text_block = "\n".join(buf).strip()
+        if text_block.startswith("$$") and text_block.endswith("$$") and len(text_block) > 4:
+            out.append(R.math_block(text_block[2:-2].strip()))
+            continue
         bv = BV_RE.match(text_block)
         if bv:
             embed = R.video_embed(bv.group(1))

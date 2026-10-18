@@ -6,6 +6,8 @@
 """
 
 import html
+
+import mathml
 import re
 import sys
 
@@ -73,7 +75,11 @@ def _role(inner):
     if name == "term":
         return "<dfn>%s</dfn>" % arg
     if name == "math":
-        return '<span class="math">\\(%s\\)</span>' % arg
+        # apply_roles 拿到的是已转义文本；公式要还原成原始 LaTeX（否则 < 会变成 &lt; 被拆成字符）
+        mm = mathml.render(html.unescape(arg), display=False)
+        if mm:
+            return '<span class="math-inline">%s</span>' % mm
+        return '<code class="math-raw" title="LaTeX">%s</code>' % arg
     if name == "em":
         return "<em>%s</em>" % arg
     if name == "strong":
@@ -268,7 +274,11 @@ def render(v, ctx=None, level=0):
         return "<hr>\n"
 
     if t == "math":
-        return '<div class="math">\\[%s\\]</div>\n' % esc(_text_of(v))
+        expr = _text_of(v)
+        mm = mathml.render(expr, display=True)
+        if mm:
+            return '<div class="math-block">%s</div>\n' % mm
+        return '<pre class="math-raw">%s</pre>\n' % esc(expr)
 
     if t == "theorem":
         title = _text_of(v)
@@ -420,3 +430,11 @@ def video_embed(ref):
 def strip_html(s):
     s = re.sub(r"<[^>]+>", " ", s)
     return re.sub(r"\s+", " ", html.unescape(s)).strip()
+
+
+def math_block(expr):
+    """Markdown 的 $$...$$ 块公式。失败时回退为代码块。"""
+    mm = mathml.render(expr, display=True)
+    if mm:
+        return '<div class="math-block">%s</div>\n' % mm
+    return '<pre class="math-raw">%s</pre>\n' % esc(expr)

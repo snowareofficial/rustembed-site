@@ -120,9 +120,10 @@ def test_contract_page_escaping():
 def test_inline_roles():
     print("[2] 内联角色转义")
 
+    _m = R.inline("{math:a < b}")
     case("math 里的 < 只转义一次",
-         R.inline("{math:a < b}") == '<span class="math">\\(a &lt; b\\)</span>',
-         R.inline("{math:a < b}"))
+         "math-inline" in _m and ("&#x0003C;" in _m or "&lt;" in _m) and "&amp;" not in _m,
+         _m)
     case("link 里的 & 只转义一次",
          R.inline("{link:https://a.example/?a=1&b=2|click}")
          == '<a href="https://a.example/?a=1&amp;b=2" target="_blank" '
@@ -181,6 +182,19 @@ def test_nested_lists():
              html.count("<ul>") == html.count("</ul>")
              and html.count("<li>") == html.count("</li>"), repr(html))
 
+
+
+# ------------------------------------------------------- 6. LaTeX → MathML
+print("[6] Markdown 公式")
+_html, _ = md.render("行内 $x^2$ 结束\n")
+case("行内 $...$ 渲染成 MathML", "math-inline" in _html and "<math" in _html, _html[:200])
+_html, _ = md.render("$$\n\\frac{a}{b}\n$$\n")
+case("块 $$...$$ 渲染成 display MathML",
+     "math-block" in _html and 'display="block"' in _html, _html[:200])
+_html, _ = md.render("代码 `$x$` 保持原样\n")
+case("行内代码里的 $ 不被当公式", "<code>$x$</code>" in _html, _html[:200])
+_html, _ = md.render("坏公式 $\\frac{a$ 不炸\n")
+case("坏公式回退不抛异常", "<p>" in _html, _html[:200])
 
 # --------------------------------------------------------- 4. --out 守卫
 def test_out_guard():
