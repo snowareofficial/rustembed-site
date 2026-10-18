@@ -810,3 +810,8 @@ body[data-page="home"] .layout { grid-template-columns: minmax(0, 1fr); }
 .math-block { overflow-x: auto; overflow-y: hidden; margin: .9rem 0; padding: .2rem 0; text-align: center; }
 .math-inline math, .math-block math { font-size: 1.02em; }
 .math-raw { font-family: var(--mono); font-size: 12.5px; color: var(--ink-mute); }
+
+/* 641–1039px：左栏已隐藏，网格必须回到单列（否则 #main 会被放进 13rem 的第一列） */
+@media (max-width: 1039px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+}

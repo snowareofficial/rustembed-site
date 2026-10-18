@@ -287,6 +287,18 @@ async function main() {
   need(art.copyBtn >= 1, '代码块有复制按钮', art.copyBtn);
   await cdp.shot(path.join(SHOTS, 'post-1280.png'));
 
+  /* ---------- 900×900（左栏隐藏后的单列） ---------- */
+  console.log('== 900×900 ==');
+  await metrics(900, 900, false);
+  await go('#/post/md-writing', 'post', { toc: 'yes' });
+  const mid = await cdp.eval(`(() => {
+    const m = document.querySelector('#main').getBoundingClientRect();
+    return { w: Math.round(m.width), left: Math.round(m.left), rightGap: Math.round(window.innerWidth - m.right) };
+  })()`);
+  need(mid.w >= 500 && Math.abs(mid.left - mid.rightGap) <= 2,
+    '900px 单列居中（左栏隐藏后内容不挤在 13rem 列）',
+    '宽 ' + mid.w + '，左 ' + mid.left + ' / 右 ' + mid.rightGap);
+
   /* ---------- 375×812 ---------- */
   console.log('== 375×812 ==');
   await metrics(375, 812, true);

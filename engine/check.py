@@ -33,7 +33,7 @@ def need(cond, msg):
 _BENIGN = re.compile(
     r"</?(?:strong|em|code|span|a|b|i|u|del|s|dfn|sub|sup|kbd|mark|abbr|q|cite|small)\b[^>]*>"  # 行内标签
     r"|</?figure>|</?figcaption>|<br\s*/?>|<img\b[^>]*>"  # 图片 / 换行
-    r"|<svg\b.*?</svg>|<!--.*?-->",                      # svg / 注释
+    r"|<svg\b.*?</svg>|<math\b.*?</math>|<!--.*?-->",   # svg / MathML / 注释
     re.I | re.S)
 
 
