@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>rec-blog 写作台</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.6 15.6L20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M14 3v5h5" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-hash" viewBox="0 0 24 24"><path d="M5 9h14M4 15h14M10 3L8 21M16 3l-2 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 19c0-3 3-5 6-5s6 2 6 5M16 5a3 3 0 010 6" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M4 7l8-4 8 4v10l-8 4-8-4z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 7l8 4 8-4M12 11v10" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4h6a3 3 0 013 3v13a2 2 0 00-2-2H5zM19 4h-3a3 3 0 00-3 3v13a2 2 0 012-2h4z" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 3v4M16 3v4M4 10h16" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 5-3 7-7 9-4-2-7-4-7-9V6z" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M21 3L10 14M21 3l-7 18-4-7-7-4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v3M12 18v3M4.5 7.5l2 2M17.5 14.5l2 2M3 12h3M18 12h3M4.5 16.5l2-2M17.5 9.5l2-2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 12l5 5L20 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l9 17H3z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 9v5M12 17v.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-branch" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="6" cy="18" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="18" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6 8.4v7.2M8.4 6h4.2a3 3 0 013 3v.6" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-panel-left" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 4v16" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-panel-right" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M15 4v16" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+</svg>
+
+<div class="app">
+  <header class="topbar">
+    <a class="brand" href="#"><svg class="logo"><use href="#i-box"/></svg>Rust嵌入式探讨 <small>写作台</small></a>
+    <div class="type-select" id="type-select">— <svg><use href="#i-chev"/></svg></div>
+
+    <details class="contract" id="contract">
+      <summary><span class="dot" id="contract-dot"></span><span id="contract-label">契约</span> <svg class="caret"><use href="#i-chev"/></svg></summary>
+      <div class="pop" id="contract-pop"><div class="row">尚未校验</div></div>
+    </details>
+
+    <span class="chip branch"><svg><use href="#i-branch"/></svg><span id="branch">—</span></span>
+    <div class="spacer"></div>
+    <div class="actions">
+      <button class="btn" id="btn-save" title="保存（Ctrl+S）"><svg><use href="#i-check"/></svg><span>确认写入</span></button>
+      <button class="btn" id="btn-preview" title="生成预览（Ctrl+P）"><svg><use href="#i-eye"/></svg><span>预览</span></button>
+      <button class="btn primary" id="btn-pr" title="M3 提供（需登录）" disabled><svg><use href="#i-send"/></svg><span>提交 PR</span></button>
+      <button class="icon-btn" id="btn-settings" title="M3 提供" disabled><svg><use href="#i-gear"/></svg></button>
+    </div>
+  </header>
+
+  <div class="main">
+    <aside class="pane tree">
+      <div class="pane-head">
+        <span>内容</span>
+        <button class="icon-btn tiny" id="btn-toggle-tree" title="收起左栏"><svg><use href="#i-panel-left"/></svg></button>
+      </div>
+      <div class="search"><svg><use href="#i-search"/></svg><input id="search" placeholder="搜索内容…（Ctrl+F）"></div>
+      <div class="tree-actions">
+        <button class="btn new-btn" id="btn-new"><svg><use href="#i-plus"/></svg><span>新建</span></button>
+      </div>
+      <div id="tree-groups"></div>
+    </aside>
+
+    <section class="pane editor">
+      <div class="title-row">
+        <div class="title-main">
+          <h1 id="title">未打开文档</h1>
+          <span class="path" id="doc-path">—</span>
+        </div>
+        <div class="title-side">
+          <span class="chip" id="contract-chip"><svg><use href="#i-shield"/></svg><span id="contract-name">—</span></span>
+          <span class="chip"><svg><use href="#i-branch"/></svg>→ master</span>
+        </div>
+      </div>
+
+      <details class="meta" id="meta" open>
+        <summary>
+          <svg class="caret"><use href="#i-chev"/></svg>
+          <b>元数据</b>
+          <span class="meta-sum" id="meta-sum">—</span>
+        </summary>
+        <div class="field-grid" id="fields"></div>
+      </details>
+
+      <div class="editor-card">
+        <div class="toolbar">
+          <span class="hint" id="editor-hint">Markdown 正文</span>
+        </div>
+        <textarea class="editor-body" id="editor" spellcheck="false" placeholder="选择左侧内容，或点「新建」"></textarea>
+      </div>
+    </section>
+
+    <aside class="pane side">
+      <div class="pane-head">
+        <span>预览 <i class="state" id="preview-state">待生成</i></span>
+        <button class="icon-btn tiny" id="btn-toggle-side" title="收起右栏"><svg><use href="#i-panel-right"/></svg></button>
+      </div>
+      <div class="preview" id="preview"><p class="muted">点顶栏「预览」或按 Ctrl+P 生成。</p></div>
+    </aside>
+  </div>
+
+  <footer class="statusbar">
+    <span class="mono" id="sb-path">—</span>
+    <span id="sb-words">0 字</span>
+    <span id="sb-save">未保存</span>
+    <span class="changes" id="sb-changes">改动 0</span>
+    <span class="spacer"></span>
+    <span id="sb-branch">—</span>
+  </footer>
+</div>
+
+<div class="banner" id="banner" hidden><span id="banner-text"></span><button class="btn" id="banner-close">关闭</button></div>
+
+<!-- 新建 -->
+<div class="modal" id="new-modal" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="nt">
+    <div class="panel-h">
+      <h3 id="nt">新建内容</h3>
+      <span class="sub">选类型 → 填基础字段 → 创建后在编辑器里首次保存才落盘</span>
+      <div class="spacer"></div>
+      <button class="icon-btn" id="new-close"><svg><use href="#i-x"/></svg></button>
+    </div>
+    <div class="panel-b">
+      <div class="type-grid" id="type-grid"></div>
+      <div class="field-grid" style="margin-top:.9rem">
+        <div class="field wide"><label>标题 title</label><input id="new-title" placeholder="文章标题"></div>
+        <div class="field"><label>短名 slug</label><input id="new-slug" placeholder="小写字母/数字/连字符"></div>
+        <div class="field"><label>作者 author</label><input id="new-author" value="sal"></div>
+        <div class="field wide"><label>标签 tags（逗号分隔）</label><input id="new-tags" value="rust"></div>
+        <div class="field wide"><label>路径预览</label><input id="new-path" readonly></div>
+      </div>
+      <div class="error-line" id="new-error"></div>
+      <label class="check"><input type="checkbox" id="new-draft"> <b>草稿</b> <span>draft: true —— 不参与构建，不会出现在站点上</span></label>
+    </div>
+    <div class="panel-f">
+      <span class="hint-line" style="margin:0">创建后会打开编辑器，首次保存时写入文件</span>
+      <div class="spacer"></div>
+      <button class="btn" id="new-cancel"><svg><use href="#i-x"/></svg>取消</button>
+      <button class="btn primary" id="new-create"><svg><use href="#i-check"/></svg>创建并打开</button>
+    </div>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
