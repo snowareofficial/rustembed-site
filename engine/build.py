@@ -256,6 +256,25 @@ def pick(d, keys, default=None):
     return default
 
 
+def _localize_assets(html_body, slug, post_dir):
+    """把正文里的本地图片引用 `assets/...` 改写到 `assets/posts/<slug>/...`。
+
+    只认 `<img src="assets/` 属性，**不做全局字符串替换**：代码块里演示
+    「怎么引用图片」的示例（esc 后是 `src=&quot;assets/...&quot;`）既不会
+    被误改写，也不会触发「图片不存在」误报。以前是
+    `html_body.replace('src="assets/', ...)`，靠「全文都已转义」这个隐不变式
+    兜底；这里把不变式变成显式契约，回归测试见 test_render_safety.py [11]。
+
+    返回 (改写后的 html, 不存在的引用列表)。
+    """
+    missing = []
+    for m in re.finditer(r'<img src="(assets/[^"]+)"', html_body):
+        if not (post_dir / m.group(1)).exists():
+            missing.append(m.group(1))
+    fixed = html_body.replace('<img src="assets/', '<img src="assets/posts/%s/' % slug)
+    return fixed, missing
+
+
 def build_posts(rep, cache, offline):
     posts = []
     for f in docs_in(CONTENT / "posts", "*/*/index.*"):
@@ -278,10 +297,9 @@ def build_posts(rep, cache, offline):
         html_body, toc = render_body(d, ctx, 1, rep, where)
         if video_html:
             html_body = video_html + html_body
-        for m in re.finditer(r'src="(assets/[^"]+)"', html_body):
-            if not (f.parent / m.group(1)).exists():
-                rep.err(where, "正文引用的本地图片不存在：%s" % m.group(1))
-        html_body = html_body.replace('src="assets/', 'src="assets/posts/%s/' % slug)
+        html_body, missing_imgs = _localize_assets(html_body, slug, f.parent)
+        for rel in missing_imgs:
+            rep.err(where, "正文引用的本地图片不存在：%s" % rel)
         text = render.strip_html(html_body)
 
         toc_nodes = [dict(x, anchor="#/post/%s/%s" % (slug, x["id"])) for x in toc]
@@ -863,7 +881,8 @@ def inject_head(rep, out, manifest, avatar, fonts_css=""):
         lines += ['<link rel="icon" href="%s">' % icon,
                   '<link rel="apple-touch-icon" href="%s">' % icon,
                   '<link rel="manifest" href="site.webmanifest">']
-        lines.append('<meta property="og:image" content="%s/%s">' % (site["url"].rstrip("/"), icon))
+        lines.append('<meta property="og:image" content="%s/%s">' % (
+        render.esc(site["url"].rstrip("/")), icon))
     html = idx.read_text(encoding="utf-8").replace("<!--BUILD:HEAD-->", "\n".join(lines))
     html = html.replace("<title>Rust嵌入式探讨</title>", "<title>%s</title>" % render.esc(site["title"]))
     idx.write_text(html, encoding="utf-8")
@@ -1205,7 +1224,10 @@ def _run(args):
         "site": {
             "title": sml.as_str(site.get("title")),
             "tagline": sml.as_str(site.get("tagline", "")),
-            "url": args.base_url or sml.as_str(site.get("url", "https://rec-blog.swebase.cn")),
+            # site.url 与 repo_url/avatar 同纪律：过白名单后才进 manifest 与
+            # og/sitemap/feed 的 URL 出口（站点配置也在 site/content/ 里，算投稿面）
+            "url": urls.safe_url(args.base_url or sml.as_str(
+                site.get("url", "https://rec-blog.swebase.cn"))),
             "domains": [sml.as_str(x) for x in as_list(site.get("domains"))],
             "repo_url": urls.safe_url(sml.as_str(site.get("repo_url", ""))),
             "repo_mirror": urls.safe_url(sml.as_str(site.get("repo_mirror", ""))),
@@ -1371,9 +1393,12 @@ def _run(args):
             "<description>%s</description>" % esc(manifest["site"]["tagline"]),
             "<lastBuildDate>%s</lastBuildDate>" % now_iso()]
     for p in posts[:20]:
+        # slug 来自目录名：Windows 上不含引号/尖括号，但 git 里不保证 ——
+        # 拼进 XML 前与 title/summary 一样过 esc，保持同一纪律。
         feed.append("<item><title>%s</title><link>%s/#/post/%s</link><guid>%s/#/post/%s</guid>"
                     "<pubDate>%s</pubDate><description>%s</description></item>" % (
-                        esc(p["title"]), esc(base_url), p["slug"], esc(base_url), p["slug"],
+                        esc(p["title"]), esc(base_url), esc(p["slug"]),
+                        esc(base_url), esc(p["slug"]),
                         esc(p["date"]), esc(p["summary"])))
     feed.append("</channel></rss>")
     (out / "feed.xml").write_text("\n".join(feed), encoding="utf-8")

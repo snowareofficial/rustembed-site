@@ -648,6 +648,62 @@ def test_sml_error_types():
              "index.sml" in both and ":6:" in both, both[-400:])
 
 
+# ------------------------- 11. urls.safe_url 单元口径 + assets 改写只动 img
+def test_safe_url_unit():
+    print("[11] urls.safe_url 单元口径（白名单本体）")
+
+    ok = [
+        ("https://example.com/a?b=1&c=2", "https://example.com/a?b=1&c=2"),
+        ("http://example.com", "http://example.com"),
+        ("mailto:a@b.c", "mailto:a@b.c"),
+        ("tel:+8613800138000", "tel:+8613800138000"),
+        ("#section-2", "#section-2"),
+        ("assets/posts/x/a.png", "assets/posts/x/a.png"),
+        ("/absolute/path.png", "/absolute/path.png"),
+        ("  https://example.com/spaced  ", "https://example.com/spaced"),
+    ]
+    for raw, want in ok:
+        got = R.urls.safe_url(raw)
+        case("放行 %s" % raw[:32], got == want, repr(got))
+
+    bad = [
+        "javascript:alert(1)", "JavaScript:alert(1)", "data:text/html,x",
+        "vbscript:msgbox", "file:///C:/x", "//evil.example/x",
+        "java\tscript:alert(1)", "java\nscript:alert(1)",
+        "https://example.com/\x01ctrl", "", None,
+    ]
+    for raw in bad:
+        got = R.urls.safe_url(raw)
+        case("拒绝 %r" % (str(raw)[:24],), got == "", repr(got))
+
+
+def test_localize_assets():
+    print("[11] assets 前缀改写只动 <img> 属性")
+
+    with tempfile.TemporaryDirectory() as d:
+        post = Path(d) / "post"
+        (post / "assets").mkdir(parents=True)
+        (post / "assets" / "a.png").write_bytes(b"x")
+
+        body = ('<p><img src="assets/a.png" alt="x" loading="lazy"></p>\n'
+                '<div class="code"><pre><code class="language-html">'
+                '&lt;img src=&quot;assets/a.png&quot;&gt;</code></pre></div>\n')
+        fixed, missing = B._localize_assets(body, "myslug", post)
+        case("真实 img 的 src 被改写",
+             '<img src="assets/posts/myslug/a.png"' in fixed, fixed)
+        case("代码块里的示例不被改写",
+             '&lt;img src=&quot;assets/a.png&quot;&gt;' in fixed, fixed)
+        case("存在的图片不进缺失清单", missing == [], missing)
+
+        body2 = ('<p><img src="assets/nope.png" alt="x"></p>\n'
+                 '<div class="code"><pre><code>&lt;img src=&quot;assets/nope.png&quot;&gt;'
+                 '</code></pre></div>\n')
+        fixed2, missing2 = B._localize_assets(body2, "myslug", post)
+        case("缺失清单只含真实 img 引用", missing2 == ["assets/nope.png"], missing2)
+        case("不存在的 img 也被改写（保持旧行为）",
+             '<img src="assets/posts/myslug/nope.png"' in fixed2, fixed2)
+
+
 def main():
     print("== rec-blog 渲染安全回归 ==")
     test_contract_page_escaping()
@@ -661,6 +717,8 @@ def main():
     test_assets_generator()
     test_url_allowlist()
     test_sml_error_types()
+    test_safe_url_unit()
+    test_localize_assets()
     print("\n%d 项断言" % COUNT[0])
     if FAILS:
         print("失败 %d 项：" % len(FAILS))
