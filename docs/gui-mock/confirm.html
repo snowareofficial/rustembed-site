@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>rec-blog 写作台 · 写入前确认</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.6 15.6L20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M14 3v5h5" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-img" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="10" r="1.4" fill="currentColor"/><path d="M4 17l5-5 4 4 3-3 4 4" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-math" viewBox="0 0 24 24"><path d="M5 5h6l4 7 4-7M5 19h6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M15 12v7M11.5 15.5h7" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 12l5 5L20 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M4 7l8-4 8 4v10l-8 4-8-4z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 7l8 4 8-4M12 11v10" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-branch" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="6" cy="18" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="18" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6 8.4v7.2M8.4 6h4.2a3 3 0 013 3v.6" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v3M12 18v3M4.5 7.5l2 2M17.5 14.5l2 2M3 12h3M18 12h3M4.5 16.5l2-2M17.5 9.5l2-2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 19c0-3 3-5 6-5s6 2 6 5M16 5a3 3 0 010 6" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M21 3L10 14M21 3l-7 18-4-7-7-4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+</svg>
+
+<div class="app">
+  <header class="topbar">
+    <a class="brand" href="#"><svg class="logo"><use href="#i-box"/></svg>Rust嵌入式探讨 <small>写作台</small></a>
+    <div class="type-select">文章 <svg><use href="#i-chev"/></svg></div>
+    <div class="status">
+      <span class="ok"><svg><use href="#i-check"/></svg>契约</span>
+      <span class="ok"><svg><use href="#i-check"/></svg>预览</span>
+      <span><svg><use href="#i-branch"/></svg>post/board-flash</span>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn"><svg><use href="#i-check"/></svg>确认写入</button>
+    <button class="btn primary"><svg><use href="#i-send"/></svg>提交 PR</button>
+    <button class="icon-btn"><svg><use href="#i-gear"/></svg></button>
+  </header>
+
+  <div class="main">
+    <aside class="pane tree">
+      <div class="search"><svg><use href="#i-search"/></svg><input placeholder="搜索内容…"></div>
+      <div class="group"><div class="group-h"><svg><use href="#i-chev"/></svg>文章 · 2026<span class="count">3</span></div>
+        <a class="item active"><svg><use href="#i-doc"/></svg>从零点亮一块板子</a>
+        <a class="item"><svg><use href="#i-doc"/></svg>投稿其实很简单</a>
+        <a class="item"><svg><use href="#i-doc"/></svg>公式示例</a>
+      </div>
+      <div class="group"><div class="group-h"><svg><use href="#i-chev"/></svg>成员<span class="count">2</span></div>
+        <a class="item"><svg><use href="#i-users"/></svg>Sal</a><a class="item"><svg><use href="#i-users"/></svg>CXi</a>
+      </div>
+    </aside>
+    <section class="pane editor"><div class="doc-h"><h1>从零点亮一块板子</h1><span class="path">index.sml</span></div>
+      <div class="editor-body">（正文编辑区）</div>
+    </section>
+    <aside class="pane side"><h2>预览</h2><div class="preview"><h3>从零点亮一块板子</h3><p>…</p></div></aside>
+  </div>
+  <footer class="statusbar"><span class="mono">content/posts/2026/hello-rec/index.sml</span><span>569 字</span><span class="spacer"></span><span>构建 ✓</span></footer>
+</div>
+
+<!-- 写入前确认 -->
+<div class="modal">
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="ct">
+    <div class="panel-h">
+      <h3 id="ct">写入前确认</h3>
+      <span class="sub">将要写入 site/content/posts/2026/hello-rec/index.sml（1 个文件 · +42 −3）</span>
+      <div class="spacer"></div>
+      <button class="icon-btn"><svg><use href="#i-x"/></svg></button>
+    </div>
+    <div class="panel-b">
+      <p class="hint-line">勾选要写入的内容；未勾选的会保留在草稿里，不会写进文件。</p>
+
+      <div class="confirm-row"><input type="checkbox" checked>
+        <div class="what"><b>标题与摘要</b><span>从零点亮一块板子：probe-rs + Rust 的第一步<br>不讲大道理，先把程序烧进去…</span></div>
+        <span class="src">表单</span>
+      </div>
+
+      <div class="confirm-row"><input type="checkbox" checked>
+        <div class="what"><b>标签</b><span>rust · embedded · probe-rs</span></div>
+        <span class="src">表单</span>
+      </div>
+
+      <div class="confirm-row"><input type="checkbox" checked>
+        <div class="thumb"></div>
+        <div class="what"><b>图片 board.jpg</b><span>1280×720 · 将写入 assets/board.jpg 并插入 <code>![board](assets/board.jpg)</code></span></div>
+        <span class="src auto">解析</span>
+      </div>
+
+      <div class="confirm-row"><input type="checkbox" checked>
+        <div class="what"><b>代码块（2 段）</b><span>cargo install probe-rs-tools --locked · cargo run --release</span></div>
+        <span class="src">表单</span>
+      </div>
+
+      <div class="confirm-row"><input type="checkbox">
+        <div class="what"><b>公式块</b><span>$$\int_0^1 x^2 dx = \frac{1}{3}$$（未勾选：只留在草稿）</span></div>
+        <span class="src auto">自动</span>
+      </div>
+
+      <div class="confirm-row"><input type="checkbox" checked>
+        <div class="what"><b>附件 Example</b><span>https://gitee.com/rustembed/site · 下载渠道 Gitee</span></div>
+        <span class="src">表单</span>
+      </div>
+    </div>
+    <div class="panel-f">
+      <span class="hint-line" style="margin:0">6 项中 5 项将被写入</span>
+      <div class="spacer"></div>
+      <button class="btn"><svg><use href="#i-x"/></svg>取消</button>
+      <button class="btn"><svg><use href="#i-check"/></svg>全部写入</button>
+      <button class="btn primary"><svg><use href="#i-check"/></svg>选择性写入</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

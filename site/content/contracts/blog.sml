@@ -79,6 +79,8 @@
   kind: enum [ image link ]  # image 入库；link 走作者自备外链
   url: str                # image 用相对路径（同目录 assets/），link 用 http(s)
   size: str optional      # 体积说明，image 可由构建自动填
+  code: str optional      # 提取码（如蓝奏云）；只存值，不自动展示给未点击的人
+  resource: str optional  # 引用资源 id：构建期解析 url / 提取码；资源更新则附件跟随
 }
 
 @contract Page {
@@ -106,6 +108,8 @@
   url: url                # 链接
   tags: [str] optional
   note: str optional      # 一句话说明
+  folder: str optional    # 展示用分组（不建真实目录，URL 保持稳定）
+  code: str optional      # 提取码；列表与附件卡显示「提取码 · 复制」
 }
 
 @contract Project {

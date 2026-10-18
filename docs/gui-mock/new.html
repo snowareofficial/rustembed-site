@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>rec-blog 写作台 · 新建</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M4 7l8-4 8 4v10l-8 4-8-4z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 7l8 4 8-4M12 11v10" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M14 3v5h5" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-hash" viewBox="0 0 24 24"><path d="M5 9h14M4 15h14M10 3L8 21M16 3l-2 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 19c0-3 3-5 6-5s6 2 6 5M16 5a3 3 0 010 6" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-proj" viewBox="0 0 24 24"><path d="M3 6h6l2 3h10v10H3z" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4h6a3 3 0 013 3v13a2 2 0 00-2-2H5zM19 4h-3a3 3 0 00-3 3v13a2 2 0 012-2h4z" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 3v4M16 3v4M4 10h16" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 5-3 7-7 9-4-2-7-4-7-9V6z" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 12l5 5L20 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.6 15.6L20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+</svg>
+
+<div class="app">
+  <header class="topbar">
+    <a class="brand" href="#"><svg class="logo"><use href="#i-box"/></svg>Rust嵌入式探讨 <small>写作台</small></a>
+    <div class="spacer"></div>
+    <span class="path" style="font-size:11.5px;color:var(--ink-mute)">新建内容</span>
+  </header>
+  <div class="main">
+    <aside class="pane tree"><div class="search"><svg><use href="#i-search"/></svg><input placeholder="搜索内容…"></div></aside>
+    <section class="pane editor"><div class="doc-h"><h1>新建内容</h1></div></section>
+    <aside class="pane side"></aside>
+  </div>
+</div>
+
+<div class="modal">
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="nt">
+    <div class="panel-h">
+      <h3 id="nt">新建内容</h3>
+      <span class="sub">选择类型 → 填基础字段 → 创建后直接打开编辑器</span>
+      <div class="spacer"></div>
+      <button class="icon-btn"><svg><use href="#i-x"/></svg></button>
+    </div>
+    <div class="panel-b">
+      <div class="type-grid">
+        <button class="type-card on"><svg><use href="#i-doc"/></svg><b>文章</b><span>posts/&lt;年&gt;/</span></button>
+        <button class="type-card"><svg><use href="#i-hash"/></svg><b>词条</b><span>topics/</span></button>
+        <button class="type-card"><svg><use href="#i-users"/></svg><b>成员</b><span>members/</span></button>
+        <button class="type-card"><svg><use href="#i-proj"/></svg><b>项目</b><span>projects/</span></button>
+        <button class="type-card"><svg><use href="#i-book"/></svg><b>资源</b><span>resources/</span></button>
+        <button class="type-card"><svg><use href="#i-cal"/></svg><b>周报</b><span>weekly/</span></button>
+        <button class="type-card"><svg><use href="#i-shield"/></svg><b>站文档</b><span>pages/</span></button>
+      </div>
+
+      <div class="field-grid" style="margin-top:.9rem">
+        <div class="field wide"><label>标题 title</label><input value="从零点亮一块板子" placeholder="文章标题"></div>
+        <div class="field"><label>短名 slug</label><input value="board-flash" placeholder="小写字母/数字/连字符"></div>
+        <div class="field"><label>作者 author</label><input value="sal"></div>
+        <div class="field wide"><label>标签 tags</label><div class="chips"><span class="chip">rust<span class="x">×</span></span><span class="chip">embedded<span class="x">×</span></span><span class="chip">+ 添加</span></div></div>
+        <div class="field wide"><label>路径预览</label><input value="site/content/posts/2026/board-flash/index.md" readonly></div>
+      </div>
+
+      <label class="check"><input type="checkbox"> <b>草稿</b> <span>draft: true —— 不参与构建，不会出现在站点上</span></label>
+    </div>
+    <div class="panel-f">
+      <span class="hint-line" style="margin:0">创建后会打开编辑器，首次保存时写入文件</span>
+      <div class="spacer"></div>
+      <button class="btn"><svg><use href="#i-x"/></svg>取消</button>
+      <button class="btn primary"><svg><use href="#i-check"/></svg>创建并打开</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

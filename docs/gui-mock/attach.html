@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>rec-blog 写作台 · 选择资源作为附件</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.6 15.6L20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14l4-4M8.5 12.5l-2 2a3 3 0 004.2 4.2l2-2M15.5 11.5l2-2a3 3 0 00-4.2-4.2l-2 2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 12l5 5L20 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M4 7l8-4 8 4v10l-8 4-8-4z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 7l8 4 8-4M12 11v10" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+</svg>
+
+<div class="app">
+  <header class="topbar">
+    <a class="brand" href="#"><svg class="logo"><use href="#i-box"/></svg>Rust嵌入式探讨 <small>写作台</small></a>
+    <div class="spacer"></div>
+    <span style="font-size:11.5px;color:var(--ink-mute)">从零点亮一块板子 · 附件</span>
+  </header>
+  <div class="main">
+    <aside class="pane tree"></aside>
+    <section class="pane editor"><div class="doc-h"><h1>从零点亮一块板子</h1></div></section>
+    <aside class="pane side"></aside>
+  </div>
+</div>
+
+<div class="modal">
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="rt">
+    <div class="panel-h">
+      <h3 id="rt">选择资源作为附件</h3>
+      <span class="sub">引用资源 id —— 资源改了，附件自动跟着变</span>
+      <div class="spacer"></div>
+      <button class="icon-btn"><svg><use href="#i-x"/></svg></button>
+    </div>
+    <div class="panel-b">
+      <div class="res-search"><svg><use href="#i-search"/></svg><input placeholder="搜资源名 / 标签 / 文件夹…"></div>
+      <div class="chips" style="margin-bottom:.7rem">
+        <span class="chip">全部 (12)</span><span class="chip">电子书 (4)</span><span class="chip">工具 (5)</span>
+        <span class="chip">视频 (2)</span><span class="chip">课程 (1)</span><span class="chip">有提取码 (3)</span>
+      </div>
+
+      <div class="res-list">
+        <div class="res-row on">
+          <span class="kind">电子书</span>
+          <span class="name">The Embedded Rust Book</span>
+          <span class="folder">入门 /</span>
+          <span class="code-chip"><svg><use href="#i-copy"/></svg>提取码 abcd · 复制</span>
+        </div>
+        <div class="res-row">
+          <span class="kind">工具</span>
+          <span class="name">probe-rs</span>
+          <span class="folder">调试 /</span>
+          <span class="folder">无提取码</span>
+        </div>
+        <div class="res-row">
+          <span class="kind">课程</span>
+          <span class="name">Rust 嵌入式路线</span>
+          <span class="folder">路线 /</span>
+          <span class="code-chip"><svg><use href="#i-copy"/></svg>提取码 7x2k · 复制</span>
+        </div>
+        <div class="res-row">
+          <span class="kind">工具</span>
+          <span class="name">蓝奏云示例包</span>
+          <span class="folder">示例 /</span>
+          <span class="code-chip"><svg><use href="#i-copy"/></svg>提取码 9m3q · 复制</span>
+        </div>
+      </div>
+
+      <div class="res-picked">
+        <svg style="width:1rem;height:1rem;color:var(--ink-mute)"><use href="#i-link"/></svg>
+        已选 <b>The Embedded Rust Book</b> · 蓝奏云 · 提取码 <b>abcd</b>（点击可复制）
+        <span style="margin-left:auto;font-size:11px;color:var(--ink-mute)">资源 id: embedded-rust-book</span>
+      </div>
+
+      <label class="check" style="margin-top:.7rem">
+        <input type="checkbox"> 复制为独立附件（固定当前值，之后资源更新不影响这篇）
+      </label>
+    </div>
+    <div class="panel-f">
+      <span class="hint-line" style="margin:0">插入后会生成 <code>attachments</code> 项：name / url / 提取码</span>
+      <div class="spacer"></div>
+      <button class="btn"><svg><use href="#i-x"/></svg>取消</button>
+      <button class="btn primary"><svg><use href="#i-check"/></svg>插入为附件</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

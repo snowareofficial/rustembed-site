@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>rec-blog 写作台 · 设置</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="set-page">
+  <h1>设置</h1>
+  <p class="sub">所有设置只对本机生效；账号相关操作在「账户与安全」。</p>
+
+  <div class="set-card">
+    <div class="set-h">账户与安全</div>
+    <div class="set-row">
+      <div class="lab">登录状态</div>
+      <div class="ctl">已登录 <b style="color:var(--ink)">Sal</b>（Gitee）· 令牌存于系统钥匙串 <button class="btn" style="margin-left:.4rem">退出登录</button></div>
+    </div>
+    <div class="set-row">
+      <div class="lab">令牌</div>
+      <div class="ctl">repo 权限 · 上次使用 2 分钟前 <span class="hint">不显示明文</span></div>
+    </div>
+    <div class="set-row">
+      <div class="lab">清除登录痕迹</div>
+      <div class="ctl">
+        <button class="btn danger-btn">清除令牌与本地痕迹…</button>
+        <span class="hint">会清：钥匙串 token · 最近文件 · 预览缓存 · 日志</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="set-card">
+    <div class="set-h">外观</div>
+    <div class="set-row"><div class="lab">主题</div><div class="ctl">
+      <span class="seg"><button class="on">跟随系统</button><button>亮色</button><button>暗色</button></span>
+    </div></div>
+    <div class="set-row"><div class="lab">按钮文字</div><div class="ctl">
+      <label class="switch"><input type="checkbox"> 显示按钮文字（默认只显示图标，hover 出 tooltip）</label>
+    </div></div>
+    <div class="set-row"><div class="lab">侧栏</div><div class="ctl">
+      <label class="switch"><input type="checkbox" checked> 显示内容树</label>
+      <label class="switch"><input type="checkbox" checked> 显示预览</label>
+    </div></div>
+    <div class="set-row"><div class="lab">正文</div><div class="ctl">
+      <span class="seg"><button>13</button><button class="on">14</button><button>15</button></span>
+      <span class="hint">编辑器字号</span>
+    </div></div>
+  </div>
+
+  <div class="set-card">
+    <div class="set-h">编辑</div>
+    <div class="set-row"><div class="lab">自动保存</div><div class="ctl">
+      <label class="switch"><input type="checkbox"> 停止输入 2 秒后保存（默认关闭，Ctrl+S 手动保存）</label>
+    </div></div>
+    <div class="set-row"><div class="lab">预览</div><div class="ctl">
+      <span class="seg"><button class="on">手动</button><button>自动</button></span>
+      <span class="hint">手动 = 点顶栏「预览」才渲染</span>
+    </div></div>
+    <div class="set-row"><div class="lab">图片</div><div class="ctl">
+      <label class="switch"><input type="checkbox" checked> 拖入正文时自动存到 assets/ 并插入 Markdown</label>
+    </div></div>
+  </div>
+
+  <div class="set-card">
+    <div class="set-h">资源与附件</div>
+    <div class="set-row"><div class="lab">提取码</div><div class="ctl">
+      <label class="switch"><input type="checkbox" checked> 列表和附件卡显示「提取码 · 复制」</label>
+    </div></div>
+    <div class="set-row"><div class="lab">点击复制</div><div class="ctl">
+      <label class="switch"><input type="checkbox" checked> 点提取码即写入剪贴板（带 toast 提示）</label>
+    </div></div>
+    <div class="set-row"><div class="lab">附件引用</div><div class="ctl">
+      <span class="seg"><button class="on">引用资源 id</button><button>复制独立附件</button></span>
+      <span class="hint">引用 = 资源改了附件跟着变</span>
+    </div></div>
+  </div>
+
+  <div class="set-card">
+    <div class="set-h">关于</div>
+    <div class="set-row"><div class="lab">版本</div><div class="ctl">写作台 0.1.0 · 引擎 commit <span class="mono">707b56a</span></div></div>
+    <div class="set-row"><div class="lab">运行方式</div><div class="ctl">Web（浏览器）· 若装了桌面版会自动用 Tauri 窗口</div></div>
+  </div>
+</div>
+</body>
+</html>

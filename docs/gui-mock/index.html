@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>rec-blog 写作台 · 编辑</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.6 15.6L20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M14 3v5h5" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-hash" viewBox="0 0 24 24"><path d="M5 9h14M4 15h14M10 3L8 21M16 3l-2 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 19c0-3 3-5 6-5s6 2 6 5M16 5a3 3 0 010 6" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M4 7l8-4 8 4v10l-8 4-8-4z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 7l8 4 8-4M12 11v10" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4h6a3 3 0 013 3v13a2 2 0 00-2-2H5zM19 4h-3a3 3 0 00-3 3v13a2 2 0 012-2h4z" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 3v4M16 3v4M4 10h16" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 5-3 7-7 9-4-2-7-4-7-9V6z" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M21 3L10 14M21 3l-7 18-4-7-7-4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v3M12 18v3M4.5 7.5l2 2M17.5 14.5l2 2M3 12h3M18 12h3M4.5 16.5l2-2M17.5 9.5l2-2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 12l5 5L20 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l9 17H3z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 9v5M12 17v.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-branch" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="6" cy="18" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="18" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6 8.4v7.2M8.4 6h4.2a3 3 0 013 3v.6" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-img" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="10" r="1.4" fill="currentColor"/><path d="M4 17l5-5 4 4 3-3 4 4" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M16 10l5-3v10l-5-3z" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-math" viewBox="0 0 24 24"><path d="M5 5h6l4 7 4-7M5 19h6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M15 12v7M11.5 15.5h7" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-bold" viewBox="0 0 24 24"><path d="M7 4h6a4 4 0 010 8H7zM7 12h7a4 4 0 010 8H7z" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+  <symbol id="i-italic" viewBox="0 0 24 24"><path d="M10 4h8M6 20h8M14 4l-4 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14l4-4M8.5 12.5l-2 2a3 3 0 004.2 4.2l2-2M15.5 11.5l2-2a3 3 0 00-4.2-4.2l-2 2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6v.01M4 12v.01M4 18v.01" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 10h18M9 10v9M15 10v9" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-quote" viewBox="0 0 24 24"><path d="M7 7h6v6H7zM7 13c0 3-2 4-4 4M15 7h6v6h-6zM15 13c0 3-2 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6h6l2 3h10v10H3z" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-panel-left" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 4v16" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-panel-right" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M15 4v16" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v3M12 18v3M4.5 7.5l2 2M17.5 14.5l2 2M3 12h3M18 12h3M4.5 16.5l2-2M17.5 9.5l2-2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+</svg>
+
+<div class="app">
+  <header class="topbar">
+    <a class="brand" href="#"><svg class="logo"><use href="#i-box"/></svg>Rust嵌入式探讨 <small>写作台</small></a>
+    <div class="type-select">文章 <svg><use href="#i-chev"/></svg></div>
+
+    <details class="contract">
+      <summary><span class="dot ok"></span>契约 <svg class="caret"><use href="#i-chev"/></svg></summary>
+      <div class="pop">
+        <div class="row"><svg class="ok"><use href="#i-check"/></svg>BlogPost · 字段齐全</div>
+        <div class="row"><svg class="ok"><use href="#i-check"/></svg>附件 1 · 链接可达</div>
+        <div class="row"><svg class="warn"><use href="#i-alert"/></svg>缺 license · 将用站点默认</div>
+        <div class="row link">查看契约全文 →</div>
+      </div>
+    </details>
+
+    <span class="chip branch"><svg><use href="#i-branch"/></svg>post/board-flash</span>
+    <div class="spacer"></div>
+    <div class="actions">
+      <button class="btn" title="确认写入"><svg><use href="#i-check"/></svg><span>确认写入</span></button>
+      <button class="btn" title="预览"><svg><use href="#i-eye"/></svg><span>预览</span></button>
+      <button class="btn primary" title="提交 PR"><svg><use href="#i-send"/></svg><span>提交 PR</span></button>
+      <a class="icon-btn" href="settings.html" title="设置"><svg><use href="#i-settings"/></svg></a>
+    </div>
+  </header>
+
+  <div class="main">
+    <aside class="pane tree">
+      <div class="pane-head">
+        <span>内容</span>
+        <button class="icon-btn tiny" title="收起左栏"><svg><use href="#i-panel-left"/></svg></button>
+      </div>
+      <div class="search"><svg><use href="#i-search"/></svg><input placeholder="搜索内容…"></div>
+      <div class="tree-actions">
+        <a class="btn new-btn" href="new.html"><svg><use href="#i-plus"/></svg><span>新建</span></a>
+      </div>
+
+      <div class="group">
+        <div class="group-h"><svg class="caret"><use href="#i-chev"/></svg>草稿<span class="count">1</span></div>
+        <a class="item"><svg><use href="#i-doc"/></svg>投稿其实很简单</a>
+      </div>
+      <div class="group">
+        <div class="group-h"><svg class="caret"><use href="#i-chev"/></svg>文章 · 2026<span class="count">2</span></div>
+        <a class="item active"><svg><use href="#i-doc"/></svg>从零点亮一块板子<span class="badge m">M</span></a>
+        <a class="item"><svg><use href="#i-doc"/></svg>公式示例<span class="badge u">U</span></a>
+      </div>
+      <div class="group">
+        <div class="group-h"><svg class="caret"><use href="#i-chev"/></svg>词条<span class="count">2</span></div>
+        <a class="item"><svg><use href="#i-hash"/></svg>嵌入式 Rust 工具链</a>
+        <a class="item"><svg><use href="#i-hash"/></svg>probe-rs</a>
+      </div>
+      <div class="group">
+        <div class="group-h"><svg class="caret"><use href="#i-chev"/></svg>成员<span class="count">2</span></div>
+        <a class="item"><svg><use href="#i-users"/></svg>Sal</a>
+        <a class="item"><svg><use href="#i-users"/></svg>CXi</a>
+      </div>
+      <div class="group">
+        <div class="group-h"><svg class="caret"><use href="#i-chev"/></svg>项目<span class="count">2</span></div>
+        <a class="item"><svg><use href="#i-box"/></svg>rec-blog</a>
+        <a class="item"><svg><use href="#i-box"/></svg>sml-sitegen</a>
+      </div>
+      <div class="group">
+        <div class="group-h"><svg class="caret"><use href="#i-chev"/></svg>资源 / 周报 / 文档<span class="count">15</span></div>
+      </div>
+      <div class="group">
+        <div class="group-h"><svg class="caret"><use href="#i-chev"/></svg>契约<span class="count">17</span></div>
+      </div>
+
+      <div class="ctx" id="ctx">
+        <div class="ctx-h">从零点亮一块板子</div>
+        <button>打开</button>
+        <button>重命名…</button>
+        <button>转到草稿</button>
+        <button>复制站内链接</button>
+        <div class="sep"></div>
+        <button class="danger">删除…</button>
+        <div class="ctx-hint">删除会走 PR（git rm），可在合并前撤回</div>
+      </div>
+    </aside>
+
+    <section class="pane editor">
+      <div class="title-row">
+        <div class="title-main">
+          <h1>从零点亮一块板子</h1>
+          <span class="path">content/posts/2026/hello-rec/index.sml</span>
+        </div>
+        <div class="title-side">
+          <span class="chip"><svg><use href="#i-users"/></svg>审核 Sal · CXi</span>
+          <span class="chip"><svg><use href="#i-branch"/></svg>→ master</span>
+        </div>
+      </div>
+
+      <details class="meta">
+        <summary>
+          <svg class="caret"><use href="#i-chev"/></svg>
+          <b>元数据</b>
+          <span class="meta-sum">sal · 2026-09-19 · #rust #embedded · 导图开</span>
+        </summary>
+        <div class="field-grid">
+          <div class="field"><label>标题 title</label><input value="从零点亮一块板子：probe-rs + Rust 的第一步"></div>
+          <div class="field"><label>作者 author</label><input value="sal"></div>
+          <div class="field"><label>日期 date</label><input value="2026-09-19"></div>
+          <div class="field"><label>标签 tags</label><div class="chips"><span class="chip">rust<span class="x">×</span></span><span class="chip">embedded<span class="x">×</span></span><span class="chip">+ 添加</span></div></div>
+          <div class="field wide"><label>摘要 summary</label><input value="不讲大道理，先把程序烧进去：probe-rs 安装、连接、烧录、打日志的完整最小路径。"></div>
+          <div class="field"><label>导图 map</label><input value="true"></div>
+          <div class="field"><label>系列 series · 可选</label><input value="rust-embedded-101 · 第 1 篇" placeholder="系列 id · 顺序"></div>
+        </div>
+      </details>
+
+      <div class="editor-card">
+        <div class="toolbar">
+          <button class="tool" title="粗体"><svg><use href="#i-bold"/></svg><span>粗体</span></button>
+          <button class="tool" title="斜体"><svg><use href="#i-italic"/></svg><span>斜体</span></button>
+          <button class="tool" title="代码"><svg><use href="#i-code"/></svg><span>代码</span></button>
+          <span class="sep"></span>
+          <button class="tool" title="链接"><svg><use href="#i-link"/></svg><span>链接</span></button>
+          <button class="tool" title="图片"><svg><use href="#i-img"/></svg><span>图片</span></button>
+          <button class="tool" title="视频"><svg><use href="#i-video"/></svg><span>视频</span></button>
+          <button class="tool" title="公式"><svg><use href="#i-math"/></svg><span>公式</span></button>
+          <span class="sep"></span>
+          <button class="tool" title="列表"><svg><use href="#i-list"/></svg><span>列表</span></button>
+          <button class="tool" title="表格"><svg><use href="#i-table"/></svg><span>表格</span></button>
+          <button class="tool" title="引用"><svg><use href="#i-quote"/></svg><span>引用</span></button>
+          <span class="hint">图片拖进正文即插入 · 自动存 assets/</span>
+        </div>
+        <div class="editor-body"><span class="h">## 为什么从工具链讲起</span>
+
+嵌入式 Rust 的第一道坎通常不是语言，而是「怎么把东西弄进去」。
+这篇只走一条能跑通的路：装工具 → 连上 → 烧录 → 看日志。
+
+<span class="code">cargo install probe-rs-tools --locked
+rustup target add thumbv7em-none-eabihf</span>
+
+装完用 <span class="m">probe-rs list</span> 确认探针被识别；看不到设备先查驱动，不要先怀疑代码。
+
+![board](assets/board.jpg)
+
+<span class="h">## 烧录与日志</span>
+
+进到工程目录执行：
+
+<span class="code">cargo run --release</span>
+
+若已在 <span class="m">.cargo/config.toml</span> 里配好 runner，这一步会直接烧录并打开 RTT 日志。</div>
+      </div>
+    </section>
+
+    <aside class="pane side">
+      <div class="pane-head">
+        <span>预览 <i class="state">待生成</i></span>
+        <button class="icon-btn tiny" title="收起右栏"><svg><use href="#i-panel-right"/></svg></button>
+      </div>
+      <div class="preview">
+        <p class="kicker">文章库 › 从零点亮一块板子</p>
+        <h3>从零点亮一块板子：probe-rs + Rust 的第一步</h3>
+        <p class="lede">不讲大道理，先把程序烧进去：probe-rs 安装、连接、烧录、打日志的完整最小路径。</p>
+        <p><b>为什么从工具链讲起</b></p>
+        <p>嵌入式 Rust 的第一道坎通常不是语言，而是「怎么把东西弄进去」。</p>
+        <p class="math">∫₀¹ x² dx = 1/3</p>
+        <p class="muted">点顶栏「预览」生成完整页面</p>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="statusbar">
+    <span class="mono">content/posts/2026/hello-rec/index.sml</span>
+    <span>569 字</span>
+    <span class="ok">已保存</span>
+    <span class="changes">改动 2 · 未提交</span>
+    <span class="spacer"></span>
+    <span>构建 <b class="ok">✓</b></span>
+    <span>日志 ▸</span>
+  </footer>
+</div>
+<script>if (location.hash.includes('dark')) document.body.classList.add('dark');
+if (location.hash.includes('labels')) document.body.classList.add('labels');
+if (location.hash.includes('menu')) { var c = document.getElementById('ctx'); if (c) c.classList.add('on'); }</script>
+</body>
+</html>

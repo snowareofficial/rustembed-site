@@ -245,3 +245,36 @@ esource: <资源 id>，构建期按 id 解析出 url 与 提取码；
 
 - CI / 部署状态面板（PR 之后的构建、Cloudflare 发布进度）——M3 之后再评估；
 - 在线多人协作、评论/逐行 diff（保留跳 Gitee）。
+
+## 20. 分发：cargo 安装 / 更新
+
+目标：`cargo install` 一条命令拿到可用的写作台，`--force` 即更新。
+
+```bash
+# 首次
+cargo install --git https://gitee.com/rustembed/site --branch master rec-blog-gui
+# 更新（重装即更新二进制）
+cargo install --force --git https://gitee.com/rustembed/site --branch master rec-blog-gui
+rec-blog update          # 顺带 git pull 引擎（不重编译）
+```
+
+结构：
+
+- **crate `rec-blog-gui`，二进制 `rec-blog`**：Rust 启动器 + 内置 Web UI（`include_dir!`）+ 本地 HTTP 服务；
+- **UI 不归 Rust**：Rust 只做静态托管、API 反代、进程守护、钥匙串、打开浏览器/窗口；
+- **引擎仍是 Python**：`rec-blog` 启动 `python3 engine/gui.py --port 0 --token <random>`，
+  读 stdout 握手拿端口，浏览器只访问 Rust 的单一入口（同源、无 CORS）；
+- 引擎目录：`REC_BLOG_SITE` 环境变量优先；否则 `~/.local/share/rec-blog/site`
+  （首次运行 `git clone --depth 1` Gitee，失败则提示下载 zip）；
+- **Tauri 可选**：同一 crate 的 `--features desktop` 打开原生窗口；默认 `cargo install` 是浏览器模式；
+- 版本：`rec-blog --version` 打印 crate 版本 + 引擎 commit；`rec-blog update` 拉引擎并提示重装命令。
+
+## 21. 令牌纪律（硬性）
+
+- **严禁明文保存**：不写配置文件、不写日志、不进 URL、不进剪贴板历史、不落仓库；
+- 只允许两种位置：**系统钥匙串**（Windows Credential Manager / macOS Keychain / libsecret）
+  或**进程内存**（仅本次会话）；
+- 钥匙串不可用 → 自动退化为「仅本次会话」，**不得**回退到文件；
+- 「清除登录痕迹」必须删除钥匙串条目、最近文件、预览/构建缓存、日志；
+  并在界面注明「git 自身保存的凭证不在本 App 管辖范围」；
+- 日志与崩溃报告统一脱敏：token 一律替换为 `***`。
