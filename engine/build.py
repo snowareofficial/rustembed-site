@@ -21,6 +21,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import urls  # noqa: E402  (依赖上一行把 engine/lib 放进 sys.path)
+
 # fontTools 作为仓库组件 vendored 在 engine/vendor（不依赖 pip 安装）
 VENDOR_DIR = Path(__file__).resolve().parent / "vendor"
 if VENDOR_DIR.is_dir():
@@ -386,13 +388,18 @@ def build_projects(rep, cache, offline):
         if not apply_contract(rep, where, d, "project"):
             check_req(rep, "project", where, d)
         pid = f.stem
-        repo_url = sml.as_str(d.get("repo"))
+        repo_url = urls.safe_url(sml.as_str(d.get("repo")))
+        if sml.as_str(d.get("repo")) and not repo_url:
+            rep.warn(where, "repo 不在协议白名单内，已忽略：%s" % d.get("repo"))
+        homepage = urls.safe_url(sml.as_str(d.get("homepage", "")))
+        if sml.as_str(d.get("homepage", "")) and not homepage:
+            rep.warn(where, "homepage 不在协议白名单内，已忽略")
         item = {
             "id": pid,
             "name": sml.as_str(d.get("name")),
             "one_liner": sml.as_str(d.get("one_liner")),
             "repo": repo_url,
-            "homepage": sml.as_str(d.get("homepage", "")),
+            "homepage": homepage,
             "languages": [sml.as_str(x) for x in as_list(d.get("languages"))],
             "platforms": [sml.as_str(x) for x in as_list(d.get("platforms"))],
             "status": sml.as_str(d.get("status")),
@@ -510,8 +517,8 @@ def build_members(rep):
             "signature": sml.as_str(d.get("signature", "")),
             "role": sml.as_str(d.get("role", "群友")),
             "skills": [sml.as_str(x) for x in as_list(d.get("skills"))],
-            "links": {k: sml.as_str(v) for k, v in links.items()
-                      if not k.startswith("__") and sml.as_str(v)},
+            "links": {k: safe for k, v in links.items()
+                      if not k.startswith("__") and (safe := urls.safe_url(sml.as_str(v)))},
             "joined": sml.as_str(d.get("joined", "")),
             "file": where,
         })
@@ -613,7 +620,11 @@ def build_simple(kind, rep, cache=None, offline=False):
             "file": where,
         }
         if kind == "resources":
-            url = sml.as_str(d.get("url"))
+            raw_url = sml.as_str(d.get("url"))
+            url = urls.safe_url(raw_url)
+            if raw_url and not url:
+                rep.warn(where, "资源 url 不在协议白名单内，已跳过：%s" % raw_url)
+                continue
             kindv = sml.as_str(d.get("kind", "")).lower()
             meta = None
             if cache is not None and kindv in ("tool", "repo", "framework") and repo_meta.detect(url)[0]:
@@ -642,7 +653,7 @@ def build_simple(kind, rep, cache=None, offline=False):
                 "html": "pages/%s.html" % f.stem,
                 "group": sml.as_str(d.get("group", "其它")),
                 "order": d.get("order") if isinstance(d.get("order"), int) else 999,
-                "group_link": sml.as_str(d.get("group_link", "")),
+                "group_link": urls.safe_url(sml.as_str(d.get("group_link", ""))),
             })
             out.append((base, d, ctx, f))
             continue
@@ -1184,19 +1195,19 @@ def main():
             "tagline": sml.as_str(site.get("tagline", "")),
             "url": args.base_url or sml.as_str(site.get("url", "https://rec-blog.swebase.cn")),
             "domains": [sml.as_str(x) for x in as_list(site.get("domains"))],
-            "repo_url": sml.as_str(site.get("repo_url", "")),
-            "repo_mirror": sml.as_str(site.get("repo_mirror", "")),
+            "repo_url": urls.safe_url(sml.as_str(site.get("repo_url", ""))),
+            "repo_mirror": urls.safe_url(sml.as_str(site.get("repo_mirror", ""))),
             "license": sml.as_str(site.get("default_license", "")),
             "announcement": sml.as_str(site.get("announcement", "")),
             "nav": [sml.as_str(x) for x in as_list(site.get("nav"))] or [
                 "library", "knowledge", "topics", "projects", "resources", "members",
                 "weekly", "pages", "join"],
-            "avatar": avatar,
+            "avatar": urls.safe_url(avatar),
             "group": {
                 "name": sml.as_str(group.get("name", sml.as_str(site.get("title")))),
                 "qq": sml.as_str(group.get("qq", "")),
                 "join": sml.as_str(group.get("join", "")),
-                "join_url": sml.as_str(group.get("join_url", "")),
+                "join_url": urls.safe_url(sml.as_str(group.get("join_url", ""))),
                 "intro": sml.as_str(group.get("intro", "")),
                 "rules": [sml.as_str(x) for x in as_list(group.get("rules"))],
                 "features": [sml.as_str(x) for x in as_list(group.get("features"))],
@@ -1330,13 +1341,13 @@ def main():
     (out / "llms-full.txt").write_text("\n".join(F), encoding="utf-8")
 
     base_url = manifest["site"]["url"].rstrip("/")
-    urls = [base_url + "/"] + [base_url + "/#/post/" + p["slug"] for p in posts] + \
+    sitemap_urls = [base_url + "/"] + [base_url + "/#/post/" + p["slug"] for p in posts] + \
            [base_url + "/#/projects"] + [base_url + "/#/member/" + m["id"] for m in members] + \
            [base_url + "/#/services"] + [base_url + "/#/service/" + s["id"] for s in services] + \
            [base_url + "/#/resources"] + [base_url + "/#/group"] + \
            [base_url + "/#/topic/" + t["id"] for t in topics]
     sm = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
-    for u in urls:
+    for u in sitemap_urls:
         sm.append("  <url><loc>%s</loc></url>" % esc(u))
     sm.append("</urlset>")
     (out / "sitemap.xml").write_text("\n".join(sm), encoding="utf-8")

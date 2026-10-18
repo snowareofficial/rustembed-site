@@ -537,6 +537,33 @@ def test_assets_generator():
          "\n  MD : %s\n  SML: %s" % (pm, ps))
 
 
+def test_url_allowlist():
+    print("[9] URL 协议白名单（href/src）")
+    bad = [
+        "javascript:alert",
+        "JavaScript:alert",
+        "data:text/html,x",
+        "vbscript:msgbox",
+        "//evil.example/x",
+        "java\nscript:alert",
+    ]
+    for b in bad:
+        label = b.replace("\n", "\\n")[:24]
+        html = R.inline("{link:%s|点我}" % b)
+        case("inline 拒绝 %s" % label, "href=" not in html and "javascript" not in html.lower(), html)
+        html_md, _ = md.render("[点我](%s)\n" % b)
+        case("markdown 链接拒绝 %s" % label, "href=" not in html_md and "javascript" not in html_md.lower(), html_md)
+        html_img, _ = md.render("![x](%s)\n" % b)
+        case("markdown 图片拒绝 %s" % label, "<img" not in html_img and "javascript" not in html_img.lower(), html_img)
+
+    safe = R.inline("{link:https://example.com|ok}")
+    case("https 链接保留", 'href="https://example.com"' in safe, safe)
+    case("SML a 块拒绝", "href=" not in R.render(
+        [{"__type": "a", "href": "javascript:alert", "text": "x"}], R.Ctx()))
+    case("SML img 块拒绝", "<img" not in R.render(
+        [{"__type": "img", "src": "javascript:alert", "alt": "x"}], R.Ctx()))
+
+
 def main():
     print("== rec-blog 渲染安全回归 ==")
     test_contract_page_escaping()
@@ -548,6 +575,7 @@ def main():
     test_unescaped_check()
     test_code_block_consistency()
     test_assets_generator()
+    test_url_allowlist()
     print("\n%d 项断言" % COUNT[0])
     if FAILS:
         print("失败 %d 项：" % len(FAILS))

@@ -136,15 +136,23 @@ def md_inline(s):
     def img(m):
         alt, src = m.group(1), m.group(2)
         cap = m.group(3)
+        safe = R.urls.safe_url(src)
+        if not safe:
+            return alt or ""
         # src/alt 都来自本函数开头已整体转义过的 s，这里再 esc 一次会把 & 变成 &amp;amp;
-        tag = '<img src="%s" alt="%s" loading="lazy">' % (src, alt)
+        tag = '<img src="%s" alt="%s" loading="lazy">' % (safe, alt)
         if cap:
             return '<figure>%s<figcaption>%s</figcaption></figure>' % (tag, cap)
         return tag
 
+    def link(m):
+        safe = R.urls.safe_url(m.group(2))
+        if not safe:
+            return m.group(1)
+        return '<a href="%s" target="_blank" rel="nofollow noopener">%s</a>' % (safe, m.group(1))
+
     s = re.sub(r"!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;([^&]*)&quot;)?\)", img, s)
-    s = re.sub(r"\[([^\]]+)\]\(([^)\s]+)\)",
-               lambda m: '<a href="%s" target="_blank" rel="nofollow noopener">%s</a>' % (m.group(2), m.group(1)), s)
+    s = re.sub(r"\[([^\]]+)\]\(([^)\s]+)\)", link, s)
     s = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", s)
     s = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"<em>\1</em>", s)
     s = re.sub(r"~~([^~]+)~~", r"<del>\1</del>", s)
@@ -294,6 +302,10 @@ def render(text, ctx=None, level=1):
                 img_match = re.match(r"^!\[([^\]]*)\]\(([^)\s]+)(?:\s+\"([^\"]*)\")?\)\s*$", img_line)
                 if img_match:
                     alt, src, caption = img_match.groups()
+                    src = R.urls.safe_url(src)
+                    if not src:
+                        print("警告：shot 的图片地址不在协议白名单内，已省略", file=sys.stderr)
+                        continue
                     caption = caption or ""
                     img = '<img src="%s" alt="%s" loading="lazy">' % (R.esc(src), R.esc(alt))
                     open_tag = '<figure class="full">' if full else "<figure>"
@@ -322,6 +334,10 @@ def render(text, ctx=None, level=1):
                     img_match = re.match(r"^!\[([^\]]*)\]\(([^)\s]+)(?:\s+\"([^\"]*)\")?\)\s*$", img_line)
                     if img_match:
                         alt, src, caption = img_match.groups()
+                        src = R.urls.safe_url(src)
+                        if not src:
+                            print("警告：gallery 的图片地址不在协议白名单内，已跳过", file=sys.stderr)
+                            continue
                         caption = caption or ""
                         img = '<img src="%s" alt="%s" loading="lazy">' % (R.esc(src), R.esc(alt))
                         if caption:

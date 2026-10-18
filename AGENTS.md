@@ -14,19 +14,27 @@ engine 与站点内容完全解耦：换 `site/` 目录即可复用到别的站�
 
 ```
 rec-blog/
+├─ gui/                    写作台（Rust 启动器 + 内嵌 Web UI；cargo install rec-blog-gui）
+│  ├─ src/                 args / engine / assets / server / session / main
+│  └─ assets/              index / login / settings + app.js + style.css（由 docs/gui-mock 改造）
 ├─ engine/                 可复用工具体系（不认识任何具体内容，只认目录约定）
 │  ├─ config.py            站点定位：SITE/CONTENT/THEME/OUT/CACHE 路径约定；--site 参数
 │  ├─ build.py             构建主流程：校验 → manifest → 预渲染 → 索引/RSS/sitemap/llms/字体子集
 │  ├─ check.py             产物自检不变量（CI 用）；只读 dist/、不比对源码时间戳，dist/ 缺失直接退出
 │  ├─ cli.py               命令行入口：new / list / contracts / build / check / test / preview
 │  ├─ test_contracts.py    契约引擎自测（错误码语义，对齐 SML 上游 sml-codes）
-│  ├─ test_render_safety.py 渲染安全回归（契约页转义 / 内联角色 / 嵌套列表 / --out 守卫）
+│  ├─ test_render_safety.py 渲染安全回归（契约页转义 / 内联角色 / 嵌套列表 / --out 守卫 / URL 白名单）
 │  ├─ preview.py           本地静态服务（后台运行 + 日志，默认 127.0.0.1:8080）
+│  ├─ gui.py               写作台 API 入口（--port/--site；GUI_TOKEN；stdout 打印 GUI_PORT=）
+│  ├─ gui_api.py           写作台 /api/*：树 / 文档读写 / 校验 / 预览 / 新建 / 资源 / PR
+│  ├─ ai_summarize.py      AI 摘要（OpenAI 兼容；写 summaries/<slug>.json）
+│  ├─ verify_parity.py     内置 / 原生 SML 后端一致性校验
 │  ├─ fonts_import.py      从字体包挑权重到 site/fonts/src/（不整包解压）
 │  ├─ git_ready.py         入库前检查 / 本地提交（不 push；大文件与忽略规则检查）
 │  ├─ native/sml.dll       SML 原生加速载体。engine/native/ 已 gitignore：干净克隆没有它，
 │  │                       自动回退内置解析器（零依赖，CI 不装 Rust）；可用 SML_LIB /
 │  │                       REC_BLOG_SML_LIB 环境变量指定库路径
+│  ├─ vendor/              vendored fontTools / latex2mathml（构建期，不 pip）
 │  └─ lib/
 │     ├─ sml.py            SML 子集解析器（片段 &、契约 @contract/@is；builtin/native 双后端，可改）
 │     ├─ _swsml.py         SML 原生绑定：vendored from swsml 0.6.4（MulanPSL-2.0）。别就地
@@ -35,6 +43,9 @@ rec-blog/
 │     ├─ render.py         SML 块 → HTML（内联角色、B 站视频白名单）
 │     ├─ contract.py       契约校验（E-CONTRACT-001–006、008；007 在码表里不存在）
 │     ├─ mindmap.py        导图 SVG 生成（整齐树布局）
+│     ├─ mathml.py         LaTeX → MathML（构建期；失败回退 math-raw）
+│     ├─ summary.py        摘要：优先 summaries/*.json，否则抽取式
+│     ├─ urls.py           URL 协议白名单（http/https/mailto/tel、#、相对路径）
 │     └─ repo_meta.py      仓库元数据抓取（GitHub/Gitee/Codeberg/Gitea）+ 缓存
 ├─ site/                   站点本身（换站点只换这个目录）
 │  ├─ content/
@@ -52,10 +63,15 @@ rec-blog/
 │  ├─ fonts/               自托管 MiSans 子集：src/ 放源字体（已 gitignore，15 MB×2）；
 │  │                       subset/ 子集入库（约 127 KB×2，CI 直接复用）；许可随产物发布
 │  └─ meta/repos.json      仓库元数据缓存（入库）
-├─ docs/                   ARCHITECTURE / DEPLOY / FONTS / GOVERNANCE / ROADMAP
+├─ tests/                  smoke.js / browser-check.js / gui_api_test.py / dom-stub.js
+├─ deploy/                 自托管：entrypoint / build / rebuild / gitee-webhook / fonts-crypt
+├─ docs/                   ARCHITECTURE / DEPLOY / FONTS / GOVERNANCE / ROADMAP /
+│                          WORKFLOW / SELF-HOST / GUI / GUI-FLOWS / GUI-IMPLEMENT-PROMPT
+├─ Cargo.toml / Cargo.lock  Rust workspace（members=["gui"]）
+├─ Dockerfile / .dockerignore
 ├─ dist/                   构建产物（gitignore；固定输出到 <repo>/dist）
 ├─ LICENSE / LICENSE-CONTENT / CONTRIBUTING.md
-├─ .github/                CI（build.yml 四步门禁 + sync-from-gitee.yml 镜像）+ PR 模板（无 Issue 模板）—— 勿动
+├─ .github/                CI（build.yml 门禁 + publish-pages.yml 发布 + sync-from-gitee.yml）+ PR 模板
 └─ .gitee/                 Gitee（权威源，PR/Issue 落地点）的 PR/Issue 模板
 ```
 
@@ -73,10 +89,12 @@ site/content/**/*.(md|sml)
 
 要点：
 - **构建期对全部用户内容做 HTML 转义**（render/markdown 出口统一 esc），前端仍不信任任何投稿文本。
-  但**没有 URL 协议白名单**：`{link:}` 内联角色、SML `a`/`img` 块、Markdown `[x](url)`/`![alt](src)`
-  五处出口都不校验协议，`javascript:` / `data:` 会原样进 href/src（实测：
-  `render.inline('{link:javascript:alert(1)}')` → `<a href="javascript:alert(1)">`）。
-  新增任何拼 href/src 的代码必须加协议白名单（http/https/mailto…）——这是当前最大的安全缺口。
+- **URL 协议白名单已落地**（`engine/lib/urls.py`）：只放行 http / https / mailto / tel、
+  页内 `#` 锚点与相对路径；`javascript:` / `data:` / `vbscript:` / `file:` / 协议相对 `//host` 一律拒绝。
+  已覆盖五处出口：`{link:}`、SML `a`/`img`（含 shot/gallery）、Markdown 链接与图片；
+  构建期还会清洗 projects（repo/homepage）、members.links、resources.url、pages.group_link、
+  site.avatar/repo_url 与 group.join_url。新增任何拼 href/src 的代码必须调用 `urls.safe_url()`；
+  回归在 `engine/test_render_safety.py` 第 [9] 组（含 `//evil`、控制字符、大小写混淆）。
 - manifest 是前端唯一数据源；新增内容类型 = 新增 manifest 键 + app.js 路由/视图。
 - 站点默认许可 CC BY-NC-SA 4.0（`site.sml: default_license`），llms.txt/页脚都会引用。
 - `search-index.json` 的正文在构建期就被截断：每篇取 `p["_text"][:4000]`（`build.py:1034`），

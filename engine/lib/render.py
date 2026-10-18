@@ -10,6 +10,7 @@ import html
 import mathml
 import re
 import sys
+import urls
 
 QUOTE_ENT = "&quot;"
 
@@ -89,8 +90,12 @@ def _role(inner):
             url, text = arg.split("|", 1)
         else:
             url = text = arg
+        raw = html.unescape(url.strip())
+        safe = urls.safe_url(raw)
+        if not safe:
+            return text.strip()
         return '<a href="%s" target="_blank" rel="nofollow noopener">%s</a>' % (
-            url.strip(), text.strip())
+            esc(safe), text.strip())
     return None
 
 
@@ -257,16 +262,22 @@ def render(v, ctx=None, level=0):
         return "".join(out)
 
     if t == "img":
-        src = v.get("src") or v.get("url") or ""
+        src = urls.safe_url(v.get("src") or v.get("url") or "")
         alt = v.get("alt") or ""
         cap = v.get("caption")
+        if not src:
+            if ctx is not None and hasattr(ctx, "warnings"):
+                ctx.warnings.append("img 的地址不在协议白名单内，已省略")
+            return '<p class="muted">（图片已省略）</p>\n'
         img = '<img src="%s" alt="%s" loading="lazy">' % (esc(src), esc(alt))
         if isinstance(cap, str) and cap:
             return '<figure>%s<figcaption>%s</figcaption></figure>\n' % (img, inline(cap))
         return "<p>%s</p>\n" % img
 
     if t == "a":
-        href = v.get("href") or v.get("url") or ""
+        href = urls.safe_url(v.get("href") or v.get("url") or "")
+        if not href:
+            return "<p>%s</p>\n" % inline(_text_of(v))
         return '<p><a href="%s" target="_blank" rel="nofollow noopener">%s</a></p>\n' % (
             esc(href), inline(_text_of(v) or href))
 
@@ -315,10 +326,14 @@ def render(v, ctx=None, level=0):
         return "<ol class=\"steps\">\n%s</ol>\n" % lis
 
     if t == "shot":
-        src = v.get("src") or v.get("url") or ""
+        src = urls.safe_url(v.get("src") or v.get("url") or "")
         alt = v.get("alt") or ""
         cap = v.get("caption")
         full = bool(v.get("full"))
+        if not src:
+            if ctx is not None and hasattr(ctx, "warnings"):
+                ctx.warnings.append("shot 的地址不在协议白名单内，已省略")
+            return '<p class="muted">（图片已省略）</p>\n'
         img = '<img src="%s" alt="%s" loading="lazy">' % (esc(src), esc(alt))
         open_tag = '<figure class="full">' if full else "<figure>"
         if isinstance(cap, str) and cap:
@@ -333,9 +348,13 @@ def render(v, ctx=None, level=0):
         figs = []
         for item in items:
             if isinstance(item, dict) and item.get("__type") == "img":
-                src = item.get("src") or item.get("url") or ""
+                src = urls.safe_url(item.get("src") or item.get("url") or "")
                 alt = item.get("alt") or ""
                 cap = item.get("caption")
+                if not src:
+                    if ctx is not None and hasattr(ctx, "warnings"):
+                        ctx.warnings.append("gallery 里有图片地址不在协议白名单内，已跳过")
+                    continue
                 img = '<img src="%s" alt="%s" loading="lazy">' % (esc(src), esc(alt))
                 if isinstance(cap, str) and cap:
                     figs.append('<figure>%s<figcaption>%s</figcaption></figure>\n' % (img, inline(cap)))
