@@ -1,0 +1,40 @@
+[package]
+name = "rec-blog-gui"
+version = "0.1.0"
+edition = "2021"
+description = "rec-blog 写作台启动器：内嵌 Web UI、本地 API 反代、Python 引擎进程守护"
+default-run = "rec-blog"
+
+# 二进制名固定为 rec-blog（cargo install --git ... rec-blog-gui 后可用 rec-blog 唤起）
+[[bin]]
+name = "rec-blog"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+axum = "0.8"
+clap = { version = "4", features = ["derive"] }
+include_dir = "0.7"
+open = "5"
+rand = "0.8"
+reqwest = { version = "0.12", default-features = false, features = [
+    "rustls-tls",
+    "json",
+    "stream",
+] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = [
+    "macros",
+    "rt-multi-thread",
+    "signal",
+    "process",
+    "time",
+    "io-util",
+] }
+
+# desktop 特性（Tauri 系统 WebView）在 M3 接上 tauri，见 docs/GUI-IMPLEMENT-PROMPT.md §6。
+# 当前是空特性：--desktop 会提示「未编译该特性」并降级为打开浏览器。
+[features]
+default = []
+desktop = []

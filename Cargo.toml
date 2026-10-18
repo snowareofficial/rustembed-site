@@ -1,0 +1,5 @@
+# 仓库根 workspace：只承载 gui/（写作台启动器）。
+# 引擎仍是 Python（engine/），Rust 不参与解析/渲染/契约。
+[workspace]
+members = ["gui"]
+resolver = "2"
