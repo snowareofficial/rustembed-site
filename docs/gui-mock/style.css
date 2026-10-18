@@ -231,11 +231,9 @@ body.dark .btn.primary{color:var(--accent-ink)}
 .switch input{accent-color:var(--accent)}
 
 /* 按钮默认仅图标；body.labels 时才显示文字（设置里可切换） */
-body:not(.labels) .topbar .actions .btn span{display:none}
-body:not(.labels) .topbar .actions .btn{width:2.15rem;height:2rem;justify-content:center;padding:0}
+/* 顶部动作：默认显示文字（不常用、且提交/写入有风险）；编辑器工具：默认只图标 */
 body:not(.labels) .editor-card .tool span{display:none}
 body:not(.labels) .editor-card .tool{width:1.75rem;padding:0;justify-content:center}
-body.labels .topbar .actions .btn span,
 body.labels .editor-card .tool span{display:inline}
 
 /* chip 里的 SVG 必须约束尺寸（否则默认 300×150 撑爆布局） */

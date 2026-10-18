@@ -34,7 +34,7 @@ cargo install rec-blog-gui  →  二进制 rec-blog
         │     ├─ 静态资源 /
         │     └─ /api/* 反代到 Python 引擎（同源，无 CORS）
         │
-        ├─ 启动 Python 引擎：python3 engine/gui.py --port 0 --token <random>
+        ├─ 启动 Python 引擎：python3 engine/gui.py --port 0（会话密钥用环境变量 GUI_TOKEN 传，不放 argv）
         │     （stdout 握手 `GUI_PORT=xxxxx`；Rust 读到后开始服务）
         │
         ├─ 钥匙串：token 只进系统钥匙串或内存（绝不落盘明文）
@@ -191,6 +191,12 @@ GUI 专属测试（`tests/gui_api_test.py`，标准库 `urllib` 起服务即可�
 - `cargo install --path gui` 后 `rec-blog` 能起、能打开 UI；
 - 新建 → 写 → 预览 → 保存 → `build` 通过；
 - 右栏、登录、设置、资源选择与 `docs/gui-mock` 视觉一致（或差异有说明）。
+
+## 7.5 协作模型（fork）
+
+- 有写权限：推 `origin` 分支 → PR；
+- 无写权限：先 `POST /repos/{owner}/{repo}/forks`，推自己的 fork，PR `head=<user>:<branch>`；
+- push 403 时 UI 提供「Fork 后提交」；API 失败保留分支并给 compare 链接，不 force。
 
 ## 8. 非目标（不要做）
 
