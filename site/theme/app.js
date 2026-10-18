@@ -689,6 +689,43 @@
     return s;
   }
 
+  /* 提取码：只当文本展示，点一下写剪贴板 + toast（不拼进 href/src） */
+  function copyText(text) {
+    var okMsg = '已复制提取码：' + text;
+    var failMsg = '复制失败，提取码：' + text;
+    if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { toast(okMsg); },
+        function () { toast(failMsg); });
+    } else {
+      toast(failMsg);
+    }
+  }
+
+  function toast(msg) {
+    if (!document.body) return;
+    var box = el('div', 'toast', msg);
+    document.body.appendChild(box);
+    setTimeout(function () {
+      if (box.parentNode) box.parentNode.removeChild(box);
+    }, 2200);
+  }
+
+  function codeChip(code) {
+    code = String(code === undefined || code === null ? '' : code).trim();
+    if (!code) return null;
+    var btn = el('button', 'code-chip', '提取码 ' + code + ' · 复制');
+    btn.setAttribute('type', 'button');
+    btn.setAttribute('data-code', code);
+    btn.setAttribute('title', '复制提取码');
+    if (btn.addEventListener) {
+      btn.addEventListener('click', function (ev) {
+        if (ev && ev.preventDefault) ev.preventDefault();
+        copyText(this.getAttribute('data-code'));
+      });
+    }
+    return btn;
+  }
+
   function attachCard(at) {
     var li = el('li', 'attach-card');
     li.appendChild(fileIcon(at.url, at.kind));
@@ -710,6 +747,8 @@
     } else {
       li.appendChild(el('span', 'muted', '链接无效'));
     }
+    var chip = codeChip(at.code);
+    if (chip) li.appendChild(chip);
     return li;
   }
 
@@ -1173,6 +1212,8 @@
     if (meta.stars !== null && meta.stars !== undefined) {
       tags.appendChild(document.createTextNode(' · ★' + num(meta.stars)));
     }
+    var chip = codeChip(r.code);
+    if (chip) tags.appendChild(chip);
     li.appendChild(tags);
     return li;
   }
@@ -2250,6 +2291,8 @@
     window.__rec = {
       S: S, VIEWS: VIEWS, render: render, boot: boot, started: started,
       relGraph: relGraph, langBar: langBar, safeUrl: safeUrl,
+      attachCard: attachCard, resourceRow: resourceRow, codeChip: codeChip,
+      copyText: copyText, toast: toast,
       buildSiteNav: buildSiteNav, buildToc: buildToc, route: route,
       viewLibrary: viewLibrary, viewPost: viewPost, viewTopic: viewTopic,
       viewProject: viewProject, viewMember: viewMember, viewService: viewService,
