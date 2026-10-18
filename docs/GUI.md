@@ -99,7 +99,7 @@
 ```
 engine/gui.py          # stdlib http.server，127.0.0.1:8788，单进程
 engine/gui_api.py      # 路由 + 业务（复用 build/render/contract/cli/git）
-engine/gui_web/        # index.html / app.js / style.css（零构建）
+gui/assets/        # index.html / app.js / style.css（零构建）
 ```
 
 API：

@@ -32,38 +32,32 @@
   when: When optional
 }
 
-@contract Panel {
-  loose
+@contract Panel loose {
   title: str optional      # 面板标题
   text: str optional       # 正文内容
 }
 
-@contract Steps {
-  loose
+@contract Steps loose {
   items: [Para] optional   # 步骤项
 }
 
-@contract Shot {
-  loose
+@contract Shot loose {
   src: str                 # 图片路径
   alt: str optional        # 替代文本
   caption: str optional    # 图注
   full: bool optional      # 是否全宽出血
 }
 
-@contract Gallery {
-  loose
+@contract Gallery loose {
   cols: int optional       # 列数
   items: [Para] optional   # 图片项
 }
 
-@contract Term {
-  loose
+@contract Term loose {
   text: str                # 终端输出文本（逐行保留，行间以 <br> 连接；与 MD :::term 完全一致，不做内联角色替换）
 }
 
-@contract When {
-  loose
+@contract When loose {
   date: str                # 日期（YYYY-MM-DD），渲染进 <span class="when-t">
   text: str                # 事件正文（唯一来源：优先取 text 字段，缺失时取子块渲染结果；与 MD :::when 围栏头之后的正文对齐）
 }
@@ -91,8 +85,7 @@
   group_link: url optional # 该页顶部的行动按钮（如加群链接）
 }
 
-@contract Topic {
-  loose
+@contract Topic loose {
   title: str              # 词条名
   summary: str            # 一句话定义（知识页与词条页用）
   tags: [str] optional    # 同标签的文章会自动归入本词条
@@ -101,8 +94,7 @@
   body: any optional      # 定义、要点、参考资料
 }
 
-@contract Resource {
-  loose
+@contract Resource loose {
   title: str              # 资源名
   kind: enum [ book tutorial tool video course route ]  # 类型
   url: url                # 链接
@@ -133,8 +125,7 @@
   milestones: any optional
 }
 
-@contract Member {
-  loose
+@contract Member loose {
   name: str               # 群昵称
   role: str optional      # 群主 / 管理员 / 群友 …
   avatar: str optional    # 头像文件路径（相对仓库根）
@@ -144,8 +135,7 @@
   links: MemberLinks optional
 }
 
-@contract MemberLinks {
-  loose
+@contract MemberLinks loose {
   blog: url optional
   homepage: url optional
   github: url optional
@@ -168,8 +158,7 @@
   body: any optional      # 详细介绍（SML 块 / Markdown 正文）
 }
 
-@contract Weekly {
-  loose
+@contract Weekly loose {
   period: str             # 期号，如 2026-W38
   title: str              # 本期标题
   highlights: [str] optional

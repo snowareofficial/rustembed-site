@@ -118,6 +118,12 @@ python engine/cli.py preview                            # 构建 + 本地预览
 6. `engine/check.py` 加该类型的不变量；
 7. 需要脚手架时在 `cli.py` 的 `new` 子命令加模板。
 
+**契约语法（与 VS Code 扩展对齐）**：`loose` 写在头部 —— `@contract Name loose { ... }`，
+不要写成契约体里的第一行。Python 内置解析器两种都兼容（`lib/sml.py` 会读头部参数），
+但扩展/上游语法只认头部；体首行写法会让 `.sml` 在编辑器里报
+`sml: 契约字段期望名称, 得 :`。改动契约后可用扩展的 `diagnose()` 扫描一遍：
+`node` 加载 `~/.vscode/extensions/snoware.sml-lang-*/src/sml-parse.mjs` 即可。
+
 已按此流程落地的最新样例：`services`（能力与合作黄页，2026-10-16），
 参考实现 = `build_services()` + `@contract Service` + `viewServices()/viewService()`。
 

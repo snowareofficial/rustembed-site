@@ -274,7 +274,12 @@ class _Parser:
             name = args[0] if args else ""
             self.skip()
             if self.i < self.n and self.s[self.i] == "{":
-                self.contracts[name] = _parse_contract_body(self.raw_block(), name)
+                spec = _parse_contract_body(self.raw_block(), name)
+                # 规范形式是 `@contract Name loose {`（VS Code 扩展/上游语法）；
+                # 体首行 `loose` 也继续兼容。
+                if "loose" in args:
+                    spec["loose"] = True
+                self.contracts[name] = spec
             return head, {"__contract": name}
         self.skip()
         if self.i < self.n and self.s[self.i] == ":":
@@ -577,7 +582,10 @@ def _strip_directives(text):
                 args, is_block = p.scan_tokens()
                 if is_block:
                     name = args[0] if args else ""
-                    contracts[name] = _parse_contract_body(p.raw_block(), name)
+                    spec = _parse_contract_body(p.raw_block(), name)
+                    if "loose" in args:
+                        spec["loose"] = True
+                    contracts[name] = spec
                 _blank(buf, i, p.i)
                 i = p.i
                 continue
