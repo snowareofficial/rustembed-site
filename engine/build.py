@@ -275,8 +275,27 @@ def _localize_assets(html_body, slug, post_dir):
     return fixed, missing
 
 
+def resource_index():
+    """resources/ 的 id → 关键字段，给 Attachment.resource 解析用（构建期，不落 manifest）。"""
+    idx = {}
+    for f in docs_in(CONTENT / "resources"):
+        try:
+            d, _cs = load2(f)
+        except Exception:                       # noqa: BLE001 单篇读不动不该拖垮整站
+            continue
+        idx[f.stem] = {
+            "title": sml.as_str(d.get("title")) or f.stem,
+            "url": urls.safe_url(sml.as_str(d.get("url"))),
+            "code": sml.as_str(d.get("code", "")),
+            "kind": sml.as_str(d.get("kind", "")),
+            "folder": sml.as_str(d.get("folder", "")),
+        }
+    return idx
+
+
 def build_posts(rep, cache, offline):
     posts = []
+    res_index = resource_index()
     for f in docs_in(CONTENT / "posts", "*/*/index.*"):
         rel = f.relative_to(ROOT).as_posix()
         d, cs = load2(f)
@@ -320,10 +339,26 @@ def build_posts(rep, cache, offline):
             url = sml.as_str(pick(a, ["url", "href", "src"], ""))
             kind = sml.as_str(pick(a, ["kind", "type"], "link")).lower()
             size = sml.as_str(a.get("size", ""))
+            code = sml.as_str(a.get("code", ""))
             if kind in ("image", "img", "png", "jpg", "jpeg", "webp", "gif", "svg"):
                 kind = "image"
+            # 引用资源 id：构建期按 id 解析 url / 标题 / 提取码，资源改了附件就跟着变。
+            # 解析不到直接报错，不静默——否则线上会出现没有链接的附件卡。
+            res_id = sml.as_str(a.get("resource", ""))
+            if res_id:
+                r = res_index.get(res_id)
+                if not r:
+                    rep.err(where, "附件引用了不存在的资源 id `%s`（已收录：%s）"
+                            % (res_id, ", ".join(sorted(res_index)) or "无"))
+                    continue
+                url = url or r["url"]
+                name = name or r["title"]
+                code = code or r["code"]
+                if not urls.safe_url(url):
+                    rep.err(where, "附件引用的资源 `%s` 链接不在协议白名单内：%s" % (res_id, r["url"]))
+                    continue
             if not name or not url:
-                rep.err(where, "附件缺少 name 或 url")
+                rep.err(where, "附件缺少 name 或 url（可用 resource 引用资源 id）")
                 continue
             if kind == "image":
                 p = f.parent / url
@@ -342,7 +377,7 @@ def build_posts(rep, cache, offline):
                 if not url.startswith(("http://", "https://")):
                     rep.err(where, "非图片附件必须是 http(s) 外链：%s" % url)
                     continue
-            atts.append({"name": name, "kind": kind, "url": url, "size": size})
+            atts.append({"name": name, "kind": kind, "url": url, "size": size, "code": code})
 
         imgs = 0
         for p in sorted((f.parent / "assets").glob("*")) if (f.parent / "assets").exists() else []:
@@ -652,6 +687,8 @@ def build_simple(kind, rep, cache=None, offline=False):
                 "url": url,
                 "tags": [sml.as_str(x) for x in as_list(d.get("tags"))],
                 "note": sml.as_str(d.get("note", "")),
+                "folder": sml.as_str(d.get("folder", "")),   # 只用于展示分组，不建真实目录
+                "code": sml.as_str(d.get("code", "")),       # 提取码：列表与附件卡「复制」
                 "meta": meta,
             })
         if kind == "weekly":

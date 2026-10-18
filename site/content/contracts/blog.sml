@@ -69,9 +69,10 @@
 }
 
 @contract Attachment {
-  name: str               # 附件显示名
+  name: str               # 附件显示名（写 resource 时可省略，取资源 title）
   kind: enum [ image link ]  # image 入库；link 走作者自备外链
-  url: str                # image 用相对路径（同目录 assets/），link 用 http(s)
+  url: str optional       # image 用相对路径（同目录 assets/），link 用 http(s)；
+                          # 写 resource 时可由构建期解析出来（两者都空 → 构建报错）
   size: str optional      # 体积说明，image 可由构建自动填
   code: str optional      # 提取码（如蓝奏云）；只存值，不自动展示给未点击的人
   resource: str optional  # 引用资源 id：构建期解析 url / 提取码；资源更新则附件跟随

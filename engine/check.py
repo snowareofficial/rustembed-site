@@ -154,6 +154,24 @@ for d in m["pages"] + m["weekly"]:
     need((DIST / d["html"]).exists(), "片段缺失 %s" % d["html"])
     need((DIST / d["map"]).exists(), "导图缺失 %s" % d["map"])
 
+# 资源与附件不变量：
+#   · 带 resource 的附件必须在构建期解析出 url（解析不到 build.py 已报错，这里兜底）；
+#   · 任何进 manifest 的链接都不许是 javascript:/data: 之类；
+#   · 提取码只当文本，超长就是填错了。
+_BAD_URL = re.compile(r"(javascript|vbscript)\s*:|data\s*:\s*text/html", re.I)
+for p in m["posts"]:
+    for at in p.get("attachments") or []:
+        need(at.get("url"), "文章 %s 的附件 `%s` 没有 url（resource 引用没解析出来？）"
+             % (p["slug"], at.get("name") or "?"))
+        need(not _BAD_URL.search(str(at.get("url") or "")),
+             "文章 %s 的附件 url 非法：%s" % (p["slug"], at.get("url")))
+        need(len(str(at.get("code") or "")) <= 64,
+             "文章 %s 的附件提取码过长（超过 64 字符）：%s" % (p["slug"], at.get("name") or "?"))
+for r in m["resources"]:
+    need(not _BAD_URL.search(str(r.get("url") or "")), "资源 %s 的 url 非法：%s" % (r["id"], r.get("url")))
+    need(len(str(r.get("code") or "")) <= 64, "资源 %s 的提取码过长（超过 64 字符）" % r["id"])
+need(not _BAD_URL.search(man), "manifest 里出现了 javascript:/data: 之类的非法链接目标")
+
 need(not re.search(r">\s*(None|null|True|False)\s*<", man), "manifest 里疑似出现裸 Python 值")
 need("__type" not in man, "manifest 里泄漏了解析器内部字段 __type（片段展开未清理）")
 need("__is" not in man and "__contracts" not in man and "__md_body" not in man,
