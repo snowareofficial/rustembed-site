@@ -48,16 +48,26 @@ jobs:
             echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          # GitHub 上 site/content 比 Gitee 新（比如刚合并、Gitee 还没更新）→ 先用 GitHub，避免内容回退
-          AHEAD=$(git rev-list --count FETCH_HEAD..HEAD -- site/content)
-          if [ "$AHEAD" -gt 0 ]; then
-            echo "GitHub 的 site/content 比 Gitee 新 $AHEAD 个提交，本次用 GitHub 内容"
-            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          # 比较「site/content 的内容树」，而不是提交祖先关系：
+          # 本地/Gitee 与 GitHub 的提交号可能因 API 提交而分叉，祖先关系会永远判错。
+          GH_TREE=$(git rev-parse HEAD:site/content)
+          GITEE_TREE=$(git rev-parse FETCH_HEAD:site/content)
+          if [ "$GH_TREE" = "$GITEE_TREE" ]; then
+            echo "内容树一致（$GH_TREE），无需覆盖"
+            echo "sha=$(git rev-parse FETCH_HEAD)" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          git checkout FETCH_HEAD -- site/content
-          echo "已用 Gitee 内容：$(git rev-parse --short FETCH_HEAD)"
-          echo "sha=$(git rev-parse FETCH_HEAD)" >> "$GITHUB_OUTPUT"
+          # 内容不同时按「最后一次改 site/content 的提交时间」取新的
+          GH_TS=$(git log -1 --format=%ct HEAD -- site/content)
+          GITEE_TS=$(git log -1 --format=%ct FETCH_HEAD -- site/content)
+          if [ "$GITEE_TS" -ge "$GH_TS" ]; then
+            git checkout FETCH_HEAD -- site/content
+            echo "使用 Gitee 内容（$GITEE_TS >= $GH_TS）"
+            echo "sha=$(git rev-parse FETCH_HEAD)" >> "$GITHUB_OUTPUT"
+          else
+            echo "GitHub 内容更新（$GH_TS > $GITEE_TS），保留 GitHub 内容"
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          fi
 
 
       - name: 恢复字体（加密包 + FONT_PASSWORD）
