@@ -229,6 +229,15 @@ need("childNodes.length" not in js_code, "app.js 代码里出现 childNodes.leng
 need(len(re.findall(r"\.innerHTML\s*=", js_code)) == 1,
      "app.js 里 innerHTML 赋值不止一处（只允许预渲染片段那一处）")
 
+# ---- G0 内容文件不允许 BOM（native 容忍、builtin 不容忍，会导致 CI 挂）----
+_bom = []
+for _f in (config.SITE / "content").rglob("*"):
+    if _f.suffix.lower() not in (".sml", ".md", ".txt", ".json"):
+        continue
+    if _f.read_bytes().startswith(b"\xef\xbb\xbf"):
+        _bom.append(str(_f.relative_to(config.SITE)))
+need(not _bom, "内容文件带 UTF-8 BOM（builtin 后端会解析失败）：%s" % " ".join(_bom))
+
 # ---- G1 头像：构建期本地化 ----
 for _m in (json.loads((DIST / "manifest.json").read_text(encoding="utf-8")).get("members") or []):
     _av = _m.get("avatar") or ""

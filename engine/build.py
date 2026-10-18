@@ -150,6 +150,11 @@ def check_req(rep, kind, where, data):
             rep.err(where, "缺少必填字段 `%s`" % k)
 
 
+def _strip_bom(text):
+    """去掉 UTF-8 BOM：native 后端容忍、builtin 后端不容忍，必须统一。"""
+    return text[1:] if text.startswith("\ufeff") else text
+
+
 def load(path):
     """按扩展名分发：.sml 走 SML 解析器，.md/.markdown 取 front matter（正文放 __md_body）。"""
     if path.suffix.lower() in (".md", ".markdown"):

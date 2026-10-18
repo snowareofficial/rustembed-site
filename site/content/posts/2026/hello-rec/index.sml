@@ -1,4 +1,4 @@
-﻿title: "从零点亮一块板子：probe-rs + Rust 的第一步"
+title: "从零点亮一块板子：probe-rs + Rust 的第一步"
 author: sal
 date: 2026-09-19
 updated: 2026-09-19
