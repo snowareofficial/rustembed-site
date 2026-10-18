@@ -51,8 +51,10 @@ def codes(contracts, value, cname, loose=False):
 def main():
     contracts = sml.parse_doc(SRC, "selftest")[1]
     failed = []
+    count = [0]
 
     def case(name, got, want):
+        count[0] += 1
         if got != want:
             failed.append("%s：期望 %s，实得 %s" % (name, want or "无错", got or "无错"))
 
@@ -88,7 +90,8 @@ def main():
         for f in failed:
             print("  - %s" % f)
         return 1
-    print("契约自测 ALL PASS（%d 个契约，19 项断言）" % len(contracts))
+    # 断言数动态计数：以前写死「19 项」，加了用例忘了改文案，三处文档跟着漂移
+    print("契约自测 ALL PASS（%d 个契约，%d 项断言）" % (len(contracts), count[0]))
     return 0
 
 
