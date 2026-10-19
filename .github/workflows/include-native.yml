@@ -53,6 +53,7 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
+          REPO="${GITHUB_WORKSPACE}"
           git clone --depth 1 --branch "$SML_REF" https://gitee.com/snoware/sml /tmp/sml-src
           cd /tmp/sml-src/rust
           cargo build --release -p swsml
@@ -61,9 +62,9 @@ jobs:
             echo "::error::没构建出 libsml.so（上游布局变了？）"
             exit 1
           fi
-          mkdir -p engine/native
-          cp "$LIB" engine/native/libsml.so
-          ls -l engine/native/
+          mkdir -p "$REPO/engine/native"
+          cp "$LIB" "$REPO/engine/native/libsml.so"
+          ls -l "$REPO/engine/native/"
 
       # 后端必须是 native：否则 [B][D][E] 会被跳过，这条流水线就白跑了
       - name: 后端自检
