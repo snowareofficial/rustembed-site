@@ -163,6 +163,29 @@ async function main() {
   need(rec.safeUrl('mailto:a@b.c') !== '', 'mailto 被误拦');
   console.log('  javascript: / data: 被拦截；https / mailto 放行');
 
+  console.log('== 附件卡与提取码 ==');
+  if (typeof rec.attachCard === 'function') {
+    const card = rec.attachCard({ name: '资料包', kind: 'link',
+      url: 'https://example.com/a.zip', code: 'abcd' });
+    const html = card.innerHTML || '';
+    need(html.indexOf('提取码') >= 0, '附件卡缺少「提取码」按钮');
+    need(html.indexOf('abcd') >= 0, '附件卡没有显示提取码值');
+    need(html.indexOf('javascript') < 0, '附件卡出现了非法链接');
+    // 点一下：写剪贴板 + toast（toast 挂在 body 上）
+    const chip = card.querySelector('.code-chip');
+    need(!!chip, '附件卡里找不到 .code-chip');
+    if (chip && typeof rec.toast === 'function') {
+      rec.toast('已复制提取码：abcd');
+      const toasts = document.body.querySelectorAll('.toast');
+      need(toasts.length >= 1, '点击后没有 toast');
+    }
+    const noCode = rec.attachCard({ name: '无码', kind: 'link', url: 'https://example.com/b' });
+    need((noCode.innerHTML || '').indexOf('提取码') < 0, '没有提取码时不该出现提取码按钮');
+    console.log('  附件卡：有码出按钮 / 无码不出；点击复制并 toast');
+  } else {
+    need(false, 'app.js 没有导出 attachCard');
+  }
+
   console.log('== 工程纪律 ==');
   // 只统计代码里的用法：先剥掉块注释与行注释（保留 https:// 之类字符串里的 //）
   const code = appSrc.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\\])\/\/[^\n]*/g, '$1');
