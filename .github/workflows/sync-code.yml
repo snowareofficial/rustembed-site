@@ -48,6 +48,12 @@ jobs:
           git fetch --depth=1 gitee "$GITEE_CODE_BRANCH"
           SHA="$(git rev-parse FETCH_HEAD)"
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          GH_TS=$(git log -1 --format=%ct HEAD -- engine site/theme)
+          GT_TS=$(git show -s --format=%ct "$SHA")
+          if [ "$GH_TS" -gt "$GT_TS" ]; then
+            echo "GitHub 的 engine/theme 更新（$GH_TS > $GT_TS），跳过覆盖，避免回退本地修复"
+            exit 0
+          fi
           rm -rf /tmp/gitee-src
           mkdir -p /tmp/gitee-src
           git archive "$SHA" engine site/theme | tar -x -C /tmp/gitee-src
