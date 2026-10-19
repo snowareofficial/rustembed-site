@@ -454,23 +454,34 @@
     return li;
   }
 
-  function seriesRow(s, members) {
-    var li = el('li', 'row-series');
-    var box = el('details', 'series-box');
-    var sum = el('summary', 'row series-sum');
+  /* 系列最新一章的日期（YYYY-MM-DD）。系列的摘要与标签页年份分组共用它 ——
+     两处各算一次会打架（一个按全组、一个按命中标签的章节），年份就飘了。 */
+  function seriesLatestDate(s) {
     var dates = [];
-    for (var i = 0; i < s.posts.length; i++) {
+    for (var i = 0; i < (s.posts || []).length; i++) {
       var full = bySlug(S.man.posts, s.posts[i].slug);
       if (full && full.date) dates.push(String(full.date).slice(0, 10));
     }
     dates.sort();
-    sum.appendChild(el('span', 'row-date', dates.length ? dates[dates.length - 1] : ''));
+    return dates.length ? dates[dates.length - 1] : '';
+  }
+
+  /* hits：当前标签下命中了该系列的章节数（不传 = 全命中，如无标签的书库页）。
+     系列的章数与命中数不是一回事，徽章要分开说，否则“3 章”会让人以为 3 章都讲这个标签。 */
+  function seriesRow(s, members, hits) {
+    var chapters = s.posts || [];
+    var li = el('li', 'row-series');
+    var box = el('details', 'series-box');
+    var sum = el('summary', 'row series-sum');
+    sum.appendChild(el('span', 'row-date', seriesLatestDate(s)));
     sum.appendChild(el('span', 'row-title', s.title));
-    sum.appendChild(el('span', 'row-words series-badge', '系列 · ' + s.posts.length + ' 章'));
+    var badge = '系列 · ' + chapters.length + ' 章';
+    if (hits && hits < chapters.length) badge += '（命中 ' + hits + '）';
+    sum.appendChild(el('span', 'row-words series-badge', badge));
     box.appendChild(sum);
     var ol = el('ol', 'rows series-posts');
-    for (var j = 0; j < s.posts.length; j++) {
-      var p = bySlug(S.man.posts, s.posts[j].slug);
+    for (var j = 0; j < chapters.length; j++) {
+      var p = bySlug(S.man.posts, chapters[j].slug);
       if (p) ol.appendChild(postRow(p, members));
     }
     box.appendChild(ol);
@@ -960,20 +971,30 @@
       }
     }
 
-    /* 标签页里把“同一 series 的多章”收成一条，显示成带“系列”标记的文章行 */
+    /* 标签页里把“同一 series 的多章”收成一条，显示成带“系列”标记的文章行。
+     *
+     * 合并口径：**系列总章数 > 1** 就合并，与「这一章是否命中标签」无关 ——
+     * 系列是「一份文档」，组里有一章命中就说明这组与该标签相关，整组呈现比只露一章有用；
+     * 反过来单章系列没有“组”的意义，退化成普通文章行。
+     * 只有部分章节命中时，徽章会补一句「（命中 N）」（见 seriesRow）。
+     */
     var entries = [];
     var seriesGroups = {};
     for (var pi = 0; pi < posts.length; pi++) {
       var post = posts[pi];
       var s = post.series ? byId(m.series || [], post.series) : null;
-      if (query && query.tag && s && s.posts.length > 1) {
-        if (!seriesGroups[s.id]) {
-          var g = { kind: 'series', s: s, date: String(post.date || '') };
+      if (query && query.tag && s && (s.posts || []).length > 1) {
+        var g = seriesGroups[s.id];
+        if (!g) {
+          /* 日期取「系列最新一章」，与 seriesRow 摘要里的日期同源；
+             于是系列跨年份也落在最新一章那年，章节列表仍是完整的全组。
+             章节在 manifest 里查不到时退回本章自己的日期，别落进空年份分组。 */
+          g = { kind: 'series', s: s, hits: 0,
+                date: seriesLatestDate(s) || String(post.date || '') };
           seriesGroups[s.id] = g;
           entries.push(g);
-        } else if (String(post.date || '') > seriesGroups[s.id].date) {
-          seriesGroups[s.id].date = String(post.date || '');
         }
+        g.hits++;
       } else {
         entries.push({ kind: 'post', post: post, date: String(post.date || '') });
       }
@@ -1000,11 +1021,12 @@
         var entry = years[yr][ri];
         var li, filter;
         if (entry.kind === 'series') {
-          li = seriesRow(entry.s, m.members);
+          li = seriesRow(entry.s, m.members, entry.hits);
+          var chapters = entry.s.posts || [];
           var names = [entry.s.title];
-          for (var si = 0; si < entry.s.posts.length; si++) names.push(entry.s.posts[si].title);
-          for (var sj = 0; sj < entry.s.posts.length; sj++) {
-            var sp = bySlug(m.posts, entry.s.posts[sj].slug);
+          for (var si = 0; si < chapters.length; si++) names.push(chapters[si].title);
+          for (var sj = 0; sj < chapters.length; sj++) {
+            var sp = bySlug(m.posts, chapters[sj].slug);
             if (sp) names.push((sp.tags || []).join(' '));
           }
           filter = names.join(' ') + ' 系列';

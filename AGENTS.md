@@ -68,7 +68,8 @@ rec-blog/
 │  │                       加密包 misans-fonts.tar.gz.enc 入库（含三者），CI 用 FONT_PASSWORD 解密
 │  │                       （deploy/fonts-crypt.sh）；许可随产物发布到 dist/fonts/
 │  └─ meta/repos.json      仓库元数据缓存（入库）
-├─ tests/                  smoke.js / browser-check.js / gui_api_test.py / dom-stub.js
+├─ tests/                  smoke.js / browser-check.js / series_tag_test.js / gui_dom_test.js
+│                          / gui_api_test.py / dom-stub.js
 ├─ deploy/                 自托管：entrypoint / build / rebuild / gitee-webhook / fonts-crypt
 ├─ docs/                   索引 docs/README.md；参与者 ROLES/CONTRIBUTING/EDIT-SITE-DATA/
 │                          REVIEW/OPS；维护 ARCHITECTURE/WORKFLOW/FONTS/GOVERNANCE/
@@ -141,6 +142,13 @@ rec-blog update                                         # 引擎 git pull --ff-o
 注意：CI 跑的是**联网** build（元数据抓取失败不中断，回退 `meta/repos.json` 缓存）；
 本地求快可加 `--offline`，但抓取降级路径只在联网构建里能复现。
 另：`cli.py test` 只跑 `test_contracts.py`；渲染安全回归要直接跑 `engine/test_render_safety.py`。
+
+前端三连（改了 `site/theme/**` 就一起跑）：
+`node tests/series_tag_test.js`（标签页系列合并 / 成员页列表 / 页脚声明）→
+`node tests/gui_dom_test.js` → `node tests/smoke.js`。
+样式相关的（滚动区、页脚显隐、375px 溢出）再跑 `node tests/browser-check.js`：
+它要先 `python engine/cli.py preview` 起服务，且**自己挑一个能 bind 的调试端口** ——
+Windows 默认保留 9211–9310，以前写死 `9222+pid%200` 会稳定落进去，CDP 起不来干等 20s 超时。
 
 ## 5. 加一个内容类型（官方扩展步骤，来自 engine/README.md）
 
