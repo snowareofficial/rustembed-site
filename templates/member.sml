@@ -1,4 +1,3 @@
-@is Member
 name: "sal"
 role: "发起人"
 signature: "Rust / 嵌入式 / 工具链。"

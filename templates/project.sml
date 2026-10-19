@@ -1,4 +1,3 @@
-@is Project
 name: "rec-blog"
 one_liner: "群共建的静态博客与写作工具链。"
 repo: "https://gitee.com/rustembed/site"

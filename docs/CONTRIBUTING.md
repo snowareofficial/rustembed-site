@@ -119,7 +119,6 @@ python engine/cli.py check
 文件：`site/content/resources/<英文短名>.sml`
 
 ```sml
-@is Resource
 title: "The Embedded Rust Book"
 kind: book
 url: "https://docs.rust-embedded.org/book/"
@@ -134,7 +133,6 @@ note: "官方入门书，no_std 与外设访问的基础概念都在这里。"
 文件：`site/content/projects/<英文短名>.sml`
 
 ```sml
-@is Project
 name: "rec-blog"
 one_liner: "群共建的静态博客与写作工具链。"
 repo: "https://gitee.com/rustembed/site"
@@ -146,7 +144,6 @@ status: active
 文件：`site/content/members/<id>.sml`
 
 ```sml
-@is Member
 name: "sal"
 role: "发起人"
 signature: "Rust / 嵌入式 / 工具链。"
@@ -158,7 +155,6 @@ links: { github: "https://github.com/…" }
 文件：`site/content/services/<英文短名>.sml`
 
 ```sml
-@is Service
 name: "PCB 布局与 EMC 走线复查"
 owner: sal
 skills: [ pcb, emc ]
@@ -169,7 +165,7 @@ status: active
 updated: 2026-10-19
 ```
 
-> `@is` 这一行是给编辑器看的：装了 SML 扩展后，字段名会显示类型、默认值、必填/可选和补全。引擎本来就会按目录套契约，不加也能构建。
+> 模板不写 `@is`：引擎会按文件所在目录自动套契约。当前 SML 扩展对跨文件的 `@is` 会误报「未定义契约」，所以投稿文件里先不写；字段表用 `engine/cli.py contracts` 查。
 
 字段表可以在终端看：
 

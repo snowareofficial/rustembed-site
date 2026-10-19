@@ -1,4 +1,3 @@
-@is Service
 name: "PCB 布局与 EMC 走线复查"
 owner: sal
 skills: [ pcb, emc ]

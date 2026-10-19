@@ -50,8 +50,8 @@ body: [
   topic 加资源 / 项目 / 成员 / 互助（SML） {
     children: [
       para { text: "文章用 Markdown；资源、项目、成员、互助是结构化条目，用 SML。SML 不是编程，只是「字段: 值」列表。" }
-      code { lang: sml text: "@is Resource\ntitle: \"The Embedded Rust Book\"\nkind: book\nurl: \"https://docs.rust-embedded.org/book/\"\ntags: [ rust embedded book ]\nnote: \"官方入门书，no_std 与外设访问的基础概念都在这里。\"" }
-      para { text: "复制模板到 content/resources/<英文短名>.sml；@is 这一行让 VS Code 显示字段类型、默认值和补全。" }
+      code { lang: sml text: "title: \"The Embedded Rust Book\"\nkind: book\nurl: \"https://docs.rust-embedded.org/book/\"\ntags: [ rust embedded book ]\nnote: \"官方入门书，no_std 与外设访问的基础概念都在这里。\"" }
+      para { text: "复制模板到 content/resources/<英文短名>.sml；引擎按目录自动套 Resource 契约，不需要写契约名。" }
       para { text: "字段表用 python engine/cli.py contracts 查看；完整模板在仓库 templates/ 与 docs/CONTRIBUTING.md。" }
     ]
   }
