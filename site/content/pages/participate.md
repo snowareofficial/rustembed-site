@@ -75,7 +75,7 @@ site/content/posts/<年份>/<slug>/index.md
 规则：
 
 - 目录决定默认契约，不需要写 `@is`；
-- 字段表：`python engine/cli.py contracts`
+- 字段表：`python engine/cli.py contracts`，网页版见 **内容契约**（`#/page/contracts`）；
 - 改完跑 `build --offline` 和 `check`；
 - 文件名是 URL 的一部分，不要随意改已有条目名。
 

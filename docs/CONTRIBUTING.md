@@ -173,6 +173,8 @@ updated: YYYY-MM-DD
 python engine/cli.py contracts
 ```
 
+网页版：站内 **文档 → 规范 → 内容契约**（`#/page/contracts`），由 `site/content/contracts/blog.sml` 自动生成。
+
 ---
 
 ## 路线 C：完全不想碰 git

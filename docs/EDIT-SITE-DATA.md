@@ -39,6 +39,8 @@ python engine/cli.py check
 python engine/cli.py contracts
 ```
 
+网页版：站点 **文档 → 规范 → 内容契约**（`#/page/contracts`），由 `site/content/contracts/blog.sml` 自动生成。
+
 构建报错会带错误码和字段名，例如：
 
 ```text
