@@ -1,0 +1,51 @@
+name: build-native-macos
+
+# 手动构建 macOS arm64 的 SML cdylib，产物作为 artifact 下载。
+# 只构建 native，不接触站点内容；SML 源码 pin 到 v0.6.4。
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Clone SML v0.6.4
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch v0.6.4 https://gitee.com/snoware/sml /tmp/sml-src
+
+      - name: Build swsml cdylib
+        run: |
+          set -euo pipefail
+          cd /tmp/sml-src/rust
+          cargo build --release -p swsml
+          LIB="$(find /tmp/sml-src -type f -name 'libsml.dylib' | head -1)"
+          if [ -z "$LIB" ]; then
+            echo "::error::没构建出 libsml.dylib（上游布局变了？）"
+            find /tmp/sml-src -type f \( -name '*.dylib' -o -name '*.so' -o -name '*.dll' \) | head -50
+            exit 1
+          fi
+          mkdir -p engine/native
+          cp "$LIB" engine/native/libsml.dylib
+          shasum -a 256 engine/native/libsml.dylib | tee engine/native/libsml.dylib.sha256
+          file engine/native/libsml.dylib
+          ls -l engine/native/
+
+      - name: Upload dylib
+        uses: actions/upload-artifact@v4
+        with:
+          name: sml-native-macos-arm64
+          path: |
+            engine/native/libsml.dylib
+            engine/native/libsml.dylib.sha256
+          if-no-files-found: error
