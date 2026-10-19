@@ -6,7 +6,7 @@
 <title>rec-blog 写作台</title>
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body data-page="app">
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.6 15.6L20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
   <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
@@ -25,6 +25,8 @@
   <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l9 17H3z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 9v5M12 17v.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
   <symbol id="i-branch" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="6" cy="18" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="18" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6 8.4v7.2M8.4 6h4.2a3 3 0 013 3v.6" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 12h9M17 12v3M20 12v2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
   <symbol id="i-img" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="10" r="1.4" fill="currentColor"/><path d="M4 17l5-5 4 4 3-3 4 4" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
   <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M16 10l5-3v10l-5-3z" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
   <symbol id="i-math" viewBox="0 0 24 24"><path d="M5 5h6l4 7 4-7M5 19h6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M15 12v7M11.5 15.5h7" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
@@ -57,8 +59,10 @@
     <div class="actions">
       <button class="btn" id="btn-save" title="保存（Ctrl+S）"><svg><use href="#i-check"/></svg><span>确认写入</span></button>
       <button class="btn" id="btn-preview" title="生成预览（Ctrl+P）"><svg><use href="#i-eye"/></svg><span>预览</span></button>
-      <button class="btn primary" id="btn-pr" title="M3 提供（需登录）" disabled><svg><use href="#i-send"/></svg><span>提交 PR</span></button>
-      <button class="icon-btn" id="btn-settings" title="M3 提供" disabled><svg><use href="#i-settings"/></svg></button>
+      <button class="btn primary" id="btn-pr" title="登录后可用" disabled><svg><use href="#i-send"/></svg><span>提交 PR</span></button>
+      <button class="btn" id="btn-login" title="登录 Gitee（提交 PR / 删除 / 重命名需要）"><svg><use href="#i-key"/></svg><span>登录</span></button>
+      <span class="chip me" id="me-chip" hidden title="已登录（Gitee）"><svg><use href="#i-check"/></svg><span id="me-name">—</span></span>
+      <button class="icon-btn" id="btn-settings" title="设置"><svg><use href="#i-settings"/></svg></button>
     </div>
   </header>
 
@@ -231,6 +235,48 @@
       <div class="spacer"></div>
       <button class="btn" id="del-cancel">取消</button>
       <button class="btn danger-btn" id="del-go">删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 提交 PR -->
+<div class="modal" id="pr-modal" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="prt">
+    <div class="panel-h">
+      <h3 id="prt">提交 PR</h3>
+      <span class="sub" id="pr-sub">分支 → commit → push → 建 PR；永不 force、永不推 master</span>
+      <div class="spacer"></div>
+      <button class="icon-btn" id="pr-close"><svg><use href="#i-x"/></svg></button>
+    </div>
+    <div class="panel-b">
+      <div class="pr-grid">
+        <div class="pr-files">
+          <label>改动文件（来自 git status，可取消勾选）</label>
+          <div class="pr-file-list" id="pr-files"></div>
+        </div>
+        <div class="pr-form">
+          <div class="field"><label>分支 branch</label><input id="pr-branch" placeholder="post/<slug>-<时间戳>"></div>
+          <div class="field"><label>提交信息 commit message</label><textarea id="pr-message" rows="2"></textarea></div>
+          <div class="field"><label>PR 标题 title</label><input id="pr-title"></div>
+          <div class="field"><label>PR 描述 body</label><textarea id="pr-body" rows="2"></textarea></div>
+          <div class="field">
+            <label>审核人 reviewers（默认来自站点配置，可增删）</label>
+            <div class="chips" id="pr-reviewers"></div>
+            <div class="pr-rev-add">
+              <input id="pr-rev-input" placeholder="Gitee 用户名">
+              <button class="btn" id="pr-rev-add" type="button">添加</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="error-line" id="pr-error"></div>
+      <div class="pr-result" id="pr-result" hidden></div>
+    </div>
+    <div class="panel-f">
+      <span class="hint-line" style="margin:0">失败会保留分支与本地提交，并给出 compare 链接与可复制命令</span>
+      <div class="spacer"></div>
+      <button class="btn" id="pr-cancel">取消</button>
+      <button class="btn primary" id="pr-go"><svg><use href="#i-send"/></svg>提交</button>
     </div>
   </div>
 </div>

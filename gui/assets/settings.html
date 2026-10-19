@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>rec-blog 写作台 · 设置</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="settings">
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M4 7l8-4 8 4v10l-8 4-8-4z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 7l8 4 8-4M12 11v10" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 12h9M17 12v3M20 12v2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 12l5 5L20 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l9 17H3z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 9v5M12 17v.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+</svg>
+
+<div class="set-page">
+  <h1>设置</h1>
+  <p class="sub">所有设置只对本机生效（存浏览器 localStorage，<b>不含令牌</b>）；账号相关操作在「账户与安全」。</p>
+
+  <div class="set-card">
+    <div class="set-h">账户与安全</div>
+    <div class="set-row">
+      <div class="lab">登录状态</div>
+      <div class="ctl" id="set-auth">读取中…</div>
+    </div>
+    <div class="set-row">
+      <div class="lab">令牌</div>
+      <div class="ctl" id="set-token">—</div>
+    </div>
+    <div class="set-row">
+      <div class="lab">清除登录痕迹</div>
+      <div class="ctl">
+        <button class="btn danger-btn" id="set-purge">清除令牌与本地痕迹…</button>
+        <span class="hint">会逐项清：钥匙串 token · 登录态 · 最近文件 · 预览/构建缓存 · 日志</span>
+      </div>
+    </div>
+    <div class="set-row">
+      <div class="lab">git 凭证</div>
+      <div class="ctl"><span class="hint">git 自身保存的凭证（如 Windows 凭据管理器里的 git 条目）不在本 App 管辖范围</span></div>
+    </div>
+  </div>
+
+  <div class="set-card">
+    <div class="set-h">外观</div>
+    <div class="set-row"><div class="lab">主题</div><div class="ctl">
+      <span class="seg" id="set-theme">
+        <button data-v="auto">跟随系统</button><button data-v="light">亮色</button><button data-v="dark">暗色</button>
+      </span>
+      <span class="hint">即时生效</span>
+    </div></div>
+    <div class="set-row"><div class="lab">顶部动作文字</div><div class="ctl">
+      <label class="switch"><input type="checkbox" id="set-labels"> 显示文字（确认写入 / 预览 / 提交 PR）</label>
+      <span class="hint">不常用且有风险的动作，建议显示文字</span>
+    </div></div>
+    <div class="set-row"><div class="lab">工具条文字</div><div class="ctl">
+      <label class="switch"><input type="checkbox" id="set-tool-labels"> 编辑器工具条显示文字（默认只图标）</label>
+    </div></div>
+    <div class="set-row"><div class="lab">侧栏</div><div class="ctl">
+      <label class="switch"><input type="checkbox" id="set-show-tree"> 显示内容树</label>
+      <label class="switch"><input type="checkbox" id="set-show-side"> 显示预览</label>
+    </div></div>
+    <div class="set-row"><div class="lab">正文</div><div class="ctl">
+      <span class="seg" id="set-fontsize">
+        <button data-v="13">13</button><button data-v="14">14</button><button data-v="15">15</button>
+      </span>
+      <span class="hint">编辑器字号</span>
+    </div></div>
+  </div>
+
+  <div class="set-card">
+    <div class="set-h">编辑</div>
+    <div class="set-row"><div class="lab">自动保存</div><div class="ctl">
+      <label class="switch"><input type="checkbox" id="set-autosave"> 停止输入 2 秒后保存（默认关闭，Ctrl+S 手动保存）</label>
+      <span class="hint">校验失败时不自动重试，转为提示</span>
+    </div></div>
+    <div class="set-row"><div class="lab">预览</div><div class="ctl">
+      <span class="seg" id="set-preview-mode">
+        <button data-v="manual">手动</button><button data-v="auto">自动</button>
+      </span>
+      <span class="hint">手动 = 点顶栏「预览」才渲染</span>
+    </div></div>
+    <div class="set-row"><div class="lab">图片</div><div class="ctl">
+      <label class="switch"><input type="checkbox" id="set-img-upload"> 拖入正文时自动存到 assets/ 并插入 Markdown</label>
+    </div></div>
+  </div>
+
+  <div class="set-card">
+    <div class="set-h">资源与附件</div>
+    <div class="set-row"><div class="lab">提取码</div><div class="ctl">
+      <label class="switch"><input type="checkbox" id="set-code-show"> 列表和附件卡显示「提取码 · 复制」</label>
+    </div></div>
+    <div class="set-row"><div class="lab">点击复制</div><div class="ctl">
+      <label class="switch"><input type="checkbox" id="set-code-copy"> 点提取码即写入剪贴板（带 toast 提示）</label>
+    </div></div>
+    <div class="set-row"><div class="lab">附件引用</div><div class="ctl">
+      <span class="seg" id="set-attach-mode">
+        <button data-v="ref">引用资源 id</button><button data-v="copy">复制独立附件</button>
+      </span>
+      <span class="hint">引用 = 资源改了附件跟着变</span>
+    </div></div>
+  </div>
+
+  <div class="set-card">
+    <div class="set-h">关于</div>
+    <div class="set-row"><div class="lab">版本</div><div class="ctl" id="set-version">—</div></div>
+    <div class="set-row"><div class="lab">运行方式</div><div class="ctl" id="set-mode">—</div></div>
+  </div>
+
+  <p class="sub" style="margin-top:1.2rem"><a class="auth-link" href="/">← 返回写作台</a></p>
+</div>
+
+<!-- 清除痕迹确认 -->
+<div class="modal" id="purge-modal" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="pt">
+    <div class="panel-h">
+      <h3 id="pt">清除登录痕迹</h3>
+      <span class="sub">勾选要清理的项，逐项执行并返回结果</span>
+      <div class="spacer"></div>
+      <button class="icon-btn" id="purge-close"><svg><use href="#i-x"/></svg></button>
+    </div>
+    <div class="panel-b">
+      <label class="check"><input type="checkbox" id="pu-keyring" checked> <b>钥匙串令牌</b> <span>系统钥匙串里的 Gitee 令牌条目</span></label>
+      <label class="check"><input type="checkbox" id="pu-memory" checked> <b>登录态与最近文件</b> <span>进程内存登录态（即退出登录）、本地记录的最近文件</span></label>
+      <label class="check"><input type="checkbox" id="pu-cache" checked> <b>预览与构建缓存</b> <span>本 App 的缓存目录</span></label>
+      <div class="purge-result" id="purge-result" hidden></div>
+    </div>
+    <div class="panel-f">
+      <span class="hint-line" style="margin:0">git 自身保存的凭证不在本 App 管辖范围</span>
+      <div class="spacer"></div>
+      <button class="btn" id="purge-cancel">取消</button>
+      <button class="btn danger-btn" id="purge-go">清除</button>
+    </div>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

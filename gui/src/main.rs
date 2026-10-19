@@ -11,7 +11,6 @@ mod session;
 
 #[cfg(feature = "desktop")]
 mod desktop;
-
 use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::process::Stdio;
@@ -149,26 +148,69 @@ async fn serve(site: Option<PathBuf>, port: u16, no_open: bool, desktop: bool) -
         .with_context(|| format!("绑定 127.0.0.1:{} 失败", port))?;
     let addr = listener.local_addr()?;
 
+    // 登录态：Gitee 令牌只在钥匙串或本进程内存里，不过 Python、不进日志
+    let store: Box<dyn session::TokenStore> = Box::new(session::KeyringStore::default());
+    let session = std::sync::Mutex::new(session::Session::default());
+    match store.get() {
+        Ok(Some(t)) => {
+            let mut g = session.lock().unwrap_or_else(|e| e.into_inner());
+            g.token = Some(t);
+            g.remembered = true;
+            g.keyring_ok = true;
+            println!("钥匙串里有令牌，已恢复登录态（whoami 时会联网核对一次）");
+        }
+        Ok(None) => {}
+        Err(e) => eprintln!(
+            "钥匙串不可用（{}）；本次运行只能「仅本次会话」登录，令牌不会写进任何文件。",
+            e
+        ),
+    }
+
     let state = Arc::new(server::AppState {
         python_base: format!("http://127.0.0.1:{}", py_port),
         token: token.clone(),
         client: reqwest::Client::new(),
+        session,
+        store,
+        engine_commit: engine::engine_commit(&eng.root),
     });
 
-    println!("写作台已就绪： http://{}", addr);
-    if !no_open {
-        open_ui(&format!("http://{}", addr), desktop);
+    let url = format!("http://{}", addr);
+    println!("写作台已就绪： {}", url);
+
+    // axum 常驻后台任务；界面（浏览器或原生窗口）关闭 / Ctrl+C 时收尾
+    let server = tokio::spawn(async move { axum::serve(listener, server::router(state)).await });
+
+    let opened_desktop = if !no_open && desktop {
+        #[cfg(feature = "desktop")]
+        {
+            if let Err(e) = crate::desktop::open_window(&url) {
+                eprintln!("打开原生窗口失败（{}）；请手动访问 {}", e, url);
+            }
+            true
+        }
+        #[cfg(not(feature = "desktop"))]
+        {
+            eprintln!("提示：本二进制未编译 desktop 特性（cargo install --features desktop），改用浏览器打开。");
+            let _ = open::that(&url);
+            false
+        }
+    } else {
+        if !no_open {
+            if let Err(e) = open::that(&url) {
+                eprintln!("打开浏览器失败（{}）；请手动访问 {}", e, url);
+            }
+        }
+        false
+    };
+
+    if !opened_desktop {
+        // 浏览器模式（或没开界面）：等 Ctrl+C
+        let _ = tokio::signal::ctrl_c().await;
     }
-
-    let served = axum::serve(listener, server::router(state))
-        .with_graceful_shutdown(async {
-            let _ = tokio::signal::ctrl_c().await;
-        })
-        .await;
-
+    server.abort();
     let mut child = child;
     let _ = child.kill().await;
-    served.context("本地服务异常退出")?;
     Ok(())
 }
 
@@ -210,22 +252,4 @@ fn random_token() -> String {
         .take(32)
         .map(char::from)
         .collect()
-}
-
-/// 打开界面：`desktop` 特性下走原生窗口，否则浏览器。
-fn open_ui(url: &str, desktop: bool) {
-    if desktop {
-        #[cfg(feature = "desktop")]
-        {
-            crate::desktop::open_window(url);
-            return;
-        }
-        #[cfg(not(feature = "desktop"))]
-        {
-            eprintln!("提示：本二进制未编译 desktop 特性（cargo install --features desktop），改用浏览器打开。");
-        }
-    }
-    if let Err(e) = open::that(url) {
-        eprintln!("打开浏览器失败（{}）；请手动访问 {}", e, url);
-    }
 }

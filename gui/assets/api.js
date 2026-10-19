@@ -1,4 +1,5 @@
-/* 写作台前端 · API 封装（同源 /api/*，由 Rust 反代到 Python 引擎）。 */
+/* 写作台前端 · API 封装（同源 /api/*，由 Rust 反代到 Python 引擎）。
+ * 登录态接口（session/whoami/purge/recent/about）由 Rust 直接处理，其余反代。 */
 (function (global) {
   'use strict';
 
@@ -42,6 +43,14 @@
       return request('GET', '/api/resources' + (qs.length ? '?' + qs.join('&') : ''));
     },
     remove: function (payload) { return request('POST', '/api/delete', payload); },
-    rename: function (payload) { return request('POST', '/api/rename', payload); }
+    rename: function (payload) { return request('POST', '/api/rename', payload); },
+    reviewers: function () { return request('GET', '/api/reviewers'); },
+    pr: function (payload) { return request('POST', '/api/pr', payload); },
+    about: function () { return request('GET', '/api/about'); },
+    // 登录态（Rust 直处理；未登录时 whoami 抛 401，err.status === 401）
+    login: function (payload) { return request('POST', '/api/session', payload); },
+    whoami: function () { return request('GET', '/api/whoami'); },
+    logout: function (purge) { return request('DELETE', '/api/session' + (purge ? '?purge=true' : '')); },
+    purge: function (items) { return request('POST', '/api/purge', { items: items || [] }); }
   };
 })(window);

@@ -1,4 +1,4 @@
-# 写作台移交文档（截至 2026-10-19 · M2 完成）
+# 写作台移交文档（截至 2026-10-19 · M3 完成）
 
 > 给下一个接手的 AI / 人：本文件报告**实现现状**、**怎么跑**、**已知坑**、**下一步**。
 > 规格与设计不要在这里重写，去读 `docs/GUI.md`、`docs/GUI-FLOWS.md`、`docs/GUI-IMPLEMENT-PROMPT.md`。
@@ -9,11 +9,11 @@
 | 期 | 状态 | 内容 |
 |---|---|---|
 | M1 | ✅ 完成 | 启动、内容树、打开、契约表单（默认收起）、Markdown 编辑、保存/校验、手动预览、新建、草稿 |
-| M2 | ✅ 完成 | 图片上传/拖入、工具条 + 插入菜单、资源附件弹层与「写入前确认」、构建期解析 `Attachment.resource`、M/U/D 徽标、右键菜单（打开/重命名/转草稿/复制站内链接/删除）、外部改动检测（409）、提取码复制 |
-| M3 | ⬜ 未做 | 登录 / 钥匙串 / 清除痕迹、`/api/pr`（fork 兜底）、设置页、`--features desktop` Tauri |
+| M2 | ✅ 完成 | 图片上传/拖入、工具条 + 插入菜单、资源附件弹层与「写入前确认」、构建期解析 `Attachment.resource`、M/U/D 徽标、右键菜单、外部改动检测（409）、提取码复制 |
+| M3 | ✅ 完成 | 登录（Gitee 校验 + 系统钥匙串/内存，失败降级不落文件）、`/api/pr`（fork 兜底，永不 force/永不推 master）、写操作登录门禁（401）、`reviewers`（site.sml + 环境变量）、设置页（localStorage 不含令牌）、清除痕迹（按勾选项逐项）、Tauri 原生窗口（Windows 已验证） |
 
-分支状态：全部本地提交、**未 push、未 force、未碰 master**；HEAD 附近新增 6 个提交
-（`4e9a747` → `3c68a71`），叠加在并行提交之上。
+分支状态：全部本地提交、**未 push、未 force、未碰 master**；M3 提交叠加在
+`6809e3a`（hy3/hy4 分工提示词）之上。
 
 ## 2. 怎么跑
 
@@ -21,36 +21,51 @@
 # 安装二进制（Rust 侧）
 cargo install --path gui                 # --force 即更新
 rec-blog --site <仓库根或站点目录>        # 两种形态都能吃；--port 0 / --no-open / update / --version
+rec-blog --desktop --site . --no-open --port 8788   # 原生窗口（需 --features desktop 编译）
 
-# 只跑引擎侧（不经 Rust）
+# 只跑引擎侧（不经 Rust；登录态接口不可用，见下）
 python engine/gui.py --port 0            # stdout 打印 GUI_PORT=<n>；GUI_TOKEN 走环境变量
 ```
 
-## 3. 验收（M2 结束时全绿，逐条贴过）
+注意：`/api/session`、`/api/whoami`、`/api/purge`、`/api/recent`、`/api/about` 由 **Rust 层**
+直处理（钥匙串与内存态只存在于 Rust）。绕过 Rust 直连 Python 时这些接口 404，
+`/api/pr`、`/api/delete`、`/api/rename` 也会因没有 `X-Gitee-Token` 而 401——这是设计，不是 bug。
+
+## 3. 验收（M3 结束时全绿，逐条贴过）
 
 | 命令 | 结果 |
 |---|---|
 | `cargo fmt --check` | 无输出（干净） |
-| `cargo clippy -- -D warnings` | Finished，0 warning |
-| `cargo test` | 19 passed; 0 failed |
+| `cargo clippy -- -D warnings`（含 `--all-targets`） | Finished，0 warning |
+| `cargo test` | 27 passed; 0 failed |
+| `cargo check --features desktop` | Finished（tauri 2.12.4 / wry 0.57.0 / tao 0.37.1 / webview2-com 0.39.1） |
+| `cargo clippy --features desktop --all-targets -- -D warnings` | 0 warning |
+| `cargo test --features desktop` | 27 passed; 0 failed |
+| `cargo build --features desktop` | **Finished（1m44s）**；`rec-blog.exe` 20.6 MB，`--version` 正常输出 |
 | `python engine/test_contracts.py` | ALL PASS（5 契约，21 断言） |
-| `python engine/test_render_safety.py` | 182 项断言 ALL PASS |
-| `python engine/test_structure.py` | 88 条 STRUCTURE PASS |
-| `python tests/gui_api_test.py` | **18 passed; 0 failed**（M1 十条 + M2 八条） |
+| `python engine/test_render_safety.py` | 187 项断言 ALL PASS |
+| `python engine/test_structure.py` | 91 条 STRUCTURE PASS |
+| `python tests/gui_api_test.py` | **23 passed; 0 failed**（M1 十条 + M2 八条 + M3 五条） |
 | `python engine/cli.py build --offline && python engine/cli.py check` | ALL PASS（仅字体 woff 告警） |
-| `node tests/smoke.js`（附加） | SMOKE PASS（含新增「附件卡与提取码」用例） |
-| `node tests/gui_dom_test.js`（新增） | GUI DOM PASS（17 项） |
+| `node tests/gui_dom_test.js`（附加） | GUI DOM PASS（M2 用例不回归） |
+| M3 新 UI DOM 冒烟（附加，临时脚本） | **42 项全过**：未登录置灰/登录启用、PR 弹层（文件多选/默认分支/reviewers 增删/成功链接）、safeUrl 白名单 9 项、登录页（空令牌/401 态）、设置页（主题即时生效/清除痕迹逐项结果/没勾选不调用） |
+
+Tauri 备注：用户级 `.cargo/config.toml` 把 target-dir 指向 `D:/snoware-target`，
+M3 期间 D 盘写满（0 GB 剩余），`cargo build --features desktop` 改用
+`CARGO_TARGET_DIR=C:\snoware-target-desktop` 完成；默认特性的构建/测试仍在 D 盘原目录全绿。
+D 盘清理后可按需删掉 C 盘这个临时 target 目录。
 
 ## 4. 代码地图
 
 ```
 gui/src/    args.rs 参数 / engine.rs 引擎发现+握手+git commit / assets.rs 静态白名单 /
-            server.rs 反代 / session.rs 令牌脱敏 / desktop.rs Tauri（feature 占位）
-gui/assets/ index.html 三栏 + 弹层 / app.js 全部前端逻辑 / api.js fetch 封装 / style.css
+            server.rs 反代+登录态接口 / session.rs 脱敏+钥匙串+Gitee+pruge / desktop.rs Tauri
+gui/assets/ index.html（写作台）/ login.html / settings.html / app.js（三页共用）/ api.js / style.css
+gui/        tauri.conf.json / build.rs / icons/icon.ico（desktop 特性）
 engine/gui.py    入口（--port/--site、GUI_TOKEN、握手行）
-engine/gui_api.py API 业务（类型/树/文档读写/校验/预览/新建/图片/资源/删除/重命名/状态）
-tests/gui_api_test.py  起真实服务的 Python 回归（临时站点，不碰真实 content）
-tests/gui_dom_test.js  用 tests/dom-stub.js 的前端 DOM 冒烟（假 fetch，不联网）
+engine/gui_api.py API 业务（… + reviewers + PR；REPO=站点所在 git 仓库，解析不到就降级）
+tests/gui_api_test.py  起真实服务的 Python 回归（含临时 git 仓库的 PR 集成用例）
+tests/gui_dom_test.js  M2 前端 DOM 冒烟
 ```
 
 关键约束（踩线即 bug，详见 `AGENTS.md` §6 写作台红线）：
@@ -58,49 +73,54 @@ tests/gui_dom_test.js  用 tests/dom-stub.js 的前端 DOM 冒烟（假 fetch，
 - Rust **不写 UI、不重写引擎**；解析/渲染/契约/构建全走 `engine/`；
 - 路径白名单 `realpath ⊆ site/content/** ∪ site/theme/**`，否则 403；
 - 保存：UTF-8 **无 BOM**、LF、末尾换行，保存前跑契约，**422 不写盘**；带 `base_hash` 时磁盘被改过 **409 不覆盖**；
-- 令牌只走环境变量/内存/钥匙串，两侧日志都 `redact()`；
-- 新拼 href/src 必须过 `urls.safe_url()`（Python） / `safeUrl()`（JS）；提取码只当文本。
+- 令牌只走环境变量/内存/系统钥匙串，两侧日志都 `redact()`；localStorage **不含令牌**；
+- 新拼 href/src 必须过 `urls.safe_url()`（Python） / `safeUrl()`（JS，M3 新增，白名单同口径）；
+- PR：永不 `--force`、永不推 master、失败给 `compare_url + commands`、不自动重试。
 
 ## 5. 已知问题 / 未修项（移交时请注意）
 
-1. **M2 的删除/重命名还没做登录门禁**：`/api/delete`、`/api/rename` 只校验 `X-GUI-Token`
-   （本地进程级），**没有**「管理员」判断——这是 M3 的事，文档已标注。别以为它有权限控制。
+1. **M3 新页的 DOM 冒烟用例没有并入 `tests/gui_dom_test.js`**：hy4 的文件所有权清单
+   （用户消息与 `docs/GUI-M3-PROMPT.md`）只列了 `tests/gui_api_test.py`，没有 `gui_dom_test.js`。
+   已按提示词的升级规则记录在此：M3 期间用临时脚本验证过 42 项（见 §3），
+   **把用例并入 `gui_dom_test.js` 需要所有权确认后再做**（脚本模式：见该文件头部注释与
+   `tests/dom-stub.js`；注意桩不反射 `hidden`/`disabled`/`checked` 属性，断言要用
+   `getAttribute`，页面识别走 `detectPage()` 的特征元素兜底）。
 2. **SML 文件转草稿做不了**：`POST /api/doc` 的 SML 路径只接受整篇 `raw`，前端会把
    `draft: true` 按原文写回，所以 `ctxDraft` 对 `.sml` 明确提示「M2 未做 SML 字段写回」。
-   M3 补：解析 SML → 改 `draft` 键 → 重新序列化（注意双后端差异）。
+   要做：解析 SML → 改 `draft` 键 → 重新序列化（注意 builtin/native 双后端差异）。
 3. **重命名不改站内引用**：`/api/rename` 只 `git mv`，正文里手写的 `#/post/<slug>` 之类
-   不会自动更新。文档已说明；要做请在 M3 加「引用扫描 + 确认」。
-4. **插入菜单的图片项是隐形占位**：`.md` 的图集模板插的是 `assets/a.png` 字面量，需要用户
-   自己把图放进去（或直接用品牌图片入口上传后再改路径）。
-5. **`document.execCommand('insertText')`** 是保留撤销栈的写法，浏览器若弃用会退回手动
-   splice（丢撤销栈）。Rust/前端都不用管，但 DOM 桩测试里它不存在，走的是降级分支。
-6. **PowerShell 环境下偶发 `System.AccessViolationException`（AMSI）**：与本仓库代码无关，
-   命令重试即可；M2 期间遇到约 6 次。
-7. `tests/gui_dom_test.js` 里 `sandbox.api = window.api` 是必需的接缝（桩里 window ≠ 全局），
-   真实浏览器无此问题——**别删那行**。
-8. 字体告警「缺 brotli，子集改用 woff」是环境缺包，不影响结论（`rep.warn` 不进退出码）。
+   不会自动更新。文档已说明；要做请加「引用扫描 + 确认」。
+4. **`whoami` 惰性验证**：重启后从钥匙串恢复的令牌在第一次 `whoami` 时才联网核对，
+   过期则 401 提示重新登录（不静默失败）。没有做定期刷新。
+5. **`purge` 的「日志」项是说明性的**：本 App 日志只进终端、不落盘，因此没有文件可清；
+   「预览与构建缓存」目录当前引擎不写，条目存在时清、不存在时如实说明。
+6. **fork 兜底的就绪等待是轮询**（最多 15 秒）：Gitee 没有 webhook，失败会给 stage + 命令。
+7. **PowerShell 环境下偶发 `System.AccessViolationException`（AMSI）**：与本仓库代码无关，
+   命令重试即可；M3 期间遇到约 4 次。
+8. **`git()` 必须保持 `encoding="utf-8"`**：Windows 默认 GBK 会把中文分支名/提交信息解成
+   `UnicodeDecodeError`，且症状是管道线程炸掉后 `out.stdout` 变 `None`（报莫名其妙的
+   AttributeError）。改这段前先读 `engine/gui_api.py` 里 `git()` 的注释。
+9. 字体告警「缺 brotli，子集改用 woff」是环境缺包，不影响结论（`rep.warn` 不进退出码）。
+10. **`AGENTS.md` 有两处过期描述没改**（不在 hy4 所有权清单）：目录索引里
+    `src/session.rs 令牌脱敏（M3 加钥匙串 / Gitee 校验）`、`src/desktop.rs …（M3 接 Tauri）`
+    ——两者均已在 M3 落地，改 AGENTS.md 需要所有权确认。
 
-## 6. 下一步（M3，按依赖顺序）
+## 6. 下一步（M4 候选，按依赖顺序）
 
-1. `gui/src/session.rs`：keyring 存储 token（Windows Credential Manager / macOS Keychain / libsecret），
-   失败降级「仅本次会话」；`POST /api/session` 调 Gitee `GET /user` 校验；`POST /api/purge`
-   逐项返回清了什么（钥匙串 token / 最近文件 / 预览缓存 / 日志）。
-2. `engine/gui_api.py`：`/api/pr`（`checkout -b` → `add` → `commit` → `push` → Gitee PR；
-   push 403 走 fork 兜底 `head=<user>:<branch>`；**永不 force、永不推 master**；无 token/失败
-   返回 `compare_url` + 命令，**不执行 git**）。Rust 侧反代 `/api/pr` 时注入 `X-Gitee-Token`。
-3. `site/content/site.sml` 加 `reviewers: [sal]`，支持 `REC_BLOG_REVIEWERS` 覆盖。
-4. UI：`login.html`（记住 / 仅本次会话）、`settings.html`（账户与安全 / 外观 / 编辑 / 资源与附件 /
-   关于；设置存 `localStorage`，**不含 token**；两个按钮文字开关）。
-5. 删除/重命名加「管理员」门禁（登录后才可用，未登录置灰）。
-6. Tauri：`--features desktop` 实跑 `cargo check --features desktop` 与 `cargo build --features desktop`，
-   成功则文档写「Tauri 已在 Windows 验证」，失败则贴完整命令 + tauri/tao/wry 版本 + 错误码 + 关键日志。
-7. 测试补齐：无 token 调 `/api/pr` → 明确错误且 `git status` 不变；钥匙串降级；脚本脱敏。
+1. 把 M3 新 UI 的 DOM 冒烟用例并入 `tests/gui_dom_test.js`（等所有权确认，见 §5.1）；
+2. `/api/ai-summary`（`engine/ai_summarize.py` 已实现，接进来替掉 501）；
+3. SML 字段写回（草稿切换）+ 重命名的引用扫描确认；
+4. 登录态过期自动刷新 / PR 创建后的状态回显（不做 CI 面板，跳 Gitee）；
+5. Tauri 打包分发（`tauri build` 出安装包；需要补各尺寸图标与签名，当前只有 32px ico）。
 
 ## 7. 测试怎么写才有意义（经验）
 
-- Python 侧起**真实服务**（`engine/gui.py --port 0`），用临时站点目录（`site.sml` + `contracts` +
-  一篇文章 + `resources` + `theme`），别碰真实 `site/content`；跑构建用
-  `python engine/build.py --site <tmp> --offline --out <tmp>/dist`（`--out` 有守卫，仓库外放行）。
+- Python 侧起**真实服务**（`engine/gui.py --port 0`），用临时站点目录，别碰真实 `site/content`；
+  跑 PR 流程要**另起一个临时 git 仓库**（`git init` + `--site` 指进去），断言到 push 失败为止
+  （无 remote），并检查分支/提交确实生成、`commands` 里没有 `--force`；
+- 未登录用例要用**真实仓库的 `git status` 做金丝雀**：调用前后必须一致；
 - 前端用 `tests/dom-stub.js` + 假 `fetch`；DOM 桩没有 `remove()`/`dataset`/冒泡，
-  断言优先 `class` / `textContent` / `children.length`；`onclick` 属性要手调。
+  断言优先 `class` / `textContent` / `children.length`；`onclick` 属性要手调；
+- 桩不反射 `hidden`/`disabled`/`checked` 属性到 property——应用侧用
+  `setHidden()/setDisabled()` 双写，测试侧用 `getAttribute` 断言；
 - 写一条就删一条临时文件（`finally` 里清理），否则会污染同进程后面的用例。

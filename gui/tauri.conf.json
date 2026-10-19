@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-config-schema/schema.json",
+  "productName": "rec-blog",
+  "version": "0.1.0",
+  "identifier": "com.rustembed.rec-blog",
+  "build": {
+    "frontendDist": "assets"
+  },
+  "app": {
+    "windows": []
+  }
+}

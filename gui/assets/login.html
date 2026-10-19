@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>rec-blog 写作台 · 登录</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="login">
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M4 7l8-4 8 4v10l-8 4-8-4z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 7l8 4 8-4M12 11v10" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 12l5 5L20 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+</svg>
+
+<div class="auth">
+  <div class="auth-card">
+    <div class="auth-brand"><svg><use href="#i-box"/></svg>写 作 台 <span id="auth-site">· Rust嵌入式探讨</span></div>
+    <p class="auth-sub">登录后可以提交 PR；不登录也能写作、预览、校验。</p>
+
+    <div class="auth-field">
+      <label for="login-token">Gitee 个人令牌（需要 repo 权限）</label>
+      <div class="auth-input">
+        <input id="login-token" type="password" placeholder="粘贴令牌" autocomplete="off">
+        <button id="login-eye" type="button" title="显示/隐藏"><svg><use href="#i-eye"/></svg></button>
+      </div>
+      <div class="error-line" id="login-error"></div>
+    </div>
+
+    <div class="auth-field">
+      <label>令牌保存方式</label>
+      <label class="radio-card on" id="rc-remember"><input type="radio" name="store" id="login-remember" checked>
+        <div><b>记住（系统钥匙串）</b><span>Windows 凭据管理器 / macOS Keychain，退出登录时一并清除</span></div>
+      </label>
+      <label class="radio-card" id="rc-session"><input type="radio" name="store" id="login-session">
+        <div><b>仅本次会话</b><span>只放内存，关闭 App 即失效；适合共用电脑</span></div>
+      </label>
+    </div>
+
+    <div class="auth-field">
+      <label>登录后能做什么</label>
+      <div class="auth-note">
+        <div>✓ 新建分支、提交、推送</div>
+        <div>✓ 创建 PR 并指派审核人</div>
+        <div>✓ 删除 / 重命名内容（登录 = 本地管理员）</div>
+        <div>✗ 不能绕过分支保护直接推 master</div>
+      </div>
+    </div>
+
+    <div class="auth-actions">
+      <button class="btn primary" id="login-go"><svg><use href="#i-check"/></svg><span>登录</span></button>
+      <a class="btn" href="/"><svg><use href="#i-x"/></svg><span>取消</span></a>
+    </div>
+    <p class="auth-foot">
+      令牌只存在本机（系统钥匙串或进程内存）；App 不会上传、不会写进仓库、不会进日志。<br>
+      没有令牌？去 Gitee「设置 → 私人令牌」生成，勾选 projects 权限。
+    </p>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

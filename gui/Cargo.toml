@@ -15,26 +15,39 @@ anyhow = "1"
 axum = "0.8"
 clap = { version = "4", features = ["derive"] }
 include_dir = "0.7"
+keyring = { version = "3", features = ["windows-native"] }
 open = "5"
 rand = "0.8"
 reqwest = { version = "0.12", default-features = false, features = [
-    "rustls-tls",
-    "json",
-    "stream",
+  "rustls-tls",
+  "json",
+  "stream",
 ] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = [
-    "macros",
-    "rt-multi-thread",
-    "signal",
-    "process",
-    "time",
-    "io-util",
+  "macros",
+  "rt-multi-thread",
+  "signal",
+  "process",
+  "time",
+  "io-util",
 ] }
 
-# desktop 特性（Tauri 系统 WebView）在 M3 接上 tauri，见 docs/GUI-IMPLEMENT-PROMPT.md §6。
-# 当前是空特性：--desktop 会提示「未编译该特性」并降级为打开浏览器。
+# desktop 特性：Tauri 系统 WebView（Windows WebView2 / macOS WKWebView），不打包 Chromium。
+# 二进制体积与系统依赖都由该特性承担，默认 cargo install 仍是浏览器模式。
+[build-dependencies]
+tauri-build = { version = "2", optional = true }
+
 [features]
 default = []
-desktop = []
+desktop = ["dep:tauri", "dep:tauri-build", "dep:url"]
+
+[dependencies.tauri]
+version = "2"
+optional = true
+features = []
+
+[dependencies.url]
+version = "2"
+optional = true

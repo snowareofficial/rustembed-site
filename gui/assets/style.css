@@ -222,3 +222,83 @@ body.dark .toast{background:var(--surface-2);color:var(--ink)}
 
 @media (max-width:1200px){ .topbar .actions .btn span{display:none} }
 @media (max-width:1100px){ .main{grid-template-columns:0 minmax(0,1fr) 22rem} .tree{display:none} }
+
+/* ---------- M3：登录态 chip / 登录页 / 设置页 / PR 弹层 ---------- */
+.chip.me{border-color:var(--accent);color:var(--accent);gap:.3rem}
+.chip.me svg{width:.8rem;height:.8rem}
+body.labels-off .topbar .actions .btn span,
+body.tool-labels-off .editor-card .tool span{display:none}
+
+/* 登录页 */
+.auth{display:grid;place-items:center;min-height:100vh;background:var(--paper);padding:1.2rem}
+.auth-card{width:min(26rem,calc(100vw - 2rem));background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:1.6rem 1.5rem;box-shadow:0 18px 50px rgba(0,0,0,.08)}
+.auth-brand{display:flex;align-items:center;gap:.55rem;font-weight:650;margin-bottom:.3rem}
+.auth-brand svg{width:1.7rem;height:1.7rem;color:var(--accent)}
+.auth-brand span{font-weight:400;color:var(--ink-mute);font-size:12px}
+.auth-sub{font-size:12px;color:var(--ink-mute);margin:0 0 1.2rem}
+.auth-field{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.7rem}
+.auth-field>label{font-size:11px;color:var(--ink-mute)}
+.auth-input{display:flex;align-items:center;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);padding:.1rem .3rem}
+.auth-input input{flex:1;border:0;background:none;outline:0;font:inherit;font-size:13px;padding:.35rem .3rem;color:var(--ink)}
+.auth-input button{border:0;background:none;color:var(--ink-mute);cursor:pointer;width:1.9rem;height:1.9rem;display:grid;place-items:center}
+.auth-input svg{width:1rem;height:1rem}
+.radio-card{display:flex;align-items:flex-start;gap:.55rem;border:1px solid var(--line);border-radius:8px;padding:.55rem .65rem;margin-bottom:.45rem;cursor:pointer}
+.radio-card.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.radio-card input{margin-top:.25rem;accent-color:var(--accent)}
+.radio-card b{display:block;font-size:12.8px}
+.radio-card span{font-size:11.5px;color:var(--ink-mute)}
+.auth-note{font-size:12px;color:var(--ink-soft);line-height:1.9}
+.auth-foot{font-size:11px;color:var(--ink-mute);margin-top:.9rem;line-height:1.6}
+.auth-link{color:var(--accent);text-decoration:none;font-size:12px}
+.auth-actions{display:flex;align-items:center;gap:.6rem;margin-top:1rem}
+.auth-actions .btn{flex:1;justify-content:center}
+.auth .error-line{margin-top:.15rem}
+
+/* 设置页 */
+.set-page{max-width:52rem;margin:0 auto;padding:1.4rem 1.2rem 3rem}
+.set-page h1{font-size:1.3rem;margin:0 0 .2rem}
+.set-page .sub{font-size:12px;color:var(--ink-mute);margin-bottom:1rem}
+.set-card{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:0 .9rem;margin-bottom:1rem}
+.set-card>.set-h{margin:.8rem 0 .1rem}
+.set-h{font-size:11px;letter-spacing:.08em;color:var(--ink-mute);margin:.9rem 0 .2rem;text-transform:uppercase}
+.set-row{display:flex;align-items:center;gap:1rem;padding:.6rem 0;border-bottom:1px solid var(--line)}
+.set-row:last-child{border-bottom:0}
+.set-row .lab{width:9rem;flex:0 0 auto;font-size:12.5px;color:var(--ink-soft)}
+.set-row .ctl{flex:1;display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;font-size:12.5px;color:var(--ink-soft)}
+.set-row .ctl .hint{font-size:11px;color:var(--ink-mute)}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:6px;overflow:hidden}
+.seg button{border:0;background:var(--surface);color:var(--ink-soft);font:inherit;font-size:12px;padding:.24rem .6rem;cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accent-ink)}
+.switch{display:inline-flex;align-items:center;gap:.4rem;font-size:12.5px;color:var(--ink-soft)}
+.switch input{accent-color:var(--accent)}
+.danger-btn{border:1px solid #d9b3a3;color:#a8471f;background:var(--surface)}
+.danger-btn:hover{border-color:var(--accent);color:var(--accent)}
+body.dark .danger-btn{border-color:#6a3a24;color:#e0a080}
+.mono{font-family:var(--mono)}
+
+/* PR 弹层 */
+.pr-grid{display:grid;grid-template-columns:18rem minmax(0,1fr);gap:1rem;align-items:start}
+.pr-files label{font-size:11px;letter-spacing:.04em;color:var(--ink-mute);display:block;margin-bottom:.3rem}
+.pr-file-list{max-height:16rem;overflow:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+.pr-file{display:flex;align-items:center;gap:.4rem;padding:.28rem .5rem;font-size:11.5px;color:var(--ink-soft);border-bottom:1px solid var(--line)}
+.pr-file:last-child{border-bottom:0}
+.pr-file input{accent-color:var(--accent)}
+.pr-file .st{font-family:var(--mono);font-size:10px;color:var(--ink-mute);border:1px solid var(--line);border-radius:3px;padding:0 .2rem}
+.pr-file .p{font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pr-form .field{margin-bottom:.55rem}
+.pr-form textarea{border:1px solid var(--line);border-radius:5px;background:var(--surface);padding:.3rem .45rem;font:inherit;font-size:13px;color:var(--ink);width:100%;resize:vertical}
+.pr-rev-add{display:flex;gap:.4rem;margin-top:.35rem}
+.pr-rev-add input{flex:1;border:1px solid var(--line);border-radius:5px;background:var(--surface);padding:.25rem .45rem;font:inherit;font-size:12.5px;color:var(--ink)}
+.pr-result{margin-top:.8rem;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:.6rem .8rem;font-size:12.5px;color:var(--ink-soft)}
+.pr-result.ok{border-color:#c9d7c2}
+.pr-result .row{display:flex;gap:.4rem;align-items:baseline;padding:.12rem 0}
+.pr-result .cmds{font-family:var(--mono);font-size:11px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:.4rem .55rem;margin-top:.35rem;white-space:pre-wrap;user-select:all}
+.pr-result a{color:var(--accent)}
+
+/* 清除痕迹结果 */
+.purge-result{margin-top:.8rem;border-top:1px solid var(--line);padding-top:.6rem}
+.purge-result .row{display:flex;gap:.5rem;align-items:baseline;font-size:12px;padding:.15rem 0}
+.purge-result .row .it{flex:0 0 9rem;color:var(--ink-soft)}
+.purge-result .row .de{color:var(--ink-mute)}
+.purge-result .row.no .it{color:#a8471f}
+.purge-result .row.no .de{color:#a8471f}

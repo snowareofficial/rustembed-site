@@ -9,7 +9,10 @@
 - 令牌只用于比对 `X-GUI-Token`，不写日志、不回显。
 
 M1 已实现：types / tree / doc(GET,PUT) / validate / preview / new / status。
-M2、M3 的 asset / resources / delete / pr / ai-summary 会在这里补，先给 501 说明。
+M2 已实现：asset / resources / delete / rename。
+M3 已实现：pr（Gitee fork 兜底）/ reviewers；delete / rename / pr 要求登录
+（Rust 反代只对这三个路径注入 `X-Gitee-Token`，本模块只读该头，不落盘、不日志）。
+`/api/ai-summary` 仍返回 501 + 说明，不假装成功。
 """
 
 import base64
@@ -18,10 +21,14 @@ import datetime as dt
 import hashlib
 import hmac
 import json
+import os
 import re
 import shutil
 import subprocess
 import sys
+import time
+import urllib.error
+import urllib.request
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -42,7 +49,23 @@ import cli  # noqa: E402  复用 slugify / 图片尺寸解析，不另写一份
 SITE = config.SITE
 CONTENT = config.CONTENT
 THEME = config.THEME
-REPO = config.REPO
+
+
+def _find_repo_root():
+    """站点所在的 git 仓库根：从 SITE 逐级向上找 `.git`。
+
+    真实站点（`<repo>/site` 或「站点即仓库根」）都能找到；
+    临时站点 / 非 git 目录返回 None —— 此时 git 类接口（status/delete/rename/pr）
+    全部降级：删除/重命名退回文件系统，PR 明确失败并给出手动命令。
+    """
+    p = SITE.resolve()
+    for cand in [p] + list(p.parents):
+        if (cand / ".git").exists():
+            return cand
+    return None
+
+
+REPO = _find_repo_root()
 
 DOC_EXT = (".md", ".markdown", ".sml")
 MAX_BODY = 32 * 1024 * 1024
@@ -462,14 +485,24 @@ def pick_first(d, keys):
 
 
 def git(*args, check_stderr=False):
-    """在仓库根跑 git；失败返回 ""（或 None 表示要 stderr）。"""
+    """在仓库根跑 git；`check_stderr=True` 时**失败**返回 stderr（成功返回 ""），
+    拿不到 git 返回 None。REPO 为 None（站点不在 git 仓库里）时直接失败，不碰任何目录。
+
+    `encoding="utf-8"`：git 输出按 UTF-8 解码（Windows 默认 GBK 会把中文
+    提交信息/分支名解成 UnicodeDecodeError，管道线程炸掉、stdout 变 None）。
+    """
+    if REPO is None:
+        return None if check_stderr else ""
     try:
         out = subprocess.run(["git", "--no-pager"] + list(args), cwd=str(REPO),
-                             capture_output=True, text=True, timeout=30)
+                             capture_output=True, text=True, encoding="utf-8",
+                             errors="replace", timeout=30)
     except (OSError, subprocess.SubprocessError):
         return None if check_stderr else ""
     if out.returncode == 0:
-        return out.stdout.strip()
+        if check_stderr:
+            return ""                 # 成功：没有错误信息（stdout 由不带头调用另取）
+        return (out.stdout or "").strip()
     if check_stderr:
         return (out.stderr or out.stdout or "").strip()
     return ""
@@ -477,6 +510,8 @@ def git(*args, check_stderr=False):
 
 def repo_relative(p):
     """站点相对路径 → 仓库相对路径（git rm / git mv 需要仓库根视角）。"""
+    if REPO is None:
+        return rel_of(p)
     try:
         return p.resolve().relative_to(REPO.resolve()).as_posix()
     except (ValueError, OSError):
@@ -675,19 +710,24 @@ def api_delete(payload):
     # 文章连目录一起删（assets/ 也带走）；其余类型删文件
     target = p.parent if kind_of(p) == "post" else p
     rel = repo_relative(target)
-    err = git("rm", "-r", "-f", "--", rel, check_stderr=True)
-    if err is None:
-        return None, (500, "git rm 无法执行（本机 git 不可用？）")
-    if err:
-        # 不在 git 里（未跟踪 / 临时站点）：退回文件系统删除，同样不留半成品
+    via = "git"
+    if REPO is None:
+        via = "fs"                    # 站点不在 git 仓库里：直接走文件系统
+    else:
+        err = git("rm", "-r", "-f", "--", rel, check_stderr=True)
+        if err is None:
+            return None, (500, "git rm 无法执行（本机 git 不可用？）")
+        if err:
+            via = "fs"                # 不在 git 里（未跟踪）：退回文件系统删除
+    if via == "fs":
         try:
             if target.is_dir():
                 shutil.rmtree(target)
             else:
                 target.unlink()
         except OSError as e:
-            return None, (500, "删除失败：%s（git：%s）" % (e, err))
-    return {"ok": True, "removed": rel, "via": "git" if not err else "fs"}, None
+            return None, (500, "删除失败：%s" % e)
+    return {"ok": True, "removed": rel, "via": via}, None
 
 
 def api_rename(payload):
@@ -706,20 +746,26 @@ def api_rename(payload):
         src, dst = p, p.parent / (new_slug + p.suffix)
     if dst.exists():
         return None, (409, "目标已存在：%s" % rel_of(dst))
-    err = git("mv", "--", repo_relative(src), repo_relative(dst), check_stderr=True)
-    if err is None:
-        return None, (500, "git mv 无法执行（本机 git 不可用？）")
-    if err:
+    via = "git"
+    if REPO is None:
+        via = "fs"                    # 站点不在 git 仓库里：直接走文件系统
+    else:
+        err = git("mv", "--", repo_relative(src), repo_relative(dst), check_stderr=True)
+        if err is None:
+            return None, (500, "git mv 无法执行（本机 git 不可用？）")
+        if err:
+            via = "fs"
+    if via == "fs":
         try:
             src.rename(dst)
         except OSError as e:
-            return None, (500, "重命名失败：%s（git：%s）" % (e, err))
+            return None, (500, "重命名失败：%s" % e)
     if kind == "post":
         idx = sorted(dst.glob("index.*"))
         new_path = rel_of(idx[0]) if idx else rel_of(dst)
     else:
         new_path = rel_of(dst)
-    return {"ok": True, "path": new_path, "via": "git" if not err else "fs"}, None
+    return {"ok": True, "path": new_path, "via": via}, None
 
 
 def api_new(payload):
@@ -763,6 +809,247 @@ def api_new(payload):
     }
     # 按 mock「创建后会打开编辑器，首次保存时写入文件」：这里只回模板，不落盘
     return {"path": rel, "template": text, "written": False}, None
+
+
+# ---------------------------------------------------------------- PR / 审核人
+
+GITEE_API = "https://gitee.com/api/v5"
+UA = "rec-blog-gui/0.1 (+writing desk)"
+BASE_BRANCH = "master"          # 站点仓库的默认分支（与标题行「→ master」chip 一致）
+
+
+def _gitee(token, method, path, payload=None, timeout=20):
+    """调 Gitee API v5。令牌走 Authorization 头，不进 URL、不进日志。
+    返回 (status, dict)；网络错误 status=0。"""
+    data = json.dumps(payload).encode("utf-8") if payload is not None else None
+    req = urllib.request.Request(GITEE_API + path, data=data, method=method)
+    req.add_header("Authorization", "token " + token)
+    req.add_header("User-Agent", UA)
+    if data:
+        req.add_header("Content-Type", "application/json")
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            raw = r.read().decode("utf-8", "replace")
+            return r.status, (json.loads(raw) if raw.strip() else {})
+    except urllib.error.HTTPError as e:
+        raw = e.read().decode("utf-8", "replace")
+        try:
+            return e.code, json.loads(raw)
+        except ValueError:
+            return e.code, {"message": raw[:200]}
+    except (urllib.error.URLError, OSError) as e:
+        return 0, {"message": str(e)}
+
+
+def _owner_repo():
+    """站点仓库坐标（site.sml: repo_url）。拿不到返回 None。"""
+    try:
+        site = sml.load(CONTENT / "site.sml")
+    except Exception:
+        return None
+    url = sml.as_str(site.get("repo_url", ""))
+    if not url:
+        return None
+    u = urlparse(url if "://" in url else "https://" + url)
+    parts = [p for p in u.path.split("/") if p]
+    if len(parts) < 2:
+        return None
+    owner, repo = parts[0], parts[1]
+    if repo.endswith(".git"):
+        repo = repo[:-4]
+    return owner, repo
+
+
+def api_reviewers():
+    """PR 默认审核人：环境变量 REC_BLOG_REVIEWERS（逗号分隔）优先，否则 site.sml 的 reviewers。"""
+    env = os.environ.get("REC_BLOG_REVIEWERS", "")
+    if env.strip():
+        return [x.strip() for x in env.split(",") if x.strip()]
+    try:
+        site = sml.load(CONTENT / "site.sml")
+    except Exception:
+        return []
+    return [sml.as_str(x) for x in (site.get("reviewers") or []) if sml.as_str(x)]
+
+
+def _branch_ok(b):
+    """分支名：拒绝 master/main、空格、.. 与一切 shell/git 元字符。"""
+    if not b or len(b) > 120 or b in ("master", "main"):
+        return False
+    if ".." in b or b.startswith(("/", "-", ".")) or b.endswith(("/", ".", ".lock")):
+        return False
+    return bool(re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/-]*", b))
+
+
+def default_branch(paths):
+    """默认分支：post/<slug>-<yyyyMMddHHMM>（取第一个路径的短名）。"""
+    slug = ""
+    for rel in paths:
+        p = safe_path(str(rel))
+        if p is not None:
+            slug = _slug_of(p)
+            break
+    return "post/%s-%s" % (slug or "draft", dt.datetime.now().strftime("%Y%m%d%H%M"))
+
+
+def _pr_commands(branch, rels, message):
+    return [
+        "git checkout -b %s" % branch,
+        "git add %s" % " ".join(rels),
+        'git commit -m "%s"' % str(message).replace('"', '\\"'),
+        "git push -u origin %s" % branch,
+    ]
+
+
+def _pr_fail(stage, error, branch, rels, message):
+    """任一步失败：给 stage + compare 链接 + 可复制命令；不 force、不重试、不改历史。"""
+    or_pair = _owner_repo()
+    compare = ""
+    if or_pair:
+        compare = "https://gitee.com/%s/%s/compare/%s...%s" % (
+            or_pair[0], or_pair[1], BASE_BRANCH, branch)
+    return {
+        "ok": False,
+        "stage": stage,
+        "error": str(error)[:500],
+        "branch": branch,
+        "compare_url": compare,
+        "commands": _pr_commands(branch, rels, message),
+        "note": "没有执行 force、没有改历史、没有自动重试；分支与本地提交已保留。",
+    }, None
+
+
+def _is_auth_error(stderr):
+    """push 的 401/403 判定（命中才走 fork 兜底；其余失败原地报）。
+    注意：「没有 origin remote」时 git 也会打印 Could not read from remote repository.，
+    那不是权限问题，先排除，否则会误走 fork。"""
+    s = (stderr or "").lower()
+    if "does not appear to be a git repository" in s or "repository not found" in s:
+        return False
+    return any(k in s for k in ("403", "401", "permission denied", "authentication failed",
+                                "could not read from remote", "access denied",
+                                "password authentication was removed"))
+
+
+def _create_pr(token, branch, title, body, reviewers, head=None):
+    """Gitee 建 PR；head 缺省为同名分支，fork 兜底传 <login>:<branch>。"""
+    or_pair = _owner_repo()
+    if not or_pair:
+        return None, "site.sml 里没有可用的 repo_url"
+    st, pr = _gitee(token, "POST", "/repos/%s/%s/pulls" % or_pair, {
+        "title": title,
+        "head": head or branch,
+        "base": BASE_BRANCH,
+        "body": body,
+        "assignees": reviewers,
+    })
+    if st not in (200, 201) or not pr.get("html_url"):
+        return None, "创建 PR 失败（HTTP %s）：%s" % (st, pr.get("message", ""))
+    return pr, None
+
+
+def _fork_and_push(token, branch, rels, message, title, body, reviewers):
+    """push 403/401 的 fork 兜底：建 fork → 等就绪 → 推 fork → PR head=<login>:<branch>。
+    返回 (pr, None) 或 (None, (stage, error))。"""
+    or_pair = _owner_repo()
+    if not or_pair:
+        return None, ("repo", "site.sml 里没有可用的 repo_url")
+    st, me = _gitee(token, "GET", "/user")
+    if st != 200 or not me.get("login"):
+        return None, ("fork", "无法确认身份（GET /user：HTTP %s %s）" % (st, me.get("message", "")))
+    login = me["login"]
+
+    st, _f = _gitee(token, "POST", "/repos/%s/%s/forks" % or_pair)
+    if st not in (200, 201, 409):     # 409 = 已 fork 过，直接复用
+        return None, ("fork", "创建 fork 失败（HTTP %s %s）" % (st, _f.get("message", "")))
+
+    ready = False
+    for _ in range(10):               # 最多等 15 秒
+        st2, r = _gitee(token, "GET", "/repos/%s/%s" % (login, or_pair[1]))
+        if st2 == 200 and r.get("full_name"):
+            ready = True
+            break
+        time.sleep(1.5)
+    if not ready:
+        return None, ("fork", "fork 一直没就绪，请稍后在 Gitee 网页端重试")
+
+    err = git("remote", "add", "fork", "https://gitee.com/%s/%s.git" % (login, or_pair[1]),
+              check_stderr=True)
+    if err and "already exists" not in err:
+        return None, ("fork", "添加 fork remote 失败：%s" % err)
+    err = git("push", "-u", "fork", branch, check_stderr=True)
+    if err:
+        return None, ("push", err)
+
+    pr, perr = _create_pr(token, branch, title, body, reviewers,
+                          head="%s:%s" % (login, branch))
+    if perr:
+        return None, ("pr", perr)
+    return pr, None
+
+
+def api_pr(payload):
+    """提交 PR：checkout -b → add → commit → push → Gitee PR（403 走 fork 兜底）。
+    永不 force、永不推 master；任一步失败返回 compare_url + commands，不自动重试。"""
+    paths = payload.get("paths") or []
+    if not isinstance(paths, list) or not paths:
+        return None, (400, "没有要提交的文件（paths 不能为空）")
+    rels = []
+    for rel in paths:
+        p = safe_path(str(rel))
+        if p is None:
+            return None, (403, "路径越界（只允许 site/content/** 与 site/theme/**）：%s" % rel)
+        rels.append(repo_relative(p))
+
+    branch = str(payload.get("branch") or "").strip() or default_branch(paths)
+    if not _branch_ok(branch):
+        return None, (400, "分支名不合法（不能是 master/main、不能含空格或 ..）：%s" % branch)
+    message = str(payload.get("message") or "").strip() \
+        or ("写作台：更新 %d 个文件" % len(rels))
+    title = str(payload.get("title") or "").strip() or message.splitlines()[0]
+    body = str(payload.get("body") or "")
+    reviewers = [str(x).strip() for x in (payload.get("reviewers") or []) if str(x).strip()]
+
+    if REPO is None:
+        return _pr_fail("repo", "站点不在 git 仓库里（找不到 .git），无法本地提交",
+                        branch, rels, message)
+
+    err = git("checkout", "-b", branch, check_stderr=True)
+    if err is None:
+        return _pr_fail("checkout", "git 无法执行（本机装了 git 吗？）", branch, rels, message)
+    if err:
+        return _pr_fail("checkout", err, branch, rels, message)
+
+    err = git("add", "--", *rels, check_stderr=True)
+    if err is None:
+        return _pr_fail("add", "git add 无法执行", branch, rels, message)
+    if err:
+        return _pr_fail("add", err, branch, rels, message)
+
+    err = git("commit", "-m", message, check_stderr=True)
+    if err:
+        return _pr_fail("commit", err, branch, rels, message)
+    commit = git("rev-parse", "--short", "HEAD") or ""
+
+    err = git("push", "-u", "origin", branch, check_stderr=True)
+    if err and _is_auth_error(err):
+        # 没有写权限：fork 兜底（head = <login>:<branch>），仍不 force
+        pr, ferr = _fork_and_push(payload.get("_gitee_token", ""), branch, rels, message,
+                                  title, body, reviewers)
+        if ferr:
+            return _pr_fail(ferr[0], ferr[1], branch, rels, message)
+        return {"ok": True, "branch": branch, "commit": commit,
+                "pr_url": pr.get("html_url", ""), "reviewers": reviewers,
+                "via": "fork", "head": pr.get("head", {}).get("label", "")}, None
+    if err:
+        return _pr_fail("push", err, branch, rels, message)
+
+    pr, perr = _create_pr(payload.get("_gitee_token", ""), branch, title, body, reviewers)
+    if perr:
+        return _pr_fail("pr", perr, branch, rels, message)
+    return {"ok": True, "branch": branch, "commit": commit,
+            "pr_url": pr.get("html_url", ""), "reviewers": reviewers,
+            "via": "origin", "head": pr.get("head", {}).get("label", branch)}, None
 
 
 # ---------------------------------------------------------------- HTTP
@@ -826,6 +1113,11 @@ def make_handler(token):
             got = self.headers.get("X-GUI-Token", "") or ""
             return hmac.compare_digest(got, token)
 
+        def _gitee_token(self):
+            """当前登录态带的 Gitee 令牌（Rust 反代只对写操作三件套注入）。
+            本模块只读该头：不落盘、不日志、不回显。"""
+            return (self.headers.get("X-Gitee-Token") or "").strip()
+
         # ---- 路由 ----
         def do_GET(self):
             self._dispatch("GET")
@@ -859,6 +1151,8 @@ def make_handler(token):
                 elif method == "GET" and path == "/api/resources":
                     self._ok(api_resources(qs.get("q", [""])[0], qs.get("kind", [""])[0],
                                            qs.get("folder", [""])[0]))
+                elif method == "GET" and path == "/api/reviewers":
+                    self._ok(api_reviewers())
                 elif method == "GET" and path == "/api/doc":
                     self._get_doc(qs.get("path", [""])[0])
                 elif method == "PUT" and path == "/api/doc":
@@ -871,12 +1165,27 @@ def make_handler(token):
                     self._new()
                 elif method == "POST" and path == "/api/asset":
                     self._asset()
+                elif method == "POST" and path == "/api/pr":
+                    # M3 起写操作三件套要求登录：X-Gitee-Token 非空（Rust 反代注入）
+                    if not self._gitee_token():
+                        self._err(401, "请先登录（顶栏「登录」或设置 → 账户与安全）；"
+                                       "未登录不能提交 PR / 删除 / 重命名")
+                        return
+                    self._pr()
                 elif method == "POST" and path == "/api/delete":
+                    if not self._gitee_token():
+                        self._err(401, "请先登录（顶栏「登录」或设置 → 账户与安全）；"
+                                       "未登录不能提交 PR / 删除 / 重命名")
+                        return
                     self._delete()
                 elif method == "POST" and path == "/api/rename":
+                    if not self._gitee_token():
+                        self._err(401, "请先登录（顶栏「登录」或设置 → 账户与安全）；"
+                                       "未登录不能提交 PR / 删除 / 重命名")
+                        return
                     self._rename()
-                elif path in ("/api/pr", "/api/ai-summary"):
-                    self._err(501, "%s 尚未实现（M3，见 docs/GUI-IMPLEMENT.md）" % path)
+                elif path == "/api/ai-summary":
+                    self._err(501, "%s 尚未实现（见 docs/GUI-IMPLEMENT.md）" % path)
                 else:
                     self._err(404, "没有这个接口：%s" % path)
             except Exception as e:  # 任何异常都要变成 JSON，别把栈丢给前端
@@ -1032,6 +1341,20 @@ def make_handler(token):
             if err:
                 self._err(err[0], err[1])
                 return
+            self._ok(data)
+
+        def _pr(self):
+            payload = self._json_body()
+            if payload is None:
+                self._err(400, "请求体不是合法 JSON")
+                return
+            # 令牌只在这一调用链里传递，不写日志、不回显
+            payload = dict(payload, _gitee_token=self._gitee_token())
+            data, err = api_pr(payload)
+            if err:
+                self._err(err[0], err[1])
+                return
+            # 执行失败也是 200：ok=false + stage/compare_url/commands 交给前端展示
             self._ok(data)
 
     return Handler

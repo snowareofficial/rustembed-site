@@ -10,6 +10,9 @@ default_license: "CC BY-NC-SA 4.0"
 announcement: "投稿请提 PR，或把稿子交给有仓库权限的群管理代投。讨论回 QQ 群。"
 nav: [ library knowledge topics projects resources members services weekly pages join ]
 
+# PR 默认审核人（写作台 /api/pr 带出，可增删）；环境变量 REC_BLOG_REVIEWERS 可覆盖
+reviewers: [ sal ]
+
 # 默认契约：按内容类型自动套用（文件里写 @is 可覆盖）
 contracts {
   post: BlogPost

@@ -29,13 +29,15 @@ TOKEN = "test-token-abc123"
 POST_REL = "content/posts/2026/md-writing/index.md"
 
 
-def req(port, path, method="GET", payload=None, token=TOKEN):
+def req(port, path, method="GET", payload=None, token=TOKEN, gitee=None):
     url = "http://127.0.0.1:%d%s" % (port, path)
     data = json.dumps(payload).encode("utf-8") if payload is not None else None
     r = urllib.request.Request(url, data=data, method=method)
     r.add_header("Content-Type", "application/json")
     if token:
         r.add_header("X-GUI-Token", token)
+    if gitee:
+        r.add_header("X-Gitee-Token", gitee)
     try:
         with urllib.request.urlopen(r, timeout=60) as resp:
             return resp.status, json.loads(resp.read().decode("utf-8") or "{}")
@@ -100,6 +102,7 @@ class GuiApiTest(unittest.TestCase):
                 cls.server.wait(timeout=15)
             except subprocess.TimeoutExpired:
                 cls.server.kill()
+            cls.server.stdout.close()
         cls.log.close()
 
     def post_path(self):
@@ -377,10 +380,16 @@ class GuiApiTest(unittest.TestCase):
         f = self.tmp / rel
         f.parent.mkdir(parents=True, exist_ok=True)
         f.write_text('---\ntitle: "待删"\nsummary: "x"\n---\n\n正文。\n', encoding="utf-8")
-        s, res = req(self.port, "/api/delete", "POST", {"path": rel, "confirm": "错了"})
+        # M3 起写操作三件套要求登录（X-Gitee-Token 非空）
+        s, res = req(self.port, "/api/delete", "POST", {"path": rel, "confirm": "tmp-del"})
+        self.assertEqual(s, 401, res)
+        self.assertTrue(f.exists(), "未登录不能删")
+        s, res = req(self.port, "/api/delete", "POST", {"path": rel, "confirm": "错了"},
+                     gitee="fake-token")
         self.assertEqual(s, 400, res)
         self.assertTrue(f.exists(), "确认不匹配时不能删")
-        s, res = req(self.port, "/api/delete", "POST", {"path": rel, "confirm": "tmp-del"})
+        s, res = req(self.port, "/api/delete", "POST", {"path": rel, "confirm": "tmp-del"},
+                     gitee="fake-token")
         self.assertEqual(s, 200, res)
         self.assertFalse(f.exists(), "确认匹配后应删除")
 
@@ -389,9 +398,13 @@ class GuiApiTest(unittest.TestCase):
         f = self.tmp / rel
         f.parent.mkdir(parents=True, exist_ok=True)
         f.write_text('---\ntitle: "待改名"\nsummary: "x"\n---\n\n正文。\n', encoding="utf-8")
-        s, res = req(self.port, "/api/rename", "POST", {"path": rel, "slug": "Bad_Slug"})
-        self.assertEqual(s, 422, res)
         s, res = req(self.port, "/api/rename", "POST", {"path": rel, "slug": "tmp-moved"})
+        self.assertEqual(s, 401, res)
+        s, res = req(self.port, "/api/rename", "POST", {"path": rel, "slug": "Bad_Slug"},
+                     gitee="fake-token")
+        self.assertEqual(s, 422, res)
+        s, res = req(self.port, "/api/rename", "POST", {"path": rel, "slug": "tmp-moved"},
+                     gitee="fake-token")
         self.assertEqual(s, 200, res)
         self.assertEqual(res["path"], "content/topics/tmp-moved.md")
         self.assertTrue((self.tmp / "content/topics/tmp-moved.md").exists())
@@ -420,6 +433,168 @@ class GuiApiTest(unittest.TestCase):
             "front_matter": {"title": "我的版本", "summary": "x"}, "body": "我的正文\n"})
         self.assertEqual(s, 200, res)
         self.assertIn("我的正文", f.read_text(encoding="utf-8"))
+
+
+# ---------------------------------------------------------------- M3 用例
+def _git(args, cwd):
+    return subprocess.run(["git", "--no-pager"] + args, cwd=str(cwd),
+                          capture_output=True, text=True, encoding="utf-8", timeout=60)
+
+
+class M3AuthAndPrTest(unittest.TestCase):
+    """M3：写操作登录门禁 / 分支名校验 / PR 失败路径 / reviewers / git 仓库内集成。"""
+
+    server = None
+    port = 0
+    tmp = None
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = Path(tempfile.mkdtemp(prefix="rec-blog-gui-m3-"))
+        content = cls.tmp / "content"
+        (content / "contracts").mkdir(parents=True)
+        (content / "posts" / "2026").mkdir(parents=True)
+        shutil.copy(REPO / "site" / "content" / "site.sml", content / "site.sml")
+        shutil.copy(REPO / "site" / "content" / "contracts" / "blog.sml",
+                    content / "contracts" / "blog.sml")
+        dst = cls.tmp / POST_REL
+        dst.parent.mkdir(parents=True)
+        shutil.copy(REPO / "site" / POST_REL, dst)
+        if not (cls.tmp / "theme").exists():
+            shutil.copytree(REPO / "site" / "theme", cls.tmp / "theme")
+
+        cls.log_path = cls.tmp / "server.log"
+        env = dict(os.environ, GUI_TOKEN=TOKEN, REC_BLOG_SITE=str(cls.tmp),
+                   PYTHONIOENCODING="utf-8")
+        log = open(cls.log_path, "w", encoding="utf-8")
+        cls.log = log
+        cls.server = subprocess.Popen(
+            [sys.executable, "engine/gui.py", "--port", "0"],
+            cwd=str(REPO), env=env, stdout=subprocess.PIPE, stderr=log,
+            text=True, encoding="utf-8")
+        line = cls.server.stdout.readline().strip()
+        assert line.startswith("GUI_PORT="), "握手失败：%r" % line
+        cls.port = int(line.split("=", 1)[1])
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls.server:
+            cls.server.terminate()
+            try:
+                cls.server.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                cls.server.kill()
+            cls.server.stdout.close()
+        cls.log.close()
+
+    def test_19_未登录写操作一律401且不碰git(self):
+        # 真实仓库的 git 状态是金丝雀：任何未登录调用都不得改动它
+        before = _git(["status", "--porcelain", "--untracked-files=all"], REPO).stdout
+        for path, payload in [
+            ("/api/pr", {"paths": [POST_REL], "branch": "post/x-202610190000",
+                         "message": "m"}),
+            ("/api/delete", {"path": "content/topics/nope.md", "confirm": "nope"}),
+            ("/api/rename", {"path": POST_REL, "slug": "renamed"}),
+        ]:
+            s, res = req(self.port, path, "POST", payload)
+            self.assertEqual(s, 401, "%s → %s %s" % (path, s, res))
+            self.assertIn("登录", res.get("error", ""))
+        after = _git(["status", "--porcelain", "--untracked-files=all"], REPO).stdout
+        self.assertEqual(before, after, "未登录的调用不得改动真实仓库")
+
+    def test_20_分支名master_main_越界一律400(self):
+        for bad in ("master", "main", "a b", "../escape", "/abs", "-dash", "a..b"):
+            s, res = req(self.port, "/api/pr", "POST",
+                         {"paths": [POST_REL], "branch": bad, "message": "m"},
+                         gitee="fake-token")
+            self.assertEqual(s, 400, "分支 %r → %s %s" % (bad, s, res))
+        s, res = req(self.port, "/api/pr", "POST",
+                     {"paths": [], "branch": "post/ok-202610190000"}, gitee="fake-token")
+        self.assertEqual(s, 400, "空 paths 必须 400")
+        s, res = req(self.port, "/api/pr", "POST",
+                     {"paths": ["../../etc/passwd"], "branch": "post/ok-202610190000"},
+                     gitee="fake-token")
+        self.assertEqual(s, 403, "越界路径必须 403")
+
+    def test_21_PR失败路径给compare与命令且不force(self):
+        s, res = req(self.port, "/api/pr", "POST", {
+            "paths": [POST_REL], "branch": "post/m3-demo-202610190000",
+            "message": "M3 失败路径", "title": "T", "body": "B",
+            "reviewers": ["sal"]}, gitee="fake-token")
+        self.assertEqual(s, 200, res)
+        self.assertFalse(res["ok"], "非 git 仓库里必须失败")
+        self.assertTrue(res["stage"], "失败要带 stage")
+        self.assertIn("/compare/master...post/m3-demo-202610190000", res["compare_url"])
+        cmds = res["commands"]
+        self.assertEqual(cmds[0], "git checkout -b post/m3-demo-202610190000")
+        self.assertTrue(any(c.startswith("git add ") for c in cmds))
+        self.assertTrue(any(c.startswith("git commit -m ") for c in cmds))
+        self.assertTrue(any(c == "git push -u origin post/m3-demo-202610190000"
+                            for c in cmds))
+        for c in cmds:
+            self.assertNotIn("--force", c, "任何命令都不得带 --force")
+        self.assertNotIn("force", " ".join(cmds).replace("--force", ""))
+
+    def test_22_reviewers默认来自site_sml(self):
+        s, res = req(self.port, "/api/reviewers")
+        self.assertEqual(s, 200)
+        self.assertEqual(res, ["sal"])
+
+    def test_23_git仓库内_PR流程到push失败为止(self):
+        """真 git 仓库里跑 checkout -b → add → commit → push（无 remote 必败），
+        断言分支与提交都在、失败形状完整、绝无 force。"""
+        repo = self.tmp / "gitrepo"
+        site = repo / "site"
+        (site / "content" / "posts" / "2026").mkdir(parents=True)
+        (site / "content" / "contracts").mkdir(parents=True)
+        shutil.copy(REPO / "site" / "content" / "site.sml", site / "content" / "site.sml")
+        shutil.copy(REPO / "site" / "content" / "contracts" / "blog.sml",
+                    site / "content" / "contracts" / "blog.sml")
+        post = site / POST_REL
+        post.parent.mkdir(parents=True, exist_ok=True)
+        post.write_text("---\ntitle: 集成\nauthor: sal\ndate: 2026-10-19\ntags: [rust]\n"
+                        "summary: PR 流程\n---\n\n初版。\n", encoding="utf-8")
+        shutil.copytree(REPO / "site" / "theme", site / "theme")
+        _git(["init", "-q"], repo)
+        _git(["add", "-A"], repo)
+        _git(["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "init"], repo)
+
+        env = dict(os.environ, GUI_TOKEN=TOKEN, REC_BLOG_SITE=str(site),
+                   PYTHONIOENCODING="utf-8")
+        proc = subprocess.Popen(
+            [sys.executable, "engine/gui.py", "--port", "0"],
+            cwd=str(REPO), env=env, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            text=True, encoding="utf-8")
+        try:
+            line = proc.stdout.readline().strip()
+            self.assertTrue(line.startswith("GUI_PORT="), "握手失败：%r" % line)
+            port = int(line.split("=", 1)[1])
+            # 改一篇文章再提交
+            post.write_text("---\ntitle: 集成\nauthor: sal\ndate: 2026-10-19\ntags: [rust]\n"
+                            "summary: PR 流程\n---\n\n改过的正文。\n", encoding="utf-8")
+            branch = "post/integration-202610190000"
+            s, res = req(port, "/api/pr", "POST", {
+                "paths": [POST_REL], "branch": branch, "message": "写作台：改正文",
+                "reviewers": ["sal"]}, gitee="fake-token")
+            self.assertEqual(s, 200, res)
+            self.assertFalse(res["ok"], "没有 remote，push 必须失败")
+            self.assertEqual(res["stage"], "push")
+            self.assertIn("/compare/master...%s" % branch, res["compare_url"])
+            self.assertNotIn("--force", " ".join(res["commands"]))
+            # 分支已建、提交已在（本地提交保留，失败不擦）
+            branches = _git(["branch", "--list", branch], repo).stdout
+            self.assertIn(branch, branches)
+            subject = _git(["log", "-1", "--format=%s", branch], repo).stdout.strip()
+            self.assertEqual(subject, "写作台：改正文")
+            # 提交里带着那篇文章（add 确实发生过）
+            files = _git(["log", "-1", "--name-only", "--format=", branch], repo).stdout
+            self.assertIn("site/content/posts/2026/md-writing/index.md", files)
+        finally:
+            proc.terminate()
+            try:
+                proc.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                proc.kill()
 
 
 if __name__ == "__main__":
