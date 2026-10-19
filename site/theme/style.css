@@ -60,6 +60,7 @@ body {
 .prose {
   font-family: "Times New Roman", "Liberation Serif", "Nimbus Roman", "MiSans",
                system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", serif;
+  overflow-wrap: anywhere;
 }
 
 a { color: var(--accent); text-decoration: none; }
@@ -830,7 +831,7 @@ body[data-page="home"] .layout { grid-template-columns: minmax(0, 1fr); }
 .map-img { transform-origin: 0 0; display: block; max-width: none; }
 
 /* 数学公式：构建期转 MathML，浏览器原生渲染（无 JS、无外部字体） */
-.math-inline { white-space: nowrap; }
+.math-inline { display: inline-block; max-width: 100%; overflow-x: auto; overflow-y: hidden; vertical-align: middle; white-space: nowrap; }
 .math-block { overflow-x: auto; overflow-y: hidden; margin: .55rem 0; padding: .2rem 0; text-align: center; }
 .math-inline math, .math-block math {
   /* 自托管 XITS Math 优先（Times 风格、跨设备一致）；Cambria/STIX 兜底 */
@@ -846,4 +847,23 @@ body[data-page="home"] .layout { grid-template-columns: minmax(0, 1fr); }
 /* 641–1039px：左栏已隐藏，网格必须回到单列（否则 #main 会被放进 13rem 的第一列） */
 @media (max-width: 1039px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* 桌面端收起本文目录 */
+.panel-btn {
+  display: grid; place-items: center;
+  width: 2.1rem; height: 2rem; flex: 0 0 auto;
+  background: var(--surface); color: var(--ink-soft);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  cursor: pointer;
+}
+.panel-btn:hover { color: var(--ink); border-color: var(--line-strong); }
+body[data-toc="none"] .panel-btn { display: none; }
+body.toc-collapsed .panel-btn { color: var(--accent); border-color: var(--accent); }
+@media (min-width: 1040px) {
+  body.toc-collapsed .layout { grid-template-columns: minmax(0, 1fr) 13rem; }
+  body.toc-collapsed .col-left { display: none; }
+}
+@media (max-width: 1039px) {
+  .panel-btn { display: none; }
 }

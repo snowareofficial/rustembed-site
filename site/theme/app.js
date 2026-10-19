@@ -2255,6 +2255,28 @@
     if (typeof window !== 'undefined' && window.addEventListener) {
       window.addEventListener('hashchange', function () { render(); });
     }
+    /* 桌面端左侧目录收起；状态存 localStorage，不依赖构建 */
+    var tt = $('#toc-toggle');
+    if (tt && tt.addEventListener) {
+      var tocKey = 'recblog-toc-collapsed';
+      function applyTocCollapsed(on) {
+        if (document.body && document.body.classList) {
+          if (on) document.body.classList.add('toc-collapsed');
+          else document.body.classList.remove('toc-collapsed');
+        }
+        tt.setAttribute('aria-pressed', on ? 'true' : 'false');
+        tt.setAttribute('aria-label', on ? '展开目录' : '收起目录');
+        tt.setAttribute('title', on ? '展开目录' : '收起目录');
+      }
+      var tocOn = false;
+      try { tocOn = localStorage.getItem(tocKey) === '1'; } catch (e) { tocOn = false; }
+      applyTocCollapsed(tocOn);
+      tt.addEventListener('click', function () {
+        tocOn = !tocOn;
+        applyTocCollapsed(tocOn);
+        try { localStorage.setItem(tocKey, tocOn ? '1' : '0'); } catch (e) {}
+      });
+    }
     var sf = $('#search-form');
     if (sf && sf.addEventListener) {
       sf.addEventListener('submit', function (ev) {

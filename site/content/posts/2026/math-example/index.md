@@ -100,8 +100,12 @@ D正确，用 $\operatorname* { l i m } _ { x \to + \infty } { \frac { \int _ { 
 
 4．设函数 $f ( x , y )$ 连续，则 $\int _ { - 2 } ^ { 2 } \mathrm { d } x \int _ { 4 - x ^ { 2 } } ^ { 4 } f \big ( x , y \big ) \mathrm { d } y =$
 
-$\int _ { 0 } ^ { 4 } \biggl [ \int _ { - 2 } ^ { - \sqrt { 4 - y } } f \left( x , y \right) \mathrm { d } x + \int _ { \sqrt { 4 - y } } ^ { 2 } f \left( x , y \right) \mathrm { d } x \biggr ] \mathrm { d } y \ .$   
-$\int _ { 0 } ^ { 4 } \biggl [ \int _ { - 2 } ^ { \sqrt { 4 - y } } f \left( x , y \right) \mathrm { d } x + \int _ { \sqrt { 4 - y } } ^ { 2 } f \left( x , y \right) \mathrm { d } x \biggr ] \mathrm { d } y \ .$   
+$$
+\int _ { 0 } ^ { 4 } \biggl [ \int _ { - 2 } ^ { - \sqrt { 4 - y } } f \left( x , y \right) \mathrm { d } x + \int _ { \sqrt { 4 - y } } ^ { 2 } f \left( x , y \right) \mathrm { d } x \biggr ] \mathrm { d } y \ .
+$$
+$$
+\int _ { 0 } ^ { 4 } \biggl [ \int _ { - 2 } ^ { \sqrt { 4 - y } } f \left( x , y \right) \mathrm { d } x + \int _ { \sqrt { 4 - y } } ^ { 2 } f \left( x , y \right) \mathrm { d } x \biggr ] \mathrm { d } y \ .
+$$
 C． ( ) ( )4 4 40 2 2, d , d dy yf x y x f x y x y- - -- [ {+] } }∫ ∫ ∫ ．   
 D． ( )4 20 42 d , dyy f x y x∫ ∫ - ．
 
@@ -236,7 +240,9 @@ $$
 
 10．设 $X _ { 1 } , X _ { 2 } , \cdots , X _ { n }$ 为来自正态总体 $N \left( \mu , 2 \right)$ 的简单随机样本.记 ${ \overline { { X } } } = { \frac { 1 } { n } } \sum _ { i = 1 } ^ { n } X _ { i }$ ， $Z _ { \alpha }$ 表示标1in =准正态分布的上侧 $\alpha$ 分位数.假设检验问题： $H _ { 0 }$ ： $\mu { \leqslant } 1$ ， $H _ { 1 }$ ： $\mu > 1$ 的显著性水平为 $\alpha$ 的检验的拒绝域为
 
-$\left\{ \left( X _ { 1 } , \ X _ { 2 } , \cdots , \ X _ { n } \right) \middle | \overline { { { X } } } > 1 + \frac { 2 } { n } Z _ { \alpha } \right\} .$
+$$
+\left\{ \left( X _ { 1 } , \ X _ { 2 } , \cdots , \ X _ { n } \right) \middle | \overline { { { X } } } > 1 + \frac { 2 } { n } Z _ { \alpha } \right\} .
+$$
 
 【答案】D
 
