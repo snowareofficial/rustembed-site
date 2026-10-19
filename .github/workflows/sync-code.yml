@@ -1,12 +1,16 @@
 name: 从 Gitee 同步 engine/theme
 
 # 目的：GitHub 不一定连得上时，仍可只推 Gitee 更新站点代码。
-# 只同步运行期需要的 engine/ 与 site/theme/，不同步 .github/、docs/、site/content（内容由发布工作流单独取）。
+# 代码放 Gitee 的 `code` 分支（受保护），内容放 `master`；本工作流只取 code 分支的
+# engine/ 与 site/theme/，不同步 .github/、docs/、site/content（内容由发布工作流单独取）。
 #
 # 安全边界（重要）：
-#   这等于信任 Gitee master 的 engine/theme —— 有 Gitee 写权限的人可以改动 Python/JS，
-#   并在 GitHub Actions 里执行（可接触 FONT_PASSWORD / GITHUB_TOKEN 等 secrets）。
-#   启用前请确保 Gitee master 受保护、代码改动走 PR 审核；不接受任意人直接推 master。
+#   `code` 分支应只允许维护者推送；内容投稿者只有 master 的 PR 权限，
+#   因此不能通过改 engine/theme 在 CI 里执行代码。启用前请给 code 分支开保护。
+#
+# 分支名可改：同步脚本读 GITEE_CODE_BRANCH，默认 code。
+env:
+  GITEE_CODE_BRANCH: code
 on:
   schedule:
     - cron: "*/30 * * * *"
@@ -33,7 +37,11 @@ jobs:
         run: |
           set -euo pipefail
           git remote add gitee https://gitee.com/rustembed/site.git || true
-          git fetch --depth=1 gitee master
+          if ! git ls-remote --exit-code --heads gitee "$GITEE_CODE_BRANCH" >/dev/null 2>&1; then
+            echo "::error::Gitee 分支 $GITEE_CODE_BRANCH 不存在；请先从 master 建 code 分支并推送"
+            exit 1
+          fi
+          git fetch --depth=1 gitee "$GITEE_CODE_BRANCH"
           SHA="$(git rev-parse FETCH_HEAD)"
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
           rm -rf /tmp/gitee-src
