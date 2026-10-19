@@ -833,8 +833,8 @@ body[data-page="home"] .layout { grid-template-columns: minmax(0, 1fr); }
 .math-inline { white-space: nowrap; }
 .math-block { overflow-x: auto; overflow-y: hidden; margin: .55rem 0; padding: .2rem 0; text-align: center; }
 .math-inline math, .math-block math {
-  /* 自托管 STIX Two Math，保证各设备公式字形一致；缺字体时回退系统数学字体 */
-  font-family: "STIX Two Math", "Cambria Math", "Latin Modern Math", serif;
+  /* 自托管 XITS Math 优先（Times 风格、跨设备一致）；Cambria/STIX 兜底 */
+  font-family: "XITS Math", "Cambria Math", "STIX Two Math", "Latin Modern Math", serif;
   font-size: 1.02em;
 }
 /* 单独声明用正文字体（Times）时：{mathtext:...} / :::mathtext / SML font: "text" */

@@ -1,9 +1,9 @@
-# 字体（MiSans + STIX Two Math 自托管子集）
+# 字体（MiSans + XITS Math 自托管子集）
 
 > **2026-10-18 起恢复自托管**：为让不同系统显示一致，站点重新使用 MiSans 子集。
-> **2026-10-19 起公式也自托管 STIX Two Math**，避免 Windows/Android/iOS 数学字体不一致。
+> **2026-10-19 起公式自托管 XITS Math**（Times 风格，接近 Cambria），避免 Windows/Android/iOS 数学字体不一致。
 > 与上一版的区别：**fontTools 已 vendor 进仓库**（`engine/vendor/fontTools/`），构建不再依赖 `pip install fonttools`；
-> 子集只保留**站点实际用到的字符**，MiSans 约 254 KB（woff，两个权重），STIX 约 16 KB。
+> 子集只保留**站点实际用到的字符**，MiSans 约 282 KB（woff，两个权重），XITS 约 18 KB；STIX 保留作 `mathtext`/兜底。
 
 ## 能不能用
 
@@ -11,17 +11,18 @@ MiSans 由小米发布，**可免费商用，允许网页嵌入与自托管**；
 **不能单独售卖字体文件本身**、不能改名字后当成自己的字体发布、不得用于违法用途。
 上线前请对照官方《MiSans 字体知识产权许可协议》确认当前条款（许可可能更新，以官方页面为准）。
 
-STIX Two Math 采用 **SIL Open Font License 1.1**，允许嵌入、修改、再分发与随软件一起售卖，
-但不能单独售卖字体文件；版权声明与许可证全文在 `site/fonts/LICENSE-STIX.txt`。
+XITS Math 采用 **SIL Open Font License 1.1**，允许嵌入、修改、再分发与随软件一起售卖，
+但不能单独售卖字体文件；版权声明与许可证全文在 `site/fonts/LICENSE-XITS.txt`。STIX 的许可见 `LICENSE-STIX.txt`。
 
 ## 目录约定
 
 ```
 site/fonts/
-├─ src/     源字体（MiSans-Regular.ttf、STIXTwoMath-Regular.otf）—— 不入库，从官方包或加密包获取
-├─ subset/  子集产物（misans-regular.woff、stixtwomath-regular.woff）—— 构建期生成，同样不入库
-├─ misans-fonts.tar.gz.enc  源字体的 AES-256 加密包（**入库**，含 MiSans + STIX；没有密码解不开）
+├─ src/     源字体（MiSans、XITSMath、STIXTwoMath）—— 不入库，从官方包或加密包获取
+├─ subset/  子集产物（misans-*、xitsmath-*、stixtwomath-*）—— 构建期生成，同样不入库
+├─ misans-fonts.tar.gz.enc  源字体的 AES-256 加密包（**入库**，含 MiSans + XITS + STIX；没有密码解不开）
 ├─ LICENSE-MiSans.txt   MiSans 许可 —— 入库并随产物发布
+├─ LICENSE-XITS.txt     XITS OFL 1.1 —— 入库并随产物发布
 └─ LICENSE-STIX.txt     STIX OFL 1.1 —— 入库并随产物发布
 engine/vendor/fontTools/  vendored fontTools（仓库组件，非 pip 依赖；MIT 许可见 engine/vendor/fontTools-LICENSE）
 ```
@@ -59,7 +60,7 @@ python engine/cli.py build      # 不需要 pip install fonttools（用 engine/v
 - `--layout-features=kern`（只留字距）、`--no-hinting`、`--desubroutinize`、`--name-IDs=1,2`。
 - 缺 `brotli` 时退化为 woff（浏览器都支持），有 brotli 时输出 woff2（体积约减半）。
 - 实测：MiSans Regular + Bold 各约 127 KB（woff），合计 **254 KB**；
-  STIX Two Math 子集约 **16 KB**（只保留站点公式用到的字形，MATH 表保留）。
+  XITS Math 子集约 **18 KB**，STIX 约 21 KB（只保留站点公式用到的字形，MATH 表保留）。
 
 ## 字体栈（当前生效）
 
@@ -83,13 +84,13 @@ font-family: "Times New Roman", "Liberation Serif", "Nimbus Roman", "MiSans",
 
 ### 公式里的西文
 
-公式**默认用专业数学字体**（Cambria Math / STIX Two Math / Latin Modern Math），
-保证分式、伸缩括号的排版；个别公式想跟随正文 Times 时再单独声明：
+公式默认 **XITS Math 优先**（自托管、Times 风格）；Cambria / STIX 仅作兜底；
+`mathtext` 仍可单独用 Times：
 
 ```css
 /* 默认 */
 .math-inline math, .math-block math {
-  font-family: "Cambria Math", "STIX Two Math", "Latin Modern Math", serif;
+  font-family: "XITS Math", "Cambria Math", "STIX Two Math", "Latin Modern Math", serif;
 }
 /* 单独用正文字体 */
 .math-text math {

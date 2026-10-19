@@ -874,6 +874,8 @@ def font_family_weight(stem):
     low = stem.lower()
     if "stix" in low:
         family = "STIX Two Math"
+    elif "xits" in low:
+        family = "XITS Math"
     elif "misans" in low:
         family = "MiSans"
     else:
