@@ -2,7 +2,7 @@
 
 > 本文件是**仓库级索引**：另一个 AI 接手本仓库时先读这里，再按指针读细节。
 > 站点内容级的 AI 可读索引是构建产物 `dist/llms.txt` / `dist/llms-full.txt`，不要混淆。
-> 人类向文档：`README.md`（上手）、`engine/README.md`（工具体系）、`docs/ARCHITECTURE.md`（架构）。
+> 人类向文档：`README.md`（上手）、`docs/README.md`（文档索引）、`engine/README.md`（工具体系）、`docs/ARCHITECTURE.md`（架构）。
 
 ## 1. 这个仓库是什么
 
@@ -68,8 +68,10 @@ rec-blog/
 │  └─ meta/repos.json      仓库元数据缓存（入库）
 ├─ tests/                  smoke.js / browser-check.js / gui_api_test.py / dom-stub.js
 ├─ deploy/                 自托管：entrypoint / build / rebuild / gitee-webhook / fonts-crypt
-├─ docs/                   ARCHITECTURE / DEPLOY / FONTS / GOVERNANCE / ROADMAP /
-│                          WORKFLOW / SELF-HOST / GUI / GUI-FLOWS / GUI-IMPLEMENT-PROMPT
+├─ docs/                   索引 docs/README.md；参与者 ROLES/CONTRIBUTING/EDIT-SITE-DATA/
+│                          REVIEW/OPS；维护 ARCHITECTURE/WORKFLOW/FONTS/GOVERNANCE/
+│                          REPO-LAYOUT/PLAN-SML-NATIVE；GUI.md/GUI-FLOWS/GUI-IMPLEMENT/
+│                          gui-mock；archive/ 放已完成的任务书与交接
 ├─ Cargo.toml / Cargo.lock  Rust workspace（members=["gui"]）
 ├─ Dockerfile / .dockerignore
 ├─ dist/                   构建产物（gitignore；固定输出到 <repo>/dist）

@@ -23,7 +23,8 @@ python engine/cli.py preview                               # 构建 + 预览 htt
 
 投稿三步：fork → 在 `site/content/posts/<年份>/<英文短名>/index.md` 写文章 → 提 PR。
 不方便用 git 的，把稿子交给有仓库权限的群管理代投（署名仍是作者本人）。
-**完整文件结构、git 写作流程、全链路验证见 [`docs/WORKFLOW.md`](docs/WORKFLOW.md)。**
+**文档总索引见 [`docs/README.md`](docs/README.md)；目录地图见 [`docs/REPO-LAYOUT.md`](docs/REPO-LAYOUT.md)。
+完整 git 写作流程与全链路验证见 [`docs/WORKFLOW.md`](docs/WORKFLOW.md)。**
 
 ## 目录结构
 
@@ -69,7 +70,8 @@ site/                     本站点本身
 ├─ meta/repos.json        仓库元数据缓存
 └─ *.jpg                  群 logo（同时作为站点 favicon）
 
-docs/                     开发者文档（架构、部署、字体、治理、路线图、工作流、自托管、GUI）
+docs/                     文档：参与者指南、架构、运维、字体、GUI；archive/ 放历史任务书
+templates/                作者复制模板（post/resource/project/member/service）
 dist/                     构建产物（gitignore）
 ```
 

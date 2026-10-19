@@ -48,7 +48,7 @@ def read(p):
 
 
 # 已知残留白名单（相对 dist 的 glob）：这些文件仍允许出现「黄页」，
-# 来源不在本任务授权清单内（见 docs/P0-TECH-MUTUAL-AID-HANDOFF.md §3）：
+# 来源不在本任务授权清单内（见 docs/archive/p0/P0-TECH-MUTUAL-AID-HANDOFF.md §3）：
 # - style.css：theme 注释「黄页：三段式」（原样拷贝）；
 # - pages/yellow-pages*：整页《能力与合作黄页制度》源文件；
 # - llms.txt / map.svg / search-index.json / manifest.json：都由上面那页衍生的条目文本。

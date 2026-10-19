@@ -1,7 +1,7 @@
 # 写作台 · 全功能交互逻辑
 
 > 纯文字规格：每个功能"从哪进、发生什么、状态怎么变、失败怎么办"。
-> 与 `docs/gui-mock/` 的视觉稿、`docs/GUI-IMPLEMENT-PROMPT.md` 的实现约束配套。
+> 与 `docs/gui-mock/` 的视觉稿、`docs/archive/gui/GUI-IMPLEMENT-PROMPT.md` 的实现约束配套。
 
 ## A. 启动
 

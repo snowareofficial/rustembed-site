@@ -1,6 +1,6 @@
 # 写作台实现说明（M1 + M2 + M3）
 
-> 配套：`docs/GUI.md`（设计）、`docs/GUI-FLOWS.md`（交互）、`docs/GUI-IMPLEMENT-PROMPT.md`（任务书）。
+> 配套：`docs/GUI.md`（设计）、`docs/GUI-FLOWS.md`（交互）、`docs/archive/gui/GUI-IMPLEMENT-PROMPT.md`（任务书）。
 > 本文件只写**已经落地**的东西：结构、接口、纪律，以及与 `docs/gui-mock/` 的差异。
 > 分期：M1（能写）→ M2（编辑器全覆盖 + 资源附件 + 改动标记）→ M3（本次：登录 / 钥匙串 / PR / 设置 / Tauri）。
 
@@ -24,7 +24,7 @@ engine/gui.py               入口：--port/--site、GUI_TOKEN、打印 GUI_PORT
 engine/gui_api.py           API 业务：类型/树/文档读写/校验/预览/新建/图片/资源/删除/重命名/
                             状态/reviewers/PR（Gitee fork 兜底）
 tests/gui_api_test.py       起真实服务的回归（23 条：M1 十条 + M2 八条 + M3 五条）
-tests/gui_dom_test.js       DOM 冒烟（M2 用例；M3 新页用例见 GUI-HANDOFF.md §5 的所有权说明）
+tests/gui_dom_test.js       DOM 冒烟（M2 用例；M3 新页用例见 docs/archive/gui/GUI-HANDOFF.md §5 的所有权说明）
 ```
 
 **边界**：Rust 只做参数、引擎发现、进程守护、静态托管、反代、登录态（钥匙串/内存）、
@@ -185,4 +185,4 @@ GIT_TERMINAL_PROMPT=0
     （账户与安全/外观/编辑/资源与附件/关于；localStorage 不含令牌；改完即时生效）、
     PR 弹层、未登录置灰（提交 PR/删除/重命名）；
   - Tauri：`--features desktop` 用系统 WebView（tauri 2.12.4 / wry 0.57.0 / tao 0.37.1），
-    **已在 Windows 实跑验证**（见 `docs/GUI-HANDOFF.md` §3）。
+    **已在 Windows 实跑验证**（见 `docs/archive/gui/GUI-HANDOFF.md` §3）。
