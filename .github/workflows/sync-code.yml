@@ -1,0 +1,68 @@
+name: 从 Gitee 同步 engine/theme
+
+# 目的：GitHub 不一定连得上时，仍可只推 Gitee 更新站点代码。
+# 只同步运行期需要的 engine/ 与 site/theme/，不同步 .github/、docs/、site/content（内容由发布工作流单独取）。
+#
+# 安全边界（重要）：
+#   这等于信任 Gitee master 的 engine/theme —— 有 Gitee 写权限的人可以改动 Python/JS，
+#   并在 GitHub Actions 里执行（可接触 FONT_PASSWORD / GITHUB_TOKEN 等 secrets）。
+#   启用前请确保 Gitee master 受保护、代码改动走 PR 审核；不接受任意人直接推 master。
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: sync-code
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 取 Gitee 的 engine 与 site/theme
+        id: gitee
+        run: |
+          set -euo pipefail
+          git remote add gitee https://gitee.com/rustembed/site.git || true
+          git fetch --depth=1 gitee master
+          SHA="$(git rev-parse FETCH_HEAD)"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          rm -rf /tmp/gitee-src
+          mkdir -p /tmp/gitee-src
+          git archive "$SHA" engine site/theme | tar -x -C /tmp/gitee-src
+          rsync -a --delete /tmp/gitee-src/engine/ engine/
+          rsync -a --delete /tmp/gitee-src/site/theme/ site/theme/
+          echo "Gitee code: $SHA"
+
+      - name: 有变化则提交并触发发布
+        id: commit
+        env:
+          GITEE_SHA: ${{ steps.gitee.outputs.sha }}
+        run: |
+          set -euo pipefail
+          if [ -z "$(git status --porcelain engine site/theme)" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "engine/theme 无变化"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A engine site/theme
+          git commit -m "chore(sync): Gitee engine/theme @ ${GITEE_SHA:0:7}"
+          git push origin HEAD:master
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: 触发发布工作流
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run publish-pages.yml --ref master

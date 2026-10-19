@@ -211,3 +211,22 @@ python engine/test_render_safety.py
 
 改 `engine/` 或 `site/content/contracts/` 属于高影响改动：PR 里写清「改了哪条、为什么」，
 并保证上面四条全绿。前端没有打包步骤，改完 `site/theme/*` 直接重建即可。
+
+---
+
+## 6. 代码从 Gitee 自动同步（GitHub 连不上时）
+
+`.github/workflows/sync-code.yml` 每 30 分钟（或手动）从 Gitee `master` 取
+`engine/` 与 `site/theme/`，有变化就提交到 GitHub master，并触发 `publish-pages.yml`。
+
+这意味着：
+
+| 改什么 | 推哪里 | 多久到 Pages |
+|---|---|---|
+| 文章/成员/资源等 `site/content/**` | Gitee | 下个 30 分钟窗口，或手动触发 publish |
+| `engine/**`、`site/theme/**` | Gitee | 下个 30 分钟窗口，sync-code 提交后自动触发 publish |
+| `.github/workflows/**`、文档 | 只能 GitHub | 不会从 Gitee 同步（避免工作流被内容源改写） |
+
+安全边界：**信任 Gitee master 的代码 = 信任能推 Gitee 的人能在 CI 里执行 Python/JS**。
+所以 Gitee master 必须开分支保护、代码改动走 PR 审核；不要给外部投稿者直接 push 权限。
+
