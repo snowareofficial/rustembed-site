@@ -26,6 +26,7 @@
 | [`I18N.md`](I18N.md) | 多语言现状 |
 | [`TECH-MUTUAL-AID.md`](TECH-MUTUAL-AID.md) | 技术互助的定位与文案 |
 | [`REPO-LAYOUT.md`](REPO-LAYOUT.md) | 仓库目录地图、文件该放哪 |
+| [`NATIVE.md`](NATIVE.md) | SML native 来源、编译、CI、include 预处理、安全 |
 | [`PLAN-SML-NATIVE.md`](PLAN-SML-NATIVE.md) | native include/契约改造的工作量与决策 |
 
 ## GUI

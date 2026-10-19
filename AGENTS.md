@@ -72,7 +72,7 @@ rec-blog/
 ├─ deploy/                 自托管：entrypoint / build / rebuild / gitee-webhook / fonts-crypt
 ├─ docs/                   索引 docs/README.md；参与者 ROLES/CONTRIBUTING/EDIT-SITE-DATA/
 │                          REVIEW/OPS；维护 ARCHITECTURE/WORKFLOW/FONTS/GOVERNANCE/
-│                          REPO-LAYOUT/PLAN-SML-NATIVE；GUI.md/GUI-FLOWS/GUI-IMPLEMENT/
+│                          REPO-LAYOUT/NATIVE/PLAN-SML-NATIVE；GUI.md/GUI-FLOWS/GUI-IMPLEMENT/
 │                          gui-mock；archive/ 放已完成的任务书与交接
 ├─ Cargo.toml / Cargo.lock  Rust workspace（members=["gui"]）
 ├─ Dockerfile / .dockerignore

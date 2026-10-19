@@ -17,7 +17,7 @@
 | `lib/summary.py` | 摘要：优先 `summaries/*.json`，否则抽取式 | 改摘要策略 |
 | `lib/urls.py` | URL 协议白名单（http/https/mailto/tel、`#`、相对路径）—— 所有拼 href/src 的用户输入都必须过 `safe_url()` | 改白名单（先读 test_render_safety [9]/[11]） |
 | `lib/_swsml.py` | SML 原生绑定（vendored from swsml 0.6.4，MulanPSL-2） | 别就地改，升级 vendor 时以上游为准 |
-| `native/` | 原生后端载体：`sml.dll` / `libsml.so` / `libsml.dylib`（默认 gitignore；缺失时不含 `include` 的内容照常构建、含 `include` 的直接报错） | 换平台/升级 swsml |
+| `native/` | 原生后端载体：`sml.dll` / `libsml.so` / `libsml.dylib`（默认 gitignore；缺失时不含 `include` 的内容照常构建、含 `include` 的直接报错；详见 docs/NATIVE.md） | 换平台/升级 swsml |
 | `native_build.py` | 本机编译 SML native cdylib 并放到 `engine/native/`；自动找 cargo target-dir，加载验证版本 | 没有预编译库/换平台时 |
 | `build.py` | 构建主流程：校验 → manifest → 预渲染 → 索引/RSS/sitemap/llms/字体子集/_headers | 加产物、改流程顺序 |
 | `check.py` | 产物自检（不变量，CI 用） | 加你踩过的坑当断言 |
