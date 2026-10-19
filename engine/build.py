@@ -9,6 +9,7 @@
 
 import argparse
 import hashlib
+import html
 import json
 import os
 import re
@@ -845,7 +846,9 @@ def site_text(manifest, bodies=()):
     所以这里把正文渲染结果与 theme 源文件一起收进来，否则正文生僻字会回退到系统字体、段内字体混排。
     """
     parts = [json.dumps(manifest, ensure_ascii=False)]
-    parts += [b for b in bodies if b]
+    # 正文是渲染后的 HTML：MathML/转义出口的数字实体（如 &#x02202; = ∂）是 ASCII 字面，
+    # 先 unescape 再子集化，否则数学字形（∂ ∑ ∫ √ 等）不进 STIX 子集、页面回退系统字体。
+    parts += [html.unescape(b) for b in bodies if b]
     for f in sorted(THEME.glob("*")):
         if f.suffix.lower() in (".js", ".css", ".html"):
             parts.append(f.read_text(encoding="utf-8", errors="replace"))
