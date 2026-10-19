@@ -854,7 +854,12 @@ def site_text(manifest, bodies=()):
 
 def font_family_weight(stem):
     low = stem.lower()
-    family = "MiSans" if "misans" in low else re.split(r"[-_.]", stem)[0]
+    if "stix" in low:
+        family = "STIX Two Math"
+    elif "misans" in low:
+        family = "MiSans"
+    else:
+        family = re.split(r"[-_.]", stem)[0]
     weight = 400
     tail = re.split(r"[-_]", low)[-1]
     for key, val in FONT_WEIGHT.items():

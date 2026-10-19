@@ -1,8 +1,9 @@
-# 字体（MiSans 自托管子集）
+# 字体（MiSans + STIX Two Math 自托管子集）
 
 > **2026-10-18 起恢复自托管**：为让不同系统显示一致，站点重新使用 MiSans 子集。
+> **2026-10-19 起公式也自托管 STIX Two Math**，避免 Windows/Android/iOS 数学字体不一致。
 > 与上一版的区别：**fontTools 已 vendor 进仓库**（`engine/vendor/fontTools/`），构建不再依赖 `pip install fonttools`；
-> 子集只保留**站点实际用到的字符**，产物 15.4 MB → 约 254 KB（woff，两个权重）。
+> 子集只保留**站点实际用到的字符**，MiSans 约 254 KB（woff，两个权重），STIX 约 16 KB。
 
 ## 能不能用
 
@@ -10,22 +11,27 @@ MiSans 由小米发布，**可免费商用，允许网页嵌入与自托管**；
 **不能单独售卖字体文件本身**、不能改名字后当成自己的字体发布、不得用于违法用途。
 上线前请对照官方《MiSans 字体知识产权许可协议》确认当前条款（许可可能更新，以官方页面为准）。
 
+STIX Two Math 采用 **SIL Open Font License 1.1**，允许嵌入、修改、再分发与随软件一起售卖，
+但不能单独售卖字体文件；版权声明与许可证全文在 `site/fonts/LICENSE-STIX.txt`。
+
 ## 目录约定
 
 ```
 site/fonts/
-├─ src/     源字体（MiSans-Regular.ttf …）—— 不入库（.gitignore），从官方包或加密包获取
-├─ subset/  子集产物（misans-regular.woff …）—— 构建期生成，同样不入库
-├─ misans-fonts.tar.gz.enc  源字体的 AES-256 加密包（**入库**；没有密码解不开，不能直接当字体用）
-└─ LICENSE-MiSans.txt  字体许可 —— 入库并随产物发布（build.py 拷到 dist/fonts/）
+├─ src/     源字体（MiSans-Regular.ttf、STIXTwoMath-Regular.otf）—— 不入库，从官方包或加密包获取
+├─ subset/  子集产物（misans-regular.woff、stixtwomath-regular.woff）—— 构建期生成，同样不入库
+├─ misans-fonts.tar.gz.enc  源字体的 AES-256 加密包（**入库**，含 MiSans + STIX；没有密码解不开）
+├─ LICENSE-MiSans.txt   MiSans 许可 —— 入库并随产物发布
+└─ LICENSE-STIX.txt     STIX OFL 1.1 —— 入库并随产物发布
 engine/vendor/fontTools/  vendored fontTools（仓库组件，非 pip 依赖；MIT 许可见 engine/vendor/fontTools-LICENSE）
 ```
 
 > **加密包是 CI/自托管的字体来源**：`src/` 与 `subset/` 都不入库，克隆里没有源字体。
 > CI 在构建前跑 `bash deploy/fonts-crypt.sh decrypt`（`FONT_PASSWORD` 存 GitHub secret，
-> 本地则放在环境变量里），解密出 `src/*.ttf` 后照常构建期子集化；没有密码就回退系统字体，不阻断构建。
+> 本地则放在环境变量里），解密出 `src/*.ttf` / `src/*.otf` 后照常构建期子集化；没有密码就回退系统字体，不阻断构建。
 > 重新加密（改了源字体后）：`FONT_PASSWORD='...' bash deploy/fonts-crypt.sh encrypt`。
-> 密码只存 CI secret / 服务器环境变量，**不进仓库、不进群聊**。
+> 密码只存 CI secret / 服务器环境变量，**不进仓库、不进群聊**（本地 `FONT_PASSWORD.txt` 已 gitignore）。
+
 
 ## 怎么接
 
@@ -52,7 +58,8 @@ python engine/cli.py build      # 不需要 pip install fonttools（用 engine/v
 - 字符集 = manifest + 所有预渲染正文 + `site/theme/*.{js,css,html}` 里出现的字符（宁可多收，不漏字）。
 - `--layout-features=kern`（只留字距）、`--no-hinting`、`--desubroutinize`、`--name-IDs=1,2`。
 - 缺 `brotli` 时退化为 woff（浏览器都支持），有 brotli 时输出 woff2（体积约减半）。
-- 实测：Regular + Bold 各约 127 KB（woff），合计 **254 KB**。
+- 实测：MiSans Regular + Bold 各约 127 KB（woff），合计 **254 KB**；
+  STIX Two Math 子集约 **16 KB**（只保留站点公式用到的字形，MATH 表保留）。
 
 ## 字体栈（当前生效）
 
@@ -98,9 +105,9 @@ font-family: "Times New Roman", "Liberation Serif", "Nimbus Roman", "MiSans",
 
 - Times 本身**没有 OpenType MATH 表**，复杂公式的伸缩括号/大运算符会由浏览器数学字体兜底，
   排版不如默认数学字体精致，所以只建议个别公式用；
-- 想要“Times 外观 + 专业数学排版”，可自托管 **STIX Two Math**（SIL OFL，约几百 KB）；
-  它带 MATH 表，且风格接近 Times，仍然零外部请求；
-- 不装 STIX 也不影响构建，只是复杂公式略逊于默认 Cambria Math。
+- 默认公式已自托管 **STIX Two Math**（SIL OFL，子集约 16 KB），带 MATH 表，风格接近 Times，
+  各设备字形一致，仍然零外部请求；
+- 没装/没解密字体时回退 Cambria Math / 系统数学字体，不阻断构建。
 
 ## 常见问题
 

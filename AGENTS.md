@@ -62,8 +62,8 @@ rec-blog/
 │  │  ├─ weekly/<期>.sml   周报 / 月刊
 │  │  └─ contracts/*.sml   内容契约（字段即文档；自动生成契约文档页）
 │  ├─ theme/               前端壳：index.html + app.js（路由/视图）+ style.css
-│  ├─ fonts/               自托管 MiSans：src/ 与 subset/ 均 gitignore（克隆里没有字体）；
-│  │                       加密包 misans-fonts.tar.gz.enc 入库，CI 用 FONT_PASSWORD 解密
+│  ├─ fonts/               自托管 MiSans + STIX Two Math：src/ 与 subset/ 均 gitignore；
+│  │                       加密包 misans-fonts.tar.gz.enc 入库（含两者），CI 用 FONT_PASSWORD 解密
 │  │                       （deploy/fonts-crypt.sh）；许可随产物发布到 dist/fonts/
 │  └─ meta/repos.json      仓库元数据缓存（入库）
 ├─ tests/                  smoke.js / browser-check.js / gui_api_test.py / dom-stub.js
