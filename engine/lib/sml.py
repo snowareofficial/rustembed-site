@@ -26,6 +26,13 @@ SML 解析器：原生后端（优先）+ 内置子集（兜底）。
 `bareword-string,include,fragment`；`all` 全开）。未知特性名直接报错，
 避免打字错误静默失效。`$env` 默认关闭 —— 它会把环境变量内联进产物。
 
+include / namespace（`include "x.sml" as blog` + `@is blog.Resource`）：
+只有**文件入口** `load_doc()` 会走 —— native 按 SML 规范递归展开数据，
+rec-blog 侧用旁路契约表把被包含文件的 `@contract` 拉回来校验（native 既不懂
+本站的 url/date/image 类型、也没实现 ns 限定名，详见下方 include 小节的实测结论）。
+没有 include 的内容走原文本入口，语义逐字不变；native 缺失时含 include 的内容
+直接报错，不静默降级。
+
 约定（与本项目内容格式绑定）：
   - 裸词遇空白或 `} ] , {` 结束；含空格的文本必须加引号。
   - 裸块 `topic 标题 { ... }` 解析为 {__type: "topic", __name: "标题", ...}。
@@ -621,13 +628,289 @@ def _strip_directives(text, path="<sml>"):
     return "".join(buf), contracts, is_name
 
 
-def _map_native_error(e, path, text):
+def _map_native_error(e, path, text, refs=()):
     """上游富错误 → rec-blog 的 SmlError（`path:line: [码] 人话`）。
-    EOF 类错误上游 line=0，退回文档末行。"""
-    line = getattr(e, "line", 0) or (text.count("\n") + 1)
+
+    EOF/预处理类错误上游 line=0：先在 refs（本机扫到的 include 行）里按
+    **目标文件名** 归因到真实行号，实在归不到才退回文档末行 —— include 的
+    报错大多发生在展开阶段，不给行号等于让投稿者满文件找。
+    """
+    line = getattr(e, "line", 0)
+    if not line:
+        line = _attribute_line(getattr(e, "text", "") or "", refs)
+    if not line:
+        line = text.count("\n") + 1
     code = getattr(e, "code_str", "") or "E-PARSE"
     msg = getattr(e, "text", "") or str(e)
     return SmlError("%s:%d: [%s] %s" % (path, line, code, msg))
+
+
+# ---------------------------------------------------------------------------
+# include / namespace：文件入口
+# ---------------------------------------------------------------------------
+#
+# 分工（实测 swsml 0.6.4 定下的，别照抄注释，看 _native_load_doc 上方的原因）：
+#
+#   native load_file        —— 按 §4.6 在解析前递归展开 include、处理 `as ns`
+#                              包裹、做越界/成环/深度防护。**只管数据**。
+#   rec-blog Python 侧      —— 契约。被包含文件里的 @contract 由
+#                              `_bridge_contracts()` 走一遍 `_strip_directives`
+#                              拉回来组成"旁路契约表"，校验仍走 `lib/contract.py`
+#                              （url / date / image 这些 rec-blog 内置类型只有它认）。
+#
+# 为什么不让 native 校验契约：
+#   1. 类型系统不等价 —— native 遇到 `url` / `date` / `image` 会当作"契约名"
+#      去套 ContractRef，实测报 `E-CONTRACT-008 字段 url 应为块并按契约 url
+#      校验`，而不是做格式检查；
+#   2. 命名空间语义缺失 —— `include "x.sml" as blog` 之后 native 把契约登记成
+#      **裸名**，`@is blog.Resource`（§4.4 规定的跨文件引用写法）实测报
+#      `E-CONTRACT-001 未定义的契约 blog.Resource`。
+# 所以 @contract / @is 依旧在交给 native 之前从入口文件剥掉（见 _strip_directives），
+# native 拿到的只是数据；`ns.Contract` 这套限定名由旁路契约表自己拼。
+
+_MAX_INCLUDE_DEPTH = 32     # 与上游 sml-include::MAX_INCLUDE_DEPTH 对齐
+_MAX_INCLUDE_FILES = 64     # 单个文件的 include 图预算（超过即拒，防菱形爆炸）
+
+_INCLUDE_LINE_RE = re.compile(r"^[ \t]*@?[ \t]*(include|import)[ \t]+(.*)$")
+
+# 只认规范子集：`"路径"` 或 `"路径" as ns`。glob / 正则 / 挑键 / 多目标 /
+# 点分模块名一律不支持（见 _unsupported_include_msg：native 会照常展开数据，
+# 但旁路契约表拉不到它们的契约，两边会静默分叉，宁可报错）。
+_INCLUDE_TARGET_RE = re.compile(
+    r'^"(?P<path>[^"\\]*(?:\\.[^"\\]*)*)"'
+    r'(?:[ \t]+as[ \t]+(?P<ns>[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*))?[ \t]*$'
+)
+
+
+def _code_lines(text, path="<sml>"):
+    """[(行号, 行文本)]：字符串与块注释内部的行被掩成空串。
+
+    与上游 sml-include::segments 同思路 —— 注释或字符串里伪造一行
+    `include "x.sml"` 不该真的去读文件。行号是 1 起的真实行号（报错要用）。
+    """
+    p = _Parser(text, path)
+    spans = []
+    i, n = 0, len(text)
+    while i < n:
+        c = text[i]
+        if c == '"':
+            p.i = i
+            try:
+                p.string()
+            except SmlError:                # 未闭合：后面整段都当串内，不当指令
+                spans.append((i, n))
+                break
+            spans.append((i, p.i))
+            i = p.i
+            continue
+        if c == "#" or text.startswith("//", i) or text.startswith("--", i):
+            j = text.find("\n", i)
+            i = n if j < 0 else j + 1
+            continue
+        if text.startswith("/*", i) or text.startswith("_*", i):
+            end = "*/" if text.startswith("/*", i) else "*_"
+            j = text.find(end, i + 2)
+            if j < 0:                       # 未闭合块注释：到 EOF 都算注释内
+                spans.append((i, n))
+                break
+            spans.append((i, j + 2))
+            i = j + 2
+            continue
+        i += 1
+    out = []
+    pos = 0
+    for lineno, line in enumerate(text.split("\n"), 1):
+        start = pos
+        pos += len(line) + 1
+        masked = any(a <= start < b for a, b in spans)
+        out.append((lineno, "" if masked else line.rstrip("\r")))
+    return out
+
+
+def scan_include_refs(text, path="<sml>"):
+    """导出给上层的最低限度 include 信息：[(行号, 目标绝对路径, ns)]。
+
+    只做语法识别 + 越界防护（见 _safe_include_target），不读目标文件。
+    native 缺失时也用它来判定"这份内容需要原生后端"。
+    """
+    base = os.path.dirname(os.path.abspath(path)) or "."
+    out = []
+    for lineno, keyword, rest in _scan_include_lines(text, path):
+        m = _INCLUDE_TARGET_RE.match(rest)
+        if not m:
+            raise SmlError(_unsupported_include_msg(path, lineno, keyword, rest))
+        target = _safe_include_target(base, _unescape_path(m.group("path")), path, lineno)
+        out.append((lineno, target, m.group("ns")))
+    return out
+
+
+def _scan_include_lines(text, path):
+    out = []
+    # 便宜的短路：绝大多数文件里根本没有这两个词，不值得跑一遍词法扫描
+    #（也免得把「文件里有个没闭合的引号」这类错误提前暴露成 include 扫描错误）。
+    if "include" not in text and "import" not in text:
+        return out
+    for lineno, line in _code_lines(text, path):
+        m = _INCLUDE_LINE_RE.match(line)
+        if m:
+            out.append((lineno, m.group(1), m.group(2).strip()))
+    return out
+
+
+def _unescape_path(raw):
+    """`"a\\"b"` → `a"b` 的最小反转义（路径里用不到 \\n 这类）。"""
+    out = []
+    i = 0
+    while i < len(raw):
+        c = raw[i]
+        if c == "\\" and i + 1 < len(raw):
+            out.append(raw[i + 1])
+            i += 2
+            continue
+        out.append(c)
+        i += 1
+    return "".join(out)
+
+
+def _same_or_under(child, parent):
+    """realpath 隶属于判定（Windows 大小写不敏感）。"""
+    c = os.path.normcase(os.path.abspath(child))
+    p = os.path.normcase(os.path.abspath(parent))
+    return c == p or c.startswith(p.rstrip(os.sep) + os.sep)
+
+
+def _safe_include_target(base, raw, path, lineno):
+    """把 include 目标解析成绝对路径。越界一律拒 —— 内容文件不得借 include
+    读到自己目录以外的东西（含仓库外的敏感文件）。
+
+    口径与 native 一致：基准目录 = **包含者所在目录**，于是整个可达闭包永远
+    落在入口文件的目录子树里（比"不逃出仓库根"更紧）。
+    """
+    if not raw.strip():
+        raise SmlError("%s:%d: [E-INCLUDE-012] include 路径为空" % (path, lineno))
+    if "*" in raw or raw.startswith("re:"):
+        raise SmlError(_unsupported_include_msg(path, lineno, "include", '"%s"' % raw))
+    if re.match(r"^[A-Za-z]:[\\/]", raw) or raw.startswith(("/", "\\")):
+        raise SmlError("%s:%d: [E-INCLUDE-003] include 越界拒绝：不允许绝对路径 `%s`；"
+                       "请写相对于本文件的路径" % (path, lineno, raw))
+    target = os.path.normpath(os.path.join(base, raw))
+    base_real = os.path.realpath(base)
+    target_real = os.path.realpath(target)
+    if not _same_or_under(target_real, base_real):
+        raise SmlError("%s:%d: [E-INCLUDE-003] include 越界拒绝：%s 不在基准目录 %s 内"
+                       % (path, lineno, target_real, base_real))
+    return target
+
+
+def _unsupported_include_msg(path, lineno, keyword, rest):
+    """不支持的 include 形态 → 人话 + 怎么办。宁可拒绝也不静默分叉。"""
+    hint = ("rec-blog 的 include 桥接只认 `include \"路径\"` 与 `include \"路径\" as ns`"
+            "（native 按规范能展开更多形态，但契约没人校验，产物会静默漏校验）")
+    for probe, why in (
+        ("{", "挑键写法 `{ a, b }`"),
+        (",", "一行多个目标"),
+        ("*", "glob 通配"),
+        ("re:", "正则匹配"),
+    ):
+        if probe in rest:
+            return "%s:%d: [E-INCLUDE-012] 不支持的 include 形态（%s）：%s —— %s" % (
+                path, lineno, why, rest.strip(), hint)
+    if "." in rest.split()[0] if rest.split() else False:
+        return "%s:%d: [E-INCLUDE-012] 点分模块名 `%s` 请写成带引号的相对路径 —— %s" % (
+            path, lineno, rest.strip(), hint)
+    return "%s:%d: [E-INCLUDE-012] include 路径必须加引号且单个目标：`%s` —— %s" % (
+        path, lineno, rest.strip(), hint)
+
+
+def _attribute_line(msg, refs):
+    """上游 line=0 时，按 refs 里的目标文件名归因到真实行号。"""
+    for ref in refs or ():
+        lineno, target = ref[0], ref[1]
+        name = os.path.basename(target)
+        if name and name in msg:
+            return lineno
+    return 0
+
+
+def _walk_include_graph(entry_path, entry_text, budget=None):
+    """沿 include 图收集被包含文件：[{"path","ns","lineno","owner"}]。
+
+    按「边」而不是「文件」去重：同一份文件被两条路径包含时（菱形），它在两个
+    命名空间下都该有契约 —— 只登记先到的那条会让 `@is b.Resource` 莫名找不到。
+    成环的情况交给 native 报 E-INCLUDE-002（它按「当前展开链」判定，比全局
+    visited 准），这里只负责别把栈走爆（深度 + 文件数双上限）。
+    """
+    found = []
+    budget = [_MAX_INCLUDE_FILES] if budget is None else budget
+    visited = set()
+
+    def visit(path, text, ns, chain):
+        if len(chain) > _MAX_INCLUDE_DEPTH:
+            raise SmlError("%s: [E-INCLUDE-004] include 嵌套超过 %d 层"
+                           % (path, _MAX_INCLUDE_DEPTH))
+        for lineno, target, child_ns in scan_include_refs(text, str(path)):
+            full = ("%s.%s" % (ns, child_ns) if ns and child_ns
+                    else (ns or child_ns or ""))
+            real = os.path.realpath(target)
+            if real in chain:                 # 成环：native 会报 E-INCLUDE-002
+                continue
+            key = (real, full)
+            if key in visited:
+                continue
+            visited.add(key)
+            budget[0] -= 1
+            if budget[0] < 0:
+                raise SmlError("%s:%d: [E-INCLUDE-004] 单篇内容的 include 文件数超过上限 %d"
+                               % (path, lineno, _MAX_INCLUDE_FILES))
+            if not os.path.isfile(target):
+                raise SmlError("%s:%d: [E-INCLUDE-001] include 目标不存在：%s"
+                               % (path, lineno, target))
+            try:
+                with open(target, "r", encoding="utf-8") as fh:
+                    sub = fh.read()
+            except OSError as e:
+                raise SmlError("%s:%d: [E-INCLUDE-001] include 读取失败 %s：%s"
+                               % (path, lineno, target, e))
+            found.append({"path": target, "ns": full, "lineno": lineno, "owner": str(path)})
+            visit(target, sub, full, chain + [real])
+
+    entry = os.path.abspath(entry_path)
+    visit(entry, entry_text, "", [os.path.realpath(entry)])
+    return found
+
+
+def bridge_contracts(entry_path, entry_text=None):
+    """旁路契约表：把 include 图里各文件定义的 @contract 拉回 Python 侧。
+
+    - `as ns` 包含的 → 登记为 `ns.契约名`（§4.4 的跨文件引用写法，
+      native 0.6.4 缺这块，由这里补齐）；
+    - 内联包含的 → 登记为裸 `契约名`（与 native 实测行为一致）；
+    - 同一份文件被多处包含只过一次（内容相同不重复登记）；
+    - 同图内同名但**内容不一致** → 直接报错：上游没有"重复契约"专属错误码，
+      取语义最近的 E-CONTRACT-016（契约冲突），不自己发明码。
+    """
+    if entry_text is None:
+        with open(entry_path, "r", encoding="utf-8") as fh:
+            entry_text = fh.read()
+    table = {}
+    origin = {}                       # 限定名 → 首次定义它的文件（报错要指名道姓）
+    for item in _walk_include_graph(entry_path, entry_text):
+        with open(item["path"], "r", encoding="utf-8") as fh:
+            text = fh.read()
+        _clean, local, _is = _strip_directives(text, item["path"])
+        for name, spec in local.items():
+            key = "%s.%s" % (item["ns"], name) if item["ns"] else name
+            spec = dict(spec, name=key)
+            if key in table:
+                if table[key] == spec:
+                    continue          # 同一份文件被多处包含（菱形引用）：内容一致，静默去重
+                raise SmlError(
+                    "%s:%d: [E-CONTRACT-016] 契约 `%s` 在同一份内容的 include 图里被两份文件"
+                    "定义了不同字段（%s 与 %s）—— 只留一份定义，或用 `as ns` 命名空间区分"
+                    % (item["owner"], item["lineno"], key, item["path"], origin[key]))
+            table[key] = spec
+            origin[key] = item["path"]
+    return table
 
 
 def _include_guard(val, path, hint):
@@ -643,6 +926,12 @@ def _include_guard(val, path, hint):
 
 _BUILTIN_INCLUDE_HINT = "内置解析器不展开 include（要 include 请构建 swsml cdylib，见 engine/README.md）"
 _TEXT_INCLUDE_HINT = "文本入口不展开 include，请用文件入口 load_doc()/load()"
+_NATIVE_MISSING_HINT = (
+    "内容用了 include / import，必须走原生后端（native）才能展开："
+    "把 sml cdylib 放到 engine/native/sml.dll，或用 SML_LIB / REC_BLOG_SML_LIB 指向它"
+    "（见 docs/ARCHITECTURE.md §14）。不装 native 的内容请不要写 include，"
+    "rec-blog 不会把 include 静默当成普通字段"
+)
 
 
 def _native_parse_doc(text, path):
@@ -658,29 +947,94 @@ def _native_parse_doc(text, path):
     return val, contracts
 
 
-def _native_load_doc(path):
-    """文件入口：剥离指令后写**同目录**临时文件再 load_file —— include 的
-    相对路径以内容文件所在目录为基准（上游 loads 没有基准路径参数）。
-    临时文件带 `_` 前缀，docs_in 与文章 glob 都不会收录。"""
+def _file_feature_flags():
+    """文件入口的特性位：当前集（含 REC_BLOG_SML_FEATURES）并上 namespace / contract。
+
+    被包含文件里可能有 `@contract`，缺 `contract` 位会直接吃
+    `E-FEATURE-001 @contract 需要特性 contract`；`as ns` 同理缺 `namespace` 位。
+    `implicit-ns` **刻意不开** —— 开了以后 `include "foo"` 会悄悄变成命名空间
+    `foo`，与本站既有口径不一致。
+    """
+    return (feature_flags()
+            | _FEATURE_BITS["namespace"]
+            | _FEATURE_BITS["contract"])
+
+
+def _native_load_file(entry_path, clean, text, refs=()):
+    """对剥离完指令的文本跑文件入口 load_file。
+
+    include 的相对路径以内容文件所在目录为基准，而上游 loads 没有基准参数 ——
+    所以要么直接读原文件（无指令可剥时），要么在同目录落一个临时文件
+    （`_` 前缀：docs_in 与文章 glob 都不收录）。
+    """
     mod = _native_mod()
-    p = os.path.abspath(path)
-    with open(p, "r", encoding="utf-8") as fh:
-        text = fh.read()
-    clean, contracts, is_name = _strip_directives(text, path)
-    stem, ext = os.path.splitext(os.path.basename(p))
-    tmp = os.path.join(os.path.dirname(p), "_%s.native-%d%s" % (stem, os.getpid(), ext))
+    p = os.path.abspath(entry_path)
+    tmp = None
+    target = p
+    if clean != text:
+        stem, ext = os.path.splitext(os.path.basename(p))
+        tmp = os.path.join(os.path.dirname(p),
+                           "_%s.native-%d-%d%s" % (stem, os.getpid(), id(clean) & 0xFFFF, ext))
+        try:
+            with open(tmp, "w", encoding="utf-8", newline="") as fh:
+                fh.write(clean)
+        except OSError as e:      # 目录只读之类的环境问题，别甩 ctypes 原始异常
+            raise SmlError("%s: [E-IO-001] 无法写出 include 预处理的临时文件 %s：%s"
+                           % (entry_path, tmp, e))
+        target = tmp
     try:
-        with open(tmp, "w", encoding="utf-8") as fh:
-            fh.write(clean)
-        try:
-            val = mod.load_file(tmp, flags=feature_flags())
-        except mod.SmlError as e:
-            raise _map_native_error(e, path, text)
+        val = mod.load_file(target, flags=_file_feature_flags())
+    except getattr(mod, "SmlError") as e:      # noqa: B014 —— 上游富错误
+        raise _map_native_error(e, entry_path, text, refs)
+    except Exception as e:                     # noqa: BLE001 —— ctypes/OSError 不裸抛
+        raise SmlError("%s: [E-NATIVE-001] 原生后端调用失败（%s）：%s"
+                       % (entry_path, type(e).__name__, e))
     finally:
-        try:
-            os.unlink(tmp)
-        except OSError:
-            pass
+        if tmp:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+    return val
+
+
+def _native_load_doc(path):
+    """文件入口：展开 include + 拉回被包含文件的契约表。
+
+    与祖先版本的差别：契约不再交给 native（类型系统不等价、缺 ns 限定名），
+    只让 native 做它擅长的那一半 —— 按规范展开数据；剩下的那一半
+    （@contract / @is / url|date|image 等内置类型）留在本文件的 Python 侧。
+    """
+    with open(str(path), "r", encoding="utf-8") as fh:
+        return _load_doc_included(str(path), fh.read())
+
+
+def parse_doc_at(text, path):
+    """「文本 + 它所在的文件路径」入口：内容含 include 就走文件入口，
+    否则与 `parse_doc()` 逐字一致。
+
+    给写作台的保存前校验 / 预览用 —— 编辑器里那份可能还没落盘，但**路径**是
+    真路径，include 的相对基准因此仍然成立，校验口径和 `build` 完全一致
+    （用 `parse_doc()` 会撞上「文本入口不展开 include」的护栏）。
+    """
+    p = str(path)
+    if os.path.splitext(p)[1].lower() != ".sml" or not _scan_include_lines(text, p):
+        return parse_doc(text, p)
+    return _load_doc_included(p, text)
+
+
+def _load_doc_included(path, text):
+    """含 include 的文件入口：契约桥接 + native 展开数据。"""
+    if not _use_native():
+        refs = _scan_include_lines(text, path)
+        raise SmlError("%s:%d: [E-FEATURE-001] %s"
+                       % (path, refs[0][0] if refs else 1, _NATIVE_MISSING_HINT))
+    clean, contracts, is_name = _strip_directives(text, path)
+    refs = scan_include_refs(text, path)
+    # 旁路契约表：被包含文件里的 @contract —— 入口自己的契约优先，不做覆盖
+    for key, spec in bridge_contracts(path, text).items():
+        contracts.setdefault(key, spec)
+    val = _native_load_file(path, clean, text, refs)
     if is_name and isinstance(val, dict):
         val["__is"] = is_name
     return val, contracts
@@ -797,9 +1151,30 @@ def _parse_contract_body(text, name=""):
 
 
 def load_doc(path):
-    """返回 (值, 契约表)。"""
-    with open(path, "r", encoding="utf-8") as fh:
-        return parse_doc(fh.read(), str(path))
+    """返回 (值, 契约表)。**文件入口**的分流发生在这里：
+
+    - 内容里有 include / import → 走 `_native_load_doc()`：native 按 SML 规范
+      展开数据，被包含文件的 @contract 由旁路契约表拉回 Python 侧校验；
+      native 不可用则**明确报错**（不静默退化成普通字段 —— 那会让正文变成垃圾）；
+    - 没有 include → 维持原来的文本入口语义（含 @contract / @is 的既有处理）。
+
+    只按 include 分流的理由：文件入口会把剥离指令后的文本落成同目录临时文件，
+    让不含 include 的文件为此白写一次盘（GUI 实时校验 / 只读目录都会受影响），
+    而它在没有 include 时与文本入口的产出**逐字一致**。
+    """
+    p = str(path)
+    with open(p, "r", encoding="utf-8") as fh:
+        text = fh.read()
+    # include 是 SML 的指令，Markdown 正文里出现 `include` 一律当普通文本。
+    if os.path.splitext(p)[1].lower() != ".sml" or not _scan_include_lines(text, p):
+        return parse_doc(text, p)
+    try:
+        return _load_doc_included(p, text)
+    except SmlError:
+        raise
+    except Exception as e:                         # noqa: BLE001 —— 兜住 ctypes 原始异常
+        raise SmlError("%s: [E-NATIVE-001] 原生 include 加载失败（%s）：%s"
+                       % (p, type(e).__name__, e))
 
 
 def load(path):

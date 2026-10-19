@@ -162,7 +162,8 @@ rec-blog/
 ## 8. 已定项（2026-09-19）
 
 - **SML 解析**：自写 Python 子集解析器（`engine/lib/sml.py`），零第三方依赖、不在 CI 里编 Rust
-  （原生加速 `engine/native/sml.dll` 可选，缺失自动回退内置解析器）
+  （原生加速 `engine/native/sml.dll` 可选：缺失时不含 `include` 的内容照常构建、含 `include`
+  的内容明确报错；有的话它额外负责 include / 命名空间的展开，见 §14）
 - **仓库元数据**：仅构建期抓取，写进 manifest 并缓存 `meta/repos.json`，失败降级 stale
 - **内容树**：两层（series → 文章），不设分类层；跨文章聚合走标签归档
 - **托管**：Cloudflare Pages，主域 `rec-blog.swebase.cn`、别名 `rust-embed.swebase.cn`
@@ -207,7 +208,8 @@ rec-blog/
 | **片段 `@frag {}` + `&frag`** | 是 | 值级展开：`links: &sal_links`（成员档案在用） |
 | `@version` 等指令行 | 忽略 | 解析时丢弃，不报错 |
 | `@contract` / `@is` 契约校验 | 是（走 `contracts{}` 默认映射） | 内容文件里不写 `@is`（builtin 后端会报错）；字段校验由 `lib/contract.py` 统一做，报错信息带错误码 + 人话 |
-| `include` / glob / regex 包含 | 不用 | 内容自包含更简单；跨文件复用用片段即可 |
+| `include "x.sml" [as ns]` 包含 | 是（仅文件入口 + native） | 跨文件复用契约/数据；沙箱 = 包含者所在目录子树（§14） |
+| glob / regex / 挑键 / 多目标 include | 不支持 | 桥接层直接拒绝（native 能展开数据但契约拉不回来） |
 | `$env.VAR` 环境变量内插 | 不用 | 静态站点不需要，且容易把密钥带进产物 |
 | `@when` / `@for` / typed-block | 不用 | 那是配置模板能力，对投稿只有噪音 |
 
@@ -260,9 +262,81 @@ site/content/members/sal.sml: E-CONTRACT-008 字段 `Member.links` 应为块并�
 `python engine/build.py --contract-loose` 可临时把 `E-CONTRACT-004` 放宽（应急，不建议长期用）；
 `python engine/test_contracts.py` 是契约引擎自测（断言数动态计数，钉住每一类错误码）。
 
+### 12.1 跨文件复用：`include` + 命名空间
+
+内容文件（`.sml`）可以复用别的文件的契约与数据：
+
+```
+include "_shared.sml" as blog      # 下划线开头的文件不被 docs_in 收录，适合当共享契约盒
+@is blog.Resource
+title: "书"
+kind: book
+url: "https://example.com/"
+```
+
+规则（与 SML 规范 §4.4 / §4.6 / §4.7 对齐，实测 swsml 0.6.4）：
+
+| 项 | 行为 |
+|---|---|
+| 路径基准 | 相对**包含者所在目录**；递归展开，同一文件多处包含只过一次 |
+| `as ns` | 数据挂到命名空间键 `ns` 下；契约登记为限定名 `ns.契约名` |
+| 内联（无 `as`） | 数据平铺合并；契约登记为裸 `契约名` |
+| 命名空间隔离 | `as blog` 之后**只能**用 `@is blog.Resource`，裸 `Resource` 不再可见 |
+| 沙箱 | 目标 realpath 必须落在包含者目录内：禁绝对路径、禁 `../` 越界 |
+| 防护 | 循环 include → `E-INCLUDE-002`；嵌套 > 32 层 / 文件 > 64 个 → `E-INCLUDE-004` |
+| 契约谁校验 | 一律 Python 侧 `lib/contract.py`（native 不懂 url/date/image，见 §14） |
+
+优先级：文件里的 `@is` > `site.sml` 的 `contracts{}` 默认映射，二者只走一个，不会重复报错。
+「优先级」的落点在 `build.apply_contract()`，与写作台 `validate_doc()` 同一口径。
+
+不支持的写法（构建直接报错，不静默降级）：glob `*.sml`、正则 `re:"…"`、挑键 `{ a, b }`、
+一行多目标 `"a", "b"`、点分模块名 `import a.b`、以及未加引号的路径。
+
 ## 13. 与 sml 上游的关系
 
 本项目**不以 `smltools` 为主导**：只借用 SML 的语法（块/字段/数组/裸块/注释/内联角色约定），
 解析与渲染全在仓库内自实现，因此可以自由扩展（例如本节的 SVG 导图、B 站视频块）。
 上游那份改动建议（html 后端补 code/table、`--fragment`、front matter 透传、`--toc json`）
 仍可选做，但不再是本项目的阻塞项。
+
+## 14. 原生后端（native）与 include：谁负责什么
+
+`engine/lib/sml.py` 有两条加载路径：
+
+| 入口 | 谁在用 | 行为 |
+|---|---|---|
+| 文本入口 `parse_doc(text, path)` | 单测、写作台无 include 的场景 | 不展开 include（撞上就报错，见 `_include_guard`） |
+| 文件入口 `load_doc(path)` / `parse_doc_at(text, path)` | `build.load2()`、写作台校验/预览 | 内容含 include/import 时交给 native 展开 |
+
+native = `engine/native/sml.dll`（swsml 0.6.4 的 Rust cdylib，`engine/native/` 已 gitignore）。
+文件入口会额外打开 `namespace` + `contract` 两个特性位（被包含文件里可能有 `@contract` / `as ns`），
+`implicit-ns` **不开** —— 否则 `include "foo"` 会悄悄变成命名空间，与本站既有口径不一致。
+
+**契约不交给 native 校验**，实测两条理由：
+
+1. 类型系统不等价。native 遇到 rec-blog 的 `url` / `date` / `image` 会当作「契约名」去套
+   ContractRef，报的是 `E-CONTRACT-008 字段 url 应为块并按契约 url 校验，实际为 str` ——
+   它根本不会做格式检查；
+2. 命名空间隔离缺失。`include "x.sml" as blog` 之后，native 把被包含文件的契约登记成**裸名**，
+   于是规范 §4.4 规定的 `@is blog.Resource` 实测报 `E-CONTRACT-001 未定义的契约 blog.Resource`
+   （反过来 `@is Resource` 却能通过）。
+
+所以做法是：入口文件里的 `@contract` / `@is` 照旧在交给 native 前剥掉（`_strip_directives`），
+native 只拿数据；被包含文件的 `@contract` 由 `bridge_contracts()` 沿 include 图走一遍
+`_strip_directives` 拉回来，组成**旁路契约表**（`as ns` → `ns.契约名`），校验仍由
+`lib/contract.py` 统一负责 —— 于是 url / date / image / 附件路径这些本站校验一条不少。
+
+**native 缺失时的行为**（CI 即此缺省路径）：
+
+- 不含 include 的内容：照常构建，走内置解析器；
+- 含 include 的内容：**构建失败**，报错 `E-FEATURE-001` 并说明怎么装 native。
+  绝不静默把 `include "x.sml"` 当普通字段 —— 那样正文会变成垃圾数据。
+
+已知限制：
+
+- include 目标必须落在**包含者所在目录的子树**里（native 的沙箱口径，比「不逃出仓库根」更紧）。
+  想跨目录共享契约，就把共享文件放进同一目录（用 `_` 前缀避免被收录成内容页）；
+- 被包含文件里若自带 `@is`，那份校验由 native 执行，类型口径以 native 为准（当前所有内容都没这么写）；
+- 上游 JS/VS Code 扩展的 include 展开不带回子文件契约表（§4.6），编辑器里
+  `@is blog.Resource` 可能报未定义 —— 以 `python engine/cli.py build` 为准；
+- 绕路扫描整个工作区找 `@contract` 的做法被明确禁止（会绕过命名空间），桥接只走真实的 include 图。

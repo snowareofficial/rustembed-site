@@ -23,6 +23,7 @@ rec-blog/
 │  ├─ check.py             产物自检不变量（CI 用）；只读 dist/、不比对源码时间戳，dist/ 缺失直接退出
 │  ├─ cli.py               命令行入口：new / list / contracts / build / check / test / preview
 │  ├─ test_contracts.py    契约引擎自测（错误码语义，对齐 SML 上游 sml-codes）
+│  ├─ test_sml_include.py  include / 命名空间 / 契约桥接回归（[B][D] 组需 native，缺则 SKIP）
 │  ├─ test_render_safety.py 渲染安全回归（契约页转义 / 内联角色 / 嵌套列表 / --out 守卫 /
 │  │                        URL 白名单 / safe_url 单元 / assets 改写 / 双后端 SML 错误类型）
 │  ├─ test_structure.py     产物结构断言（纯静态，不需要浏览器）
@@ -33,8 +34,9 @@ rec-blog/
 │  ├─ verify_parity.py     内置 / 原生 SML 后端一致性校验
 │  ├─ fonts_import.py      从字体包挑权重到 site/fonts/src/（不整包解压）
 │  ├─ git_ready.py         入库前检查 / 本地提交（不 push；大文件与忽略规则检查）
-│  ├─ native/sml.dll       SML 原生加速载体。engine/native/ 已 gitignore：干净克隆没有它，
-│  │                       自动回退内置解析器（零依赖，CI 不装 Rust）；可用 SML_LIB /
+│  ├─ native/sml.dll       SML 原生载体（加速 + include / 命名空间展开，仅文件入口使用）。
+│  │                       engine/native/ 已 gitignore：干净克隆没有它 —— 不含 include 的内容照常
+│  │                       构建，含 include 的内容明确报错（不静默降级，见 §14）；可用 SML_LIB /
 │  │                       REC_BLOG_SML_LIB 环境变量指定库路径
 │  ├─ vendor/              vendored fontTools / latex2mathml（构建期，不 pip）
 │  └─ lib/
@@ -132,9 +134,10 @@ rec-blog --version                                      # crate 版本 + 引擎 
 rec-blog update                                         # 引擎 git pull --ff-only，二进制要自己重装
 ```
 
-提交前五连（与 `.github/workflows/build.yml` 的门禁一致）：
-`python engine/test_contracts.py` → `python engine/test_render_safety.py` →
-`python engine/build.py` → `python engine/check.py` → `python engine/test_structure.py`，全绿才算完成。
+提交前六连（与 `.github/workflows/build.yml` 的门禁一致）：
+`python engine/test_contracts.py` → `python engine/test_sml_include.py` →
+`python engine/test_render_safety.py` → `python engine/build.py` →
+`python engine/check.py` → `python engine/test_structure.py`，全绿才算完成。
 注意：CI 跑的是**联网** build（元数据抓取失败不中断，回退 `meta/repos.json` 缓存）；
 本地求快可加 `--offline`，但抓取降级路径只在联网构建里能复现。
 另：`cli.py test` 只跑 `test_contracts.py`；渲染安全回归要直接跑 `engine/test_render_safety.py`。
@@ -167,6 +170,15 @@ rec-blog update                                         # 引擎 git pull --ff-o
   **当前没有自动差分测试**，改完必须手动跑两种后端比对；
   `engine/lib/_swsml.py` 是 swsml 0.6.4 的 vendor 副本，别就地「改进」，升级以上游为准；
   `build.py` 的 `guard_out()`、`.github/` 下任何文件勿改。
+- **include / 命名空间只在「文件入口」生效**：`load_doc(path)` 与 `parse_doc_at(text, path)`
+  （`build.load2()`、写作台校验与预览都走它们）。文本入口 `parse_doc(text, path)` 一律
+  **不展开** include，撞上就报错，绝不静默当字段。
+- **含 include 的内容必须用 native 构建**：native 缺失时构建直接失败并报 `E-FEATURE-001`
+  （附安装办法）。不含 include 的内容无论有没有 native，产物都一致。
+- **契约校验只在一处**：`lib/contract.py`。native 侧的类型系统不等价（`url`/`date`/`image`
+  会被当成契约名）、命名空间隔离也没实现，别把 `@contract` / `@is` 交给它（细节见 §14）。
+- **桥接只沿真实 include 图走**：禁止扫描工作区所有 `@contract` 来"补全"契约表 —— 那会
+  绕过命名空间隔离。
 - 黄页（services）性质：纯展示，**不参与交易、不担保、不抽成、不经手资金、不介入纠纷**；
   contact 只能引用成员档案 `links` 里本人已公开的字段，不得新收集个人信息；不设计支付/订单/撮合/站内私信/账号体系。
 - `--out` 只会清空目标目录：`guard_out()` 拒绝仓库根/站点目录**及其上级**、仓库内非 dist 位置；放行仓库外目录与 `dist/` 子树。
@@ -191,9 +203,11 @@ rec-blog update                                         # 引擎 git pull --ff-o
   （字段类型 / `optional` / `enum` / `min` / `max` / `default` / `loose`），编辑器侧由
   `snoware.sml-lang` 扩展（`~/.vscode/extensions/snoware.sml-lang-0.4.3`，随上游 `sml` 仓走）读取，
   用于**悬浮契约名看默认值展开、字段补全、以及编辑器内契约语义校验**。改契约 = 同时改校验、错误提示、文档页。
-- **`@is` 别用**：编辑器侧要求文件里有**顶层** `@is Name` 才提供契约能力；而本项目内容靠
+- **`@is` 一般别用**：编辑器侧要求文件里有**顶层** `@is Name` 才提供契约能力；而本项目内容靠
   `site/content/site.sml` 的 `contracts{}` 默认映射，且 `@is` 在 builtin 后端下会**解析报错**（见上一条）。
-  团队约定：**应用契约一律走 `contracts{}` 默认映射**，不在内容文件里写 `@is`。
+  团队约定：**不用 include 的内容，应用契约一律走 `contracts{}` 默认映射**，不写 `@is`。
+  例外：内容里写了 `include ... as ns` 时，用 `@is ns.契约名` 是**唯一**能引用被包含契约的写法
+  （规范 §4.4），此时该内容只能用 native 构建 —— 也就是上面那条约束。
 - **以下是"编辑器专属"，构建侧不认**，不要在内容里使用：
   - `@type`（自定义类型模式）：扩展支持（悬浮/补全），构建侧 Python 解析器**零支持**；
   - `typed-block`（`契约名 块名 { }`）：上游 opt-in 特性，**只有 Rust/JS 实现**，本项目默认特性位不含它，
@@ -201,6 +215,9 @@ rec-blog update                                         # 引擎 git pull --ff-o
   - `@feature enable …`：同上，Python 侧等同上游 C/Lua 档位。
 - **扩展只覆盖 `.sml`**：本站内容大部分是 Markdown（`posts/**/index.md`），
   编辑器的实时诊断**不能替代** `python engine/cli.py build`。
+- **跨文件契约是编辑器侧的短板**（2026-10-19 实测）：上游 §4.6 明确 JS 的 include 展开
+  **不带回子文件契约表**，所以编辑器里 `@is blog.Resource` 可能报「未定义」，而 `build` 全绿
+  （桥接层把契约拉回了 Python 侧）。**以 `build` 为准**，别为迁就编辑器改内容。
 - 已知风险（未修，值得单独排期）：编辑器用的是**上游契约校验**，构建用的是 **Python 侧重写**的校验，
   两套实现可能漂移（例如内容在编辑器里全绿、`build` 却报 E-CONTRACT-*）。
   可加"契约分叉守卫"：用扩展包内的解析器（`src/vendor/sml.mjs`）跑 `contracts/*.sml`，

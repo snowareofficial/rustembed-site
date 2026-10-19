@@ -203,9 +203,14 @@ def load2(f):
 
 
 def register_contracts(rep, where, cs):
+    """登记契约。同名**且字段一致**时静默跳过 —— 多份内容 include 同一份契约盒
+    必然产生重复登记，那不是问题；只有同名但字段不同才值得告警。"""
     for name, spec in (cs or {}).items():
-        if name in GLOBAL_CONTRACTS:
-            rep.warn(where, "契约 `%s` 重复定义，以先定义的为准" % name)
+        old = GLOBAL_CONTRACTS.get(name)
+        if old is not None:
+            if old == spec:
+                continue
+            rep.warn(where, "契约 `%s` 重复定义且字段不一致，以先定义的为准" % name)
             continue
         GLOBAL_CONTRACTS[name] = spec
 

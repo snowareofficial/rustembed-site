@@ -7,7 +7,7 @@
 | 文件 | 职责 | 想改什么就来这 |
 |---|---|---|
 | `config.py` | 站点定位与路径约定 | 改目录名、加新内容目录 |
-| `lib/sml.py` | SML 子集解析器（含片段 `&`、契约 `@contract`/`@is`） | 加语法、改解析行为 |
+| `lib/sml.py` | SML 子集解析器（含片段 `&`、契约 `@contract`/`@is`、`include`+命名空间） | 加语法、改解析行为 |
 | `lib/markdown.py` | Markdown 子集渲染器（front matter、`:::note`） | 加 Markdown 语法 |
 | `lib/render.py` | SML 块 → HTML（含内联角色、B 站视频白名单） | 加块类型、改 HTML 结构 |
 | `lib/contract.py` | 契约校验（错误码对齐上游 sml-codes） | 加类型、改错误码文案 |
@@ -17,12 +17,13 @@
 | `lib/summary.py` | 摘要：优先 `summaries/*.json`，否则抽取式 | 改摘要策略 |
 | `lib/urls.py` | URL 协议白名单（http/https/mailto/tel、`#`、相对路径）—— 所有拼 href/src 的用户输入都必须过 `safe_url()` | 改白名单（先读 test_render_safety [9]/[11]） |
 | `lib/_swsml.py` | SML 原生绑定（vendored from swsml 0.6.4，MulanPSL-2） | 别就地改，升级 vendor 时以上游为准 |
-| `native/` | 原生后端载体 `sml.dll`（已 gitignore；缺失自动回退内置解析器） | 换平台/升级 swsml |
+| `native/` | 原生后端载体 `sml.dll`（已 gitignore；缺失时不含 `include` 的内容照常构建、含 `include` 的直接报错） | 换平台/升级 swsml |
 | `build.py` | 构建主流程：校验 → manifest → 预渲染 → 索引/RSS/sitemap/llms/字体子集/_headers | 加产物、改流程顺序 |
 | `check.py` | 产物自检（不变量，CI 用） | 加你踩过的坑当断言 |
 | `preview.py` | 本地静态服务（后台运行 + 日志） | 改端口/日志 |
 | `cli.py` | 命令行入口：`new/list/assets/gen/contracts/build/check/test/preview` | 加子命令 |
 | `test_contracts.py` | 契约引擎自测（断言数动态计数，钉住错误码语义） | 加断言 |
+| `test_sml_include.py` | include / 命名空间 / 契约桥接回归（`[B][D]` 组需 `sml.dll`，缺则 SKIP 并在末尾列出） | 改 include 规则 / 桥接时加用例 |
 | `test_render_safety.py` | 渲染安全回归（契约页转义 / 内联角色 / 嵌套列表 / `--out` 守卫 / URL 白名单 / 双后端 SML 错误类型 / assets 改写 / 代码块外壳 / assets 生成器） | 加你踩过的坑当用例 |
 | `test_structure.py` | 产物结构断言（三栏/版心/零外链/摘要/导图，纯静态） | 加结构不变量 |
 | `verify_parity.py` | MD ↔ SML 渲染一致性**证据脚本**（打印「一致 N / 不一致 M」，不一致时退出码 1）；CI 门禁在 `test_render_safety.py` §5，改对照表时两处同步 | 加对照用例 |
@@ -58,6 +59,9 @@ meta/repos.json                  元数据缓存（入库）
 - **加一个块类型**：`lib/render.py` 的 `render()` 里加一个 `if t == "你的块"` 分支；再在 `site/content/contracts/blog.sml` 里加对应契约字段（若它是字段）。
 - **加一个内容类型**（例如「活动」）：`build.py` 里仿 `build_topics()` 写一个 `build_xxx()` → 在 `main()` 里调用 → 写文件与 manifest 键 → `lib/contract.py` 或契约文件补字段 → `site/theme/app.js` 加路由与视图。
 - **改错误码/校验**：只改 `lib/contract.py`；契约语法在 `lib/sml.py` 的 `_parse_contract_body()`。
+- **跨文件复用契约/数据**：内容里写 `include "_shared.sml" as blog`（路径相对本文件；目标必须落在本文件目录子树内，
+  禁绝对路径与 `../` 越界）；只有文件入口 `load_doc()` 会展开，**需要 native**，
+  缺失时构建直接失败（不静默当字段）。契约仍由 `lib/contract.py` 校验，细节见 `docs/ARCHITECTURE.md` §14。
 - **改样式**：`site/theme/style.css`（页面结构在 `app.js`，右侧正文由 `render.py` 产出）。
 
 ## 复用到别的站点
@@ -74,6 +78,7 @@ python /path/to/other-site/engine/cli.py build
 
 ```bash
 python engine/test_contracts.py         # 契约自测
+python engine/test_sml_include.py       # include / 命名空间回归
 python engine/test_render_safety.py     # 渲染安全回归
 python engine/cli.py build              # 构建（含契约校验）
 python engine/check.py                  # 产物自检
