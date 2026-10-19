@@ -1,4 +1,4 @@
-# 能力与合作黄页示例。改成本人信息即可；不想展示就把整个文件删掉。
+# 技术互助示例。改成本人信息即可；不想展示就把整个文件删掉。
 # 硬性规则：
 #   owner 必须是成员 id（content/members/<id>.sml）；
 #   contact 只能写该成员 links 里已公开的键（blog / homepage / github / gitee / email）
@@ -7,9 +7,9 @@
 name: "PCB 布局与 EMC 走线复查"
 owner: sal
 skills: [ pcb emc altium stm32 ]
-wants: [ "小批量硬件合作" "固件移植咨询" ]
+wants: [ "小批量硬件一起做" "固件移植交流" ]
 contact: [ email gitee ]
-rate: "按板计费，学生项目半价；细节发邮件谈，本站不经手任何费用"
+rate: "远程评审；需要寄样板时走快递；时间与方式私聊，不谈价格"
 status: active
 updated: 2026-10-16
 
@@ -26,9 +26,9 @@ body: [
       }
     ]
   }
-  topic 合作方式 {
+  topic 协作方式 {
     children: [
-      para { text: "先发 Gerber 与原理图，一小时内回复能不能接；报酬与周期双方自行约定，走你自己的渠道结算。本站只展示这条信息，不担保结果、不抽成、不介入纠纷。" }
+      para { text: "先发 Gerber 与原理图，一小时内回复能不能接；时间与方式双方自行约定，走你自己的渠道结算。本站只展示这条信息，不担保结果、不抽成、不介入纠纷。" }
     ]
   }
 ]
