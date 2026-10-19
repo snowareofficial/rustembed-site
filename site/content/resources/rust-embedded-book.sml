@@ -1,3 +1,4 @@
+@is Resource
 title: "The Embedded Rust Book"
 kind: book
 url: "https://docs.rust-embedded.org/book/"

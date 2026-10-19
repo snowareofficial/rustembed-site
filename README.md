@@ -3,6 +3,10 @@
 QQ 群「Rust嵌入式探讨」的共建博客。**内容写 Markdown（默认）或 SML**，构建期预渲染成静态页面，
 托管在 Cloudflare Pages：`rec-blog.swebase.cn`（主）、`rust-embed.swebase.cn`（别名）。
 
+> **第一次投稿？先看 [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md)。**
+> 写文章只需要 Markdown，不需要懂 SML；不想碰 git 也可以把稿子交给群管理代投。
+> 模板在 [`templates/`](templates/)。
+
 ## 五分钟上手
 
 要求 **Python 3.8+**（开发/CI 用 3.11；无需 pip 装任何东西，fontTools 已 vendored）。

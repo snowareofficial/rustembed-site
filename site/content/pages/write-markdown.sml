@@ -46,4 +46,21 @@ body: [
       note { text: "构建会校验必填字段、图片是否存在、附件类型与体积；写错会直接报错，不用自己猜。" }
     ]
   }
+
+  topic 加资源 / 项目 / 成员 / 互助（SML） {
+    children: [
+      para { text: "文章用 Markdown；资源、项目、成员、互助是结构化条目，用 SML。SML 不是编程，只是「字段: 值」列表。" }
+      code { lang: sml text: "@is Resource\ntitle: \"The Embedded Rust Book\"\nkind: book\nurl: \"https://docs.rust-embedded.org/book/\"\ntags: [ rust embedded book ]\nnote: \"官方入门书，no_std 与外设访问的基础概念都在这里。\"" }
+      para { text: "复制模板到 content/resources/<英文短名>.sml；@is 这一行让 VS Code 显示字段类型、默认值和补全。" }
+      para { text: "字段表用 python engine/cli.py contracts 查看；完整模板在仓库 templates/ 与 docs/CONTRIBUTING.md。" }
+    ]
+  }
+
+  topic 不会 git / 不想折腾 {
+    children: [
+      para { text: "把 Markdown / SML 文件和图片打包发到群里，说明作者署名用哪个 id。" }
+      para { text: "有仓库权限的管理员代投，PR 里注明原作者；预览链接发回给你确认。" }
+      para { text: "不需要注册 Gitee、不需要配 SSH。" }
+    ]
+  }
 ]

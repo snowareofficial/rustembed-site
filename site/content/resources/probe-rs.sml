@@ -1,3 +1,4 @@
+@is Resource
 title: "probe-rs"
 kind: tool
 url: "https://github.com/probe-rs/probe-rs"
