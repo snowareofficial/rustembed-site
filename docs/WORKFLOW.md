@@ -245,44 +245,57 @@ Gitee 本身没有 CI，校验仍在 GitHub Actions 里做：`sync-code.yml` 在
 
 ---
 
-## 7. staging 缓冲：candidate → pages
+## 7. staging 预览：Gitee staging → master
 
-发布分成两段，生产不再被定时任务直接覆盖：
+缓冲放在 **Gitee 源分支**，不是构建产物：
 
 ```
-Gitee master/code
-   → publish-pages.yml 构建 + check
-   → candidate 分支（Cloudflare Preview / staging）
-   → 人工验收
-   → promote-pages.yml 快进到 pages（生产）
+Gitee staging 内容 → preview 分支（Cloudflare Preview / staging）
+        │  人工确认
+        ▼
+Gitee master 内容  → pages 分支（生产）
 ```
 
 分支职责：
 
 | 分支 | 内容 | 谁写 |
 |---|---|---|
-| `master` | 内容 + 工作副本 | 作者 PR |
-| `code` | engine/theme（同步源） | 维护者 |
-| `candidate` | 构建产物（staging） | CI 强推 |
-| `pages` | 构建产物（生产） | 只由 promote 写入 |
+| Gitee `staging` | 内容预览源 | 作者 PR / 维护者 |
+| Gitee `master` | 生产内容源 | 只接受 staging 合并 |
+| Gitee `code` | engine/theme（代码同步源） | 维护者 |
+| GitHub `preview` | staging 构建产物 | CI 强推 |
+| GitHub `pages` | 生产构建产物 | CI 强推（master） |
 
-操作：
+第一次启用：
 
-```powershell
-# 1) 触发构建，等它把 candidate 更新
-gh workflow run publish-pages.yml --repo snowareofficial/rustembed-site --ref master
-
-# 2) 看 staging（Cloudflare Preview 的 candidate 分支 URL）
-#    验收通过后 promote
-gh workflow run promote-pages.yml --repo snowareofficial/rustembed-site --ref master
+```bash
+# Gitee：从 master 建 staging
+git branch staging
+git push origin staging
 ```
 
-Cloudflare Pages 项目需要允许 Preview deployments，否则 `candidate` 不会生成可访问的
-staging URL；生产分支仍保持 `pages`。回滚时把 `pages` 指回上一个 candidate 即可：
+日常：
 
 ```powershell
-gh workflow run promote-pages.yml -f ref=<旧的 candidate 提交>
+# 作者：改 staging，等 preview
+git checkout staging
+# ... 改 site/content/...
+git push origin staging
+
+# 维护者：看 Cloudflare Preview 的 preview 分支 URL，确认后合并
+git checkout master
+git merge staging
+git push origin master
 ```
+
+CI 每 30 分钟（或手动 `publish-pages.yml`）会同时构建两个矩阵任务：
+
+- `staging → preview`：原样使用 staging 内容；
+- `master → pages`：生产内容，带 AI 摘要。
+
+Cloudflare Pages 项目需要允许 Preview deployments，`preview` 分支才会生成 staging URL；
+生产分支仍是 `pages`。回滚时对 Gitee `master` 做 revert，或把 `pages` 指回上一个构建提交。
+
 
 
 

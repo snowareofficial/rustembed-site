@@ -1,10 +1,12 @@
-name: 构建并放到 candidate（staging）；生产 promote 手动
+name: 构建 staging / 生产（Gitee staging → preview，master → pages）
 
-# 拓扑：Gitee（内容/代码）→ 定时/手动 → 构建 + check
-#       → 强推静态产物到 candidate 分支（Cloudflare Preview / staging）
-#       → 人工验收后运行 promote-pages.yml，把 candidate 快进到 pages（生产）
-# 不需要 CLOUDFLARE_API_TOKEN；GitHub Actions 只负责产出分支。
-
+# 拓扑：
+#   Gitee staging 内容 → preview 分支（Cloudflare Preview / staging）
+#   Gitee master  内容 → pages 分支（Cloudflare 生产）
+#   代码永远来自 GitHub master（engine/theme/workflows）；
+#   代码可用 sync-code.yml 从 Gitee code 分支同步，内容投稿者不碰代码。
+#
+# 生产发布不需要 promote 命令：在 Gitee 把 staging 合并到 master，下一次构建自动更新 pages。
 on:
   schedule:
     - cron: "*/30 * * * *"
@@ -15,13 +17,22 @@ on:
 permissions:
   contents: write
 
-concurrency:
-  group: publish-pages
-  cancel-in-progress: false
-
 jobs:
   publish:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - source: master
+            target: pages
+            label: 生产
+          - source: staging
+            target: preview
+            label: staging
+    concurrency:
+      group: publish-${{ matrix.target }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,26 +42,38 @@ jobs:
         with:
           python-version: "3.11"
 
-      # 代码永远来自 GitHub（engine/theme/workflows）；内容只从 Gitee 取 site/content。
-      # 这样投稿者只需要往 Gitee 推内容，不必维护 GitHub master。
-      - name: 取 Gitee 内容（只覆盖 site/content）
+      - name: 取 Gitee ${{ matrix.source }} 的内容（只覆盖 site/content）
         id: src
         env:
           GITEE_USER: ${{ secrets.GITEE_USER }}
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+          BRANCH: ${{ matrix.source }}
         run: |
           if [ -n "$GITEE_TOKEN" ]; then
             URL="https://${GITEE_USER}:${GITEE_TOKEN}@gitee.com/rustembed/site.git"
           else
             URL="https://gitee.com/rustembed/site.git"
           fi
-          if ! git fetch "$URL" master --quiet; then
-            echo "::warning::Gitee 拉取失败，本次用 GitHub 里的内容"
-            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+          if ! git ls-remote --exit-code --heads "$URL" "$BRANCH" >/dev/null 2>&1; then
+            echo "::error::Gitee 分支 $BRANCH 不存在"
+            exit 1
+          fi
+
+          if ! git fetch "$URL" "$BRANCH" --quiet; then
+            echo "::error::Gitee $BRANCH 拉取失败"
+            exit 1
+          fi
+
+          if [ "$BRANCH" = "staging" ]; then
+            # staging 是预览源：原样覆盖内容，不做“谁更新”的比较
+            git checkout FETCH_HEAD -- site/content
+            echo "使用 Gitee staging 内容"
+            echo "sha=$(git rev-parse FETCH_HEAD)" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          # 比较「site/content 的内容树」，而不是提交祖先关系：
-          # 本地/Gitee 与 GitHub 的提交号可能因 API 提交而分叉，祖先关系会永远判错。
+
+          # master：比较「site/content 内容树」，而不是提交祖先关系
           GH_TREE=$(git rev-parse HEAD:site/content)
           GITEE_TREE=$(git rev-parse FETCH_HEAD:site/content)
           if [ "$GH_TREE" = "$GITEE_TREE" ]; then
@@ -58,7 +81,7 @@ jobs:
             echo "sha=$(git rev-parse FETCH_HEAD)" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          # 内容不同时按「最后一次改 site/content 的提交时间」取新的
+
           GH_TS=$(git log -1 --format=%ct HEAD -- site/content)
           GITEE_TS=$(git log -1 --format=%ct FETCH_HEAD -- site/content)
           if [ "$GITEE_TS" -ge "$GH_TS" ]; then
@@ -70,7 +93,6 @@ jobs:
             echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           fi
 
-
       - name: 恢复字体（加密包 + FONT_PASSWORD）
         env:
           FONT_PASSWORD: ${{ secrets.FONT_PASSWORD }}
@@ -81,15 +103,15 @@ jobs:
             echo "::warning::没有字体加密包或 FONT_PASSWORD，回退系统字体"
           fi
 
-      # 摘要与头像都是构建期产物：缓存起来，避免每次重新调网关/下载
       - name: 缓存 AI 摘要 / 远端头像
         uses: actions/cache@v4
         with:
           path: |
             site/content/summaries
             site/meta/avatars
-          key: pages-cache-${{ hashFiles('site/content/posts/**', 'site/content/members/**') }}
+          key: pages-cache-${{ matrix.source }}-${{ hashFiles('site/content/posts/**', 'site/content/members/**') }}
           restore-keys: |
+            pages-cache-${{ matrix.source }}-
             pages-cache-
 
       - name: 构建（先出骨架）
@@ -101,7 +123,8 @@ jobs:
           python engine/build.py
           python engine/check.py
 
-      - name: AI 摘要（可选，GLM 构建期；失败不阻断）
+      - name: AI 摘要（只生产；可选，失败不阻断）
+        if: matrix.source == 'master'
         continue-on-error: true
         env:
           AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
@@ -119,19 +142,20 @@ jobs:
           python engine/check.py
           python engine/test_structure.py
 
-      - name: 发布到 candidate（staging）分支（内容未变则跳过）
+      - name: 发布到 ${{ matrix.target }} 分支（内容未变则跳过）
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET: ${{ matrix.target }}
         run: |
           cd dist
           git init -q
           git config user.name "pages-bot"
           git config user.email "pages-bot@users.noreply.github.com"
           git add -A
-          git commit -q -m "candidate: $(git -C .. rev-parse --short HEAD)"
+          git commit -q -m "${TARGET}: $(git -C .. rev-parse --short HEAD)"
           NEW_TREE="$(git rev-parse HEAD^{tree})"
 
-          git fetch --quiet "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" candidate 2>/dev/null || true
+          git fetch --quiet "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$TARGET" 2>/dev/null || true
           OLD_TREE=""
           if git rev-parse FETCH_HEAD^{tree} >/dev/null 2>&1; then
             OLD_TREE="$(git rev-parse FETCH_HEAD^{tree})"
@@ -142,12 +166,16 @@ jobs:
             exit 0
           fi
 
-          git push --force "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:candidate
-          echo "已发布 candidate（staging）分支：$NEW_TREE"
+          git push --force "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:"$TARGET"
+          echo "已发布 $TARGET 分支：$NEW_TREE"
 
       - name: 摘要
         run: |
-          echo "### staging / candidate" >> "$GITHUB_STEP_SUMMARY"
+          echo "### ${{ matrix.label }}：${{ matrix.source }} → ${{ matrix.target }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- 源提交：${{ steps.src.outputs.sha }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- 产物：dist/ 已同步到 \`candidate\` 分支" >> "$GITHUB_STEP_SUMMARY"
-          echo "- 验收后执行：\`gh workflow run promote-pages.yml\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- 产物：dist/ 已同步到 \`${{ matrix.target }}\` 分支" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ matrix.target }}" = "pages" ]; then
+            echo "- 生产：https://rustembed.swebase.cn" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- staging：Cloudflare Preview 的 \`preview\` 分支 URL" >> "$GITHUB_STEP_SUMMARY"
+          fi
