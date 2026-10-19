@@ -17,7 +17,8 @@
 | `lib/summary.py` | 摘要：优先 `summaries/*.json`，否则抽取式 | 改摘要策略 |
 | `lib/urls.py` | URL 协议白名单（http/https/mailto/tel、`#`、相对路径）—— 所有拼 href/src 的用户输入都必须过 `safe_url()` | 改白名单（先读 test_render_safety [9]/[11]） |
 | `lib/_swsml.py` | SML 原生绑定（vendored from swsml 0.6.4，MulanPSL-2） | 别就地改，升级 vendor 时以上游为准 |
-| `native/` | 原生后端载体 `sml.dll`（已 gitignore；缺失时不含 `include` 的内容照常构建、含 `include` 的直接报错） | 换平台/升级 swsml |
+| `native/` | 原生后端载体：`sml.dll` / `libsml.so` / `libsml.dylib`（默认 gitignore；缺失时不含 `include` 的内容照常构建、含 `include` 的直接报错） | 换平台/升级 swsml |
+| `native_build.py` | 本机编译 SML native cdylib 并放到 `engine/native/`；自动找 cargo target-dir，加载验证版本 | 没有预编译库/换平台时 |
 | `build.py` | 构建主流程：校验 → manifest → 预渲染 → 索引/RSS/sitemap/llms/字体子集/_headers | 加产物、改流程顺序 |
 | `check.py` | 产物自检（不变量，CI 用） | 加你踩过的坑当断言 |
 | `preview.py` | 本地静态服务（后台运行 + 日志） | 改端口/日志 |
@@ -59,9 +60,11 @@ meta/repos.json                  元数据缓存（入库）
 - **加一个块类型**：`lib/render.py` 的 `render()` 里加一个 `if t == "你的块"` 分支；再在 `site/content/contracts/blog.sml` 里加对应契约字段（若它是字段）。
 - **加一个内容类型**（例如「活动」）：`build.py` 里仿 `build_topics()` 写一个 `build_xxx()` → 在 `main()` 里调用 → 写文件与 manifest 键 → `lib/contract.py` 或契约文件补字段 → `site/theme/app.js` 加路由与视图。
 - **改错误码/校验**：只改 `lib/contract.py`；契约语法在 `lib/sml.py` 的 `_parse_contract_body()`。
-- **跨文件复用契约/数据**：内容里写 `include "_shared.sml" as blog`（路径相对本文件；目标必须落在本文件目录子树内，
-  禁绝对路径与 `../` 越界）；只有文件入口 `load_doc()` 会展开，**需要 native**，
-  缺失时构建直接失败（不静默当字段）。契约仍由 `lib/contract.py` 校验，细节见 `docs/ARCHITECTURE.md` §14。
+- **跨文件复用契约/数据**：内容里写 `include "_shared.sml" as blog` 或
+  `include "../contracts/blog.sml" as blog`（路径相对本文件；允许根 = site/content，
+  跨兄弟目录可以，逃出内容目录一律 `E-INCLUDE-003`）。只有文件入口 `load_doc()` 会展开，
+  **需要 native**（靠临时扁平副本绕开 native 的「包含者目录」沙箱），缺失时构建直接失败。
+  契约仍由 `lib/contract.py` 校验；机制与已知限制见 `docs/ARCHITECTURE.md` §14 / §15。
 - **改样式**：`site/theme/style.css`（页面结构在 `app.js`，右侧正文由 `render.py` 产出）。
 
 ## 复用到别的站点
