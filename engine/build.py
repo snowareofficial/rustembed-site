@@ -194,12 +194,16 @@ CONTRACT_LOOSE = False
 
 
 def load2(f):
-    """读内容文件：返回 (数据, 文件内契约表)。"""
+    """读内容文件：返回 (数据, 文件内契约表)。
+
+    `.sml` 走文件入口：native 展开 include，root = CONTENT（site/content）——
+    跨目录（如 resources/ → contracts/）也能包含，越界则拒。
+    """
     if f.suffix.lower() in (".md", ".markdown"):
         meta, body = md.split_front_matter(f.read_text(encoding="utf-8"))
         meta["__md_body"] = body
         return meta, {}
-    return sml.load_doc(f)
+    return sml.load_doc(str(f), root=str(CONTENT))
 
 
 def register_contracts(rep, where, cs):

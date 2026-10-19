@@ -282,8 +282,9 @@ url: "https://example.com/"
 | `as ns` | 数据挂到命名空间键 `ns` 下；契约登记为限定名 `ns.契约名` |
 | 内联（无 `as`） | 数据平铺合并；契约登记为裸 `契约名` |
 | 命名空间隔离 | `as blog` 之后**只能**用 `@is blog.Resource`，裸 `Resource` 不再可见 |
-| 沙箱 | 目标 realpath 必须落在包含者目录内：禁绝对路径、禁 `../` 越界 |
-| 防护 | 循环 include → `E-INCLUDE-002`；嵌套 > 32 层 / 文件 > 64 个 → `E-INCLUDE-004` |
+| 允许根 | 目标 realpath 必须落在 **site/content** 内；跨兄弟目录（如 `resources/` → `contracts/`）可以 |
+| 沙箱 | native 的沙箱更紧（基准 = 包含者目录），靠下面的**预处理**绕开，不放宽 native |
+| 防护 | 循环 include → `E-INCLUDE-002`；嵌套 > 32 层 / 文件 > 64 个 / 总字节 > 8 MiB → 明确错误 |
 | 契约谁校验 | 一律 Python 侧 `lib/contract.py`（native 不懂 url/date/image，见 §14） |
 
 优先级：文件里的 `@is` > `site.sml` 的 `contracts{}` 默认映射，二者只走一个，不会重复报错。
@@ -309,8 +310,8 @@ url: "https://example.com/"
 | 文件入口 `load_doc(path)` / `parse_doc_at(text, path)` | `build.load2()`、写作台校验/预览 | 内容含 include/import 时交给 native 展开 |
 
 native = `engine/native/sml.dll`（swsml 0.6.4 的 Rust cdylib，`engine/native/` 已 gitignore）。
-文件入口会额外打开 `namespace` + `contract` 两个特性位（被包含文件里可能有 `@contract` / `as ns`），
-`implicit-ns` **不开** —— 否则 `include "foo"` 会悄悄变成命名空间，与本站既有口径不一致。
+文件入口会额外打开 `include` + `namespace` 两个特性位（`as ns` 需要它）；`implicit-ns` **不开** ——
+否则 `include "foo"` 会悄悄变成命名空间，与本站既有口径不一致。
 
 **契约不交给 native 校验**，实测两条理由：
 
@@ -326,7 +327,66 @@ native 只拿数据；被包含文件的 `@contract` 由 `bridge_contracts()` �
 `_strip_directives` 拉回来，组成**旁路契约表**（`as ns` → `ns.契约名`），校验仍由
 `lib/contract.py` 统一负责 —— 于是 url / date / image / 附件路径这些本站校验一条不少。
 
-**native 缺失时的行为**（CI 即此缺省路径）：
+## 15. 跨目录 include 的预处理（为什么 native 沙箱要绕）
+
+native 的沙箱基准是**包含者所在目录**：
+
+```
+site/content/resources/x.sml
+  include "../contracts/blog.sml" as blog     # ⇒ E-INCLUDE-003
+```
+
+`resources/` 想去引用 `contracts/` 里的集中契约，native 直接拒。native 不改（非目标），
+于是 rec-blog 在**交给 native 之前**先把 include 闭包落成一个临时扁平副本：
+
+```
+<系统临时目录>/rec-blog-include-xxxx/
+    entry.sml              ← 入口副本（@contract/@is 已剥离）
+    <sha1(原始绝对路径)[:12]>.sml   ← 闭包里每个被包含文件一份
+```
+
+并且把每个副本里的 include 行改写成**同级文件名**（`include "<hash>.sml" as blog`）——
+native 看到的永远是「同目录 / 子目录」的 include，沙箱自然放行。
+扁平化是必须的：如果把被包含文件放进子目录，它对入口的引用会变成 `../entry.sml`
+⇒ 照样 E-INCLUDE-003（实测踩过）。
+
+流程（`engine/lib/sml.py`）：
+
+1. `scan_include_refs()` 扫顶层 include 行：`_code_lines()` 先把字符串与块注释
+   内部的行掩掉，防止注释里伪造一行 `include` 就真去读文件；
+2. `_safe_include_target()` 解析目标：禁绝对路径；`realpath` 必须落在
+   **允许根** `config.CONTENT`（站点内容目录）内 —— 于是跨兄弟目录放行、
+   逃出 `site/content`（含 symlink 指向根外）一律 `E-INCLUDE-003`；
+3. `_walk_include_graph()` 遍历闭包：按「边」去重（菱形只复制一份），
+   深度 > 32 / 文件数 > 64 / 总字节 > 8 MiB 报错，成环交给 native 报
+   `E-INCLUDE-002`；
+4. `prepare_include_tree()` 把闭包写进临时目录并改写路径（行号不变）；
+5. native `load_file` 只解析**临时入口**；契约从**原始**文件收集，仍由
+   `contract.py` 校验；
+6. `finally` 里 `rmtree` 整个临时根目录。
+
+临时目录位置 = `tempfile.mkdtemp()`（系统 temp），**不会**在 `site/content` 下
+产生任何副本；文件名用原始路径 sha1 前 12 位，目的是避免不同目录的同名文件撞车，
+不是保密。
+
+错误可读性：native 报错里的临时路径会通过 `PreparedIncludeTree.reverse`
+映射回原始文件（`_map_native_error`），作者看到的永远是自己的文件名 + 行号 + 错误码，
+不会冒出 `C:\Users\...\Temp\...`；ctypes / OSError 等底层异常一律包成 `SmlError`
+（`E-NATIVE-001`），不直接抛给投稿者。
+
+### 15.1 CI 怎么保证真的跑到
+
+`engine/native/` 是 gitignore 的，所以 CI 里默认**没有** native ——
+过去 `test_sml_include.py` 就整组 SKIP，门禁形同虚设。现在：
+
+- 新增 `.github/workflows/include-native.yml`：job `include-native` 先拉上游
+  `v0.6.4` 并 `cargo build --release -p swsml`，把 cdylib 放进 `engine/native/`，
+  再跑 `python engine/test_sml_include.py`（[B][D][E] 真跑）；
+- 脚本本身也改了口径：**缺 native 时退出码 1**（不再静默 SKIP），
+  只有显式 `REC_BLOG_SML_ALLOW_NO_NATIVE=1` 才降级为跳过。
+  于是「装不上 native」会红，而不是悄悄绿。
+
+**native 缺失时的行为**（干净克隆、没装 cdylib 的机器）：
 
 - 不含 include 的内容：照常构建，走内置解析器；
 - 含 include 的内容：**构建失败**，报错 `E-FEATURE-001` 并说明怎么装 native。
@@ -334,9 +394,16 @@ native 只拿数据；被包含文件的 `@contract` 由 `bridge_contracts()` �
 
 已知限制：
 
-- include 目标必须落在**包含者所在目录的子树**里（native 的沙箱口径，比「不逃出仓库根」更紧）。
-  想跨目录共享契约，就把共享文件放进同一目录（用 `_` 前缀避免被收录成内容页）；
-- 被包含文件里若自带 `@is`，那份校验由 native 执行，类型口径以 native 为准（当前所有内容都没这么写）；
+- include 目标必须落在 **site/content** 内（这是本任务新定的允许根）。
+  站内跨目录（如 `resources/` → `contracts/`）现在可以；指向内容目录之外
+  （`../../Windows/...`、绝对路径、symlink 指到根外）一律 `E-INCLUDE-003`；
+- 只支持规范子集 `include "路径"` / `include "路径" as ns`。glob、正则、挑键、
+  一行多目标、点分模块名 `import a.b`、未加引号路径，全部**显式报错**
+  （不静默降级 —— 静默会让契约悄悄不生效）；
+- 被包含文件里若自带 `@is`，构建直接报 `E-PARSE` 错（不静默忽略）：
+  当前实现只把入口文件的 `@is` 带回 Python 侧校验。要引用被包含文件里的契约，
+  请用 `@is ns.契约名` 写在入口；或走 `site.sml` 的 `contracts{}` 默认映射；
 - 上游 JS/VS Code 扩展的 include 展开不带回子文件契约表（§4.6），编辑器里
   `@is blog.Resource` 可能报未定义 —— 以 `python engine/cli.py build` 为准；
-- 绕路扫描整个工作区找 `@contract` 的做法被明确禁止（会绕过命名空间），桥接只走真实的 include 图。
+- 绕路扫描整个工作区找 `@contract` 的做法被明确禁止（会绕过命名空间），
+  桥接只走真实的 include 图。

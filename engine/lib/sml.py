@@ -40,8 +40,14 @@ rec-blog 侧用旁路契约表把被包含文件的 `@contract` 拉回来校验�
 """
 
 import copy
+import hashlib
 import os
 import re
+import shutil
+import tempfile
+
+# include 允许根的惰性缓存（None = 还没算过，见 include_root()）
+_INCLUDE_ROOT = None
 
 _WS = " \t\r\n"
 _STOP = "}]{,"
@@ -628,21 +634,56 @@ def _strip_directives(text, path="<sml>"):
     return "".join(buf), contracts, is_name
 
 
-def _map_native_error(e, path, text, refs=()):
+def _map_native_error(e, path, text, refs=(), tmap=None):
     """上游富错误 → rec-blog 的 SmlError（`path:line: [码] 人话`）。
 
-    EOF/预处理类错误上游 line=0：先在 refs（本机扫到的 include 行）里按
-    **目标文件名** 归因到真实行号，实在归不到才退回文档末行 —— include 的
-    报错大多发生在展开阶段，不给行号等于让投稿者满文件找。
+    三件事：
+      1. 定位：上游 EOF/预处理类错误 line=0，先在 refs（本机扫到的 include 行）
+         里按**目标文件名**归因到真实行号，归不到才退回文档末行；
+      2. 路径：native 看到的是临时树，`source` / 文案里的临时路径一律映射回
+         原始文件 —— 作者不该看到 `C:\\Users\\...\\Temp\\rec-blog-include-xxx`；
+      3. 兜底：拿不到任何原始文件信息时，至少报回入口文件。
     """
+    src = (getattr(e, "source", "") or "").strip()
+    msg = getattr(e, "text", "") or str(e)
     line = getattr(e, "line", 0)
+    where = _original_of_path(src, tmap) if src else ""
+    msg = _unmap_temp_paths(msg, tmap)
+    if not where:
+        where = _original_of_path(msg, tmap)
+    if not where:
+        where = str(path)
     if not line:
-        line = _attribute_line(getattr(e, "text", "") or "", refs)
+        line = _attribute_line(msg, refs)
     if not line:
         line = text.count("\n") + 1
-    code = getattr(e, "code_str", "") or "E-PARSE"
-    msg = getattr(e, "text", "") or str(e)
-    return SmlError("%s:%d: [%s] %s" % (path, line, code, msg))
+    code = getattr(e, "code_str", "") or _GENERIC_CODE
+    return SmlError("%s:%d: [%s] %s" % (where, line, code, msg))
+
+
+def _original_of_path(text, tmap):
+    """从一个可能含临时路径的串里认出原始文件（整段路径优先，其次 basename）。"""
+    if not text or not tmap:
+        return ""
+    for tmp, orig in tmap.items():
+        if tmp and tmp in text:
+            return orig
+    for tmp, orig in tmap.items():
+        name = os.path.basename(tmp)
+        if name and len(name) > 8 and name in text:
+            return orig
+    return ""
+
+
+def _unmap_temp_paths(msg, tmap):
+    """把文案里的临时路径换回原始路径；换不干净的残留抹成 `<临时目录>`。"""
+    if not msg or not tmap:
+        return msg
+    for tmp, orig in tmap.items():
+        for cand in (tmp, tmp.replace(os.sep, "/")):
+            if cand:
+                msg = msg.replace(cand, orig)
+    return msg
 
 
 # ---------------------------------------------------------------------------
@@ -654,7 +695,7 @@ def _map_native_error(e, path, text, refs=()):
 #   native load_file        —— 按 §4.6 在解析前递归展开 include、处理 `as ns`
 #                              包裹、做越界/成环/深度防护。**只管数据**。
 #   rec-blog Python 侧      —— 契约。被包含文件里的 @contract 由
-#                              `_bridge_contracts()` 走一遍 `_strip_directives`
+#                              `bridge_contracts()` 走一遍 `_strip_directives`
 #                              拉回来组成"旁路契约表"，校验仍走 `lib/contract.py`
 #                              （url / date / image 这些 rec-blog 内置类型只有它认）。
 #
@@ -665,11 +706,19 @@ def _map_native_error(e, path, text, refs=()):
 #   2. 命名空间语义缺失 —— `include "x.sml" as blog` 之后 native 把契约登记成
 #      **裸名**，`@is blog.Resource`（§4.4 规定的跨文件引用写法）实测报
 #      `E-CONTRACT-001 未定义的契约 blog.Resource`。
-# 所以 @contract / @is 依旧在交给 native 之前从入口文件剥掉（见 _strip_directives），
-# native 拿到的只是数据；`ns.Contract` 这套限定名由旁路契约表自己拼。
+#
+# native 的沙箱基准是**包含者所在目录**，跨目录 include 一律 E-INCLUDE-003；
+# 我们不改 native，而是**预处理绕开**：把 include 闭包复制进系统临时目录并
+# 扁平化，改写每条 include 行为临时树内的相对路径，native 就只看到
+# 「同目录 / 子目录」的 include。于是「能不能包含」由本节的允许根决定。
 
 _MAX_INCLUDE_DEPTH = 32     # 与上游 sml-include::MAX_INCLUDE_DEPTH 对齐
 _MAX_INCLUDE_FILES = 64     # 单个文件的 include 图预算（超过即拒，防菱形爆炸）
+_MAX_INCLUDE_BYTES = 8 * 1024 * 1024   # 闭包总字节上限（防 include 炸弹）
+
+# rec-blog 侧通用错误码：上游 sml-codes 里没有对应语义时用它，
+# 不冒充上游码（上游 001..018 各有明确含义，借来用会骗人）。
+_GENERIC_CODE = "E-PARSE"
 
 _INCLUDE_LINE_RE = re.compile(r"^[ \t]*@?[ \t]*(include|import)[ \t]+(.*)$")
 
@@ -727,7 +776,7 @@ def _code_lines(text, path="<sml>"):
     return out
 
 
-def scan_include_refs(text, path="<sml>"):
+def scan_include_refs(text, path="<sml>", root=None):
     """导出给上层的最低限度 include 信息：[(行号, 目标绝对路径, ns)]。
 
     只做语法识别 + 越界防护（见 _safe_include_target），不读目标文件。
@@ -739,7 +788,8 @@ def scan_include_refs(text, path="<sml>"):
         m = _INCLUDE_TARGET_RE.match(rest)
         if not m:
             raise SmlError(_unsupported_include_msg(path, lineno, keyword, rest))
-        target = _safe_include_target(base, _unescape_path(m.group("path")), path, lineno)
+        target = _safe_include_target(base, _unescape_path(m.group("path")),
+                                       path, lineno, root=root)
         out.append((lineno, target, m.group("ns")))
     return out
 
@@ -779,26 +829,57 @@ def _same_or_under(child, parent):
     return c == p or c.startswith(p.rstrip(os.sep) + os.sep)
 
 
-def _safe_include_target(base, raw, path, lineno):
-    """把 include 目标解析成绝对路径。越界一律拒 —— 内容文件不得借 include
-    读到自己目录以外的东西（含仓库外的敏感文件）。
+def include_root():
+    """include 的**允许根**：站点内容目录（config.CONTENT = `site/content`）。
 
-    口径与 native 一致：基准目录 = **包含者所在目录**，于是整个可达闭包永远
-    落在入口文件的目录子树里（比"不逃出仓库根"更紧）。
+    native 自己还有一层更紧的沙箱（基准 = 包含者所在目录），我们靠预处理绕开它；
+    真正决定「内容能引用到哪」的就是这里 —— 只允许站点内容目录以内的文件。
+    测试 / 多站点可用 `set_include_root()` 覆盖，或用
+    `REC_BLOG_SML_INCLUDE_ROOT` 环境变量。
     """
+    global _INCLUDE_ROOT
+    if _INCLUDE_ROOT is not None:
+        return _INCLUDE_ROOT
+    env = os.environ.get("REC_BLOG_SML_INCLUDE_ROOT", "")
+    if env:
+        root = env
+    else:
+        try:
+            import config
+            root = str(config.CONTENT)
+        except Exception:                  # noqa: BLE001 —— 脱离 engine/ 单用时退回约定布局
+            here = os.path.dirname(os.path.abspath(__file__))         # engine/lib
+            root = os.path.join(here, os.pardir, os.pardir, "site", "content")
+    _INCLUDE_ROOT = os.path.realpath(root)
+    return _INCLUDE_ROOT
+
+
+def set_include_root(path):
+    """覆盖 include 允许根（测试 / 多站点用）。传空值恢复自动推断。"""
+    global _INCLUDE_ROOT
+    _INCLUDE_ROOT = os.path.realpath(str(path)) if path else None
+
+
+def _safe_include_target(base, raw, path, lineno, root=None):
+    """把 include 目标解析成绝对路径（realpath）。越界一律拒 —— 内容文件
+    不得借 include 读到站点内容目录以外的东西（含仓库外的敏感文件）。
+
+    基准目录 = **包含者所在目录**（解析相对路径用）；边界 = **允许根**
+    （默认 `site/content`），两者不同：允许跨兄弟目录，但不许逃出内容目录。
+    绝对路径、含 `..` 的逃逸、指向根外的 symlink 都在这里被拒（E-INCLUDE-003）。
+    """
+    root = os.path.realpath(str(root)) if root else include_root()
     if not raw.strip():
         raise SmlError("%s:%d: [E-INCLUDE-012] include 路径为空" % (path, lineno))
-    if "*" in raw or raw.startswith("re:"):
-        raise SmlError(_unsupported_include_msg(path, lineno, "include", '"%s"' % raw))
     if re.match(r"^[A-Za-z]:[\\/]", raw) or raw.startswith(("/", "\\")):
         raise SmlError("%s:%d: [E-INCLUDE-003] include 越界拒绝：不允许绝对路径 `%s`；"
                        "请写相对于本文件的路径" % (path, lineno, raw))
-    target = os.path.normpath(os.path.join(base, raw))
-    base_real = os.path.realpath(base)
-    target_real = os.path.realpath(target)
-    if not _same_or_under(target_real, base_real):
-        raise SmlError("%s:%d: [E-INCLUDE-003] include 越界拒绝：%s 不在基准目录 %s 内"
-                       % (path, lineno, target_real, base_real))
+    if "*" in raw or raw.startswith("re:"):
+        raise SmlError(_unsupported_include_msg(path, lineno, "include", '"%s"' % raw))
+    target = os.path.realpath(os.path.normpath(os.path.join(base, raw)))
+    if not _same_or_under(target, root):
+        raise SmlError("%s:%d: [E-INCLUDE-003] include 越界拒绝：%s 不在站点内容目录 %s 内"
+                       % (path, lineno, target, root))
     return target
 
 
@@ -832,7 +913,7 @@ def _attribute_line(msg, refs):
     return 0
 
 
-def _walk_include_graph(entry_path, entry_text, budget=None):
+def _walk_include_graph(entry_path, entry_text, budget=None, root=None):
     """沿 include 图收集被包含文件：[{"path","ns","lineno","owner"}]。
 
     按「边」而不是「文件」去重：同一份文件被两条路径包含时（菱形），它在两个
@@ -843,12 +924,13 @@ def _walk_include_graph(entry_path, entry_text, budget=None):
     found = []
     budget = [_MAX_INCLUDE_FILES] if budget is None else budget
     visited = set()
+    seen_bytes = [0]
 
     def visit(path, text, ns, chain):
         if len(chain) > _MAX_INCLUDE_DEPTH:
             raise SmlError("%s: [E-INCLUDE-004] include 嵌套超过 %d 层"
                            % (path, _MAX_INCLUDE_DEPTH))
-        for lineno, target, child_ns in scan_include_refs(text, str(path)):
+        for lineno, target, child_ns in scan_include_refs(text, str(path), root=root):
             full = ("%s.%s" % (ns, child_ns) if ns and child_ns
                     else (ns or child_ns or ""))
             real = os.path.realpath(target)
@@ -871,33 +953,152 @@ def _walk_include_graph(entry_path, entry_text, budget=None):
             except OSError as e:
                 raise SmlError("%s:%d: [E-INCLUDE-001] include 读取失败 %s：%s"
                                % (path, lineno, target, e))
+            seen_bytes[0] += len(sub.encode("utf-8"))
+            if seen_bytes[0] > _MAX_INCLUDE_BYTES:
+                raise SmlError("%s: [E-INCLUDE-004] include 闭包总大小超过上限 %d 字节"
+                               % (path, _MAX_INCLUDE_BYTES))
             found.append({"path": target, "ns": full, "lineno": lineno, "owner": str(path)})
             visit(target, sub, full, chain + [real])
 
-    entry = os.path.abspath(entry_path)
-    visit(entry, entry_text, "", [os.path.realpath(entry)])
+    entry = os.path.realpath(os.path.abspath(entry_path))
+    visit(entry, entry_text, "", [entry])
     return found
 
 
-def bridge_contracts(entry_path, entry_text=None):
+class PreparedIncludeTree(object):
+    """include 闭包的一份**临时扁平副本**，native 只看到这里。
+
+        temp_root/entry.sml                 ← 入口（@contract/@is 已剥离）
+        temp_root/<sha1(abs)[:12]>.sml      ← 闭包里每个被包含文件一份
+
+    为什么要**全部平铺到同一个目录**（而不是 `entry.sml` + `_inc/` 子目录）：
+    native 的沙箱基准是「**包含者所在目录**」，被包含文件里的 include 只能指向
+    它自己所在目录的子树。一旦把被包含文件放进子目录，它对入口的引用就变成了
+    `../entry.sml` ⇒ 直接吃 `E-INCLUDE-003`。平铺后每条 include 都是**同级**
+    文件名，沙箱自然放行 —— 跨目录 include 就是这么绕开的。
+    文件名用原始绝对路径的 sha1 前 12 位：不同目录的同名文件不会撞车。
+    """
+
+    def __init__(self, temp_root, entry_temp, copies, reverse):
+        self.temp_root = temp_root
+        self.entry_temp = entry_temp
+        self.copies = copies                 # 原始 realpath → 临时路径
+        self.reverse = reverse               # 临时 realpath → 原始路径
+
+    def cleanup(self):
+        shutil.rmtree(self.temp_root, ignore_errors=True)
+
+    def original_of(self, tmp_path):
+        return self.reverse.get(os.path.realpath(str(tmp_path)))
+
+
+def prepare_include_tree(entry_path, entry_text=None, root=None, graph=None):
+    """把入口 + 它的 include 闭包复制进临时目录，并改写 include 路径。
+
+    - 每个原始文件只复制一份（菱形包含共享同一份副本）；
+    - 复制时沿用 `_strip_directives` 剥掉 @contract/@is，native 不碰契约；
+    - 行号保持不变，native 报错的行号才能直接对应回原始文件；
+    - `graph` 可传入已算好的 include 图，避免重复遍历。
+    返回 PreparedIncludeTree；**调用方负责在 finally 里 cleanup()**。
+    """
+    root = os.path.realpath(str(root)) if root else include_root()
+    entry = os.path.realpath(os.path.abspath(entry_path))
+    if not _same_or_under(entry, root):
+        raise SmlError("%s: [E-INCLUDE-003] include 越界拒绝：内容文件不在站点内容目录 %s 内"
+                       % (entry_path, root))
+    if entry_text is None:
+        entry_text = _read_text(entry)
+    if graph is None:
+        graph = _walk_include_graph(entry, entry_text, root=root)
+
+    temp_root = tempfile.mkdtemp(prefix="rec-blog-include-")
+    copies = {entry: os.path.join(temp_root, "entry.sml")}
+    for item in graph:
+        h = hashlib.sha1(os.path.normcase(item["path"]).encode("utf-8")).hexdigest()[:12]
+        copies[item["path"]] = os.path.join(temp_root, h + ".sml")
+
+    reverse = {}
+    try:
+        for orig, tmp in copies.items():
+            text = entry_text if (orig == entry and entry_text is not None) else _read_text(orig)
+            body = _rewrite_includes(text, orig, root, copies, tmp)
+            os.makedirs(os.path.dirname(tmp), exist_ok=True)
+            with open(tmp, "w", encoding="utf-8", newline="") as fh:
+                fh.write(body)
+            reverse[os.path.realpath(tmp)] = orig
+    except Exception:
+        shutil.rmtree(temp_root, ignore_errors=True)
+        raise
+    return PreparedIncludeTree(temp_root, copies[entry], copies, reverse)
+
+
+def _rewrite_includes(text, path, root, copies, tmp_self):
+    """把 text 里的每条 include 行改写成「从 tmp_self 到目标临时文件」的相对路径。
+
+    顺带剥掉 @contract / @is（沿用 `_strip_directives`），只把数据和 include
+    行留给 native。**只做行内替换，不增删行** —— 行号因此能与原始文件对齐。
+    """
+    clean, _contracts, _is = _strip_directives(text, path)
+    out = clean.split("\n")
+    tmp_dir = os.path.dirname(os.path.abspath(tmp_self))
+    for lineno, kw, rest in _scan_include_lines(text, path):
+        m = _INCLUDE_TARGET_RE.match(rest)
+        if not m:
+            raise SmlError(_unsupported_include_msg(path, lineno, kw, rest))
+        raw = _unescape_path(m.group("path"))
+        target = _safe_include_target(os.path.dirname(os.path.abspath(path)), raw,
+                                       path, lineno, root=root)
+        tmp_target = copies.get(os.path.realpath(target))
+        if tmp_target is None:             # 兜底：图与副本必须一一对应，否则说明内部不一致
+            raise SmlError("%s:%d: [E-INCLUDE-011] include 预处理失败：%s 不在闭包内"
+                           % (path, lineno, os.path.basename(target)))
+        rel = os.path.relpath(tmp_target, tmp_dir).replace(os.sep, "/")
+        out[lineno - 1] = _rebuild_include_line(out[lineno - 1], kw, rel, m.group("ns"))
+    return "\n".join(out)
+
+
+def _rebuild_include_line(line, kw, rel, ns):
+    """按原缩进 / 原 `as ns` 重建一行 include 指令。"""
+    stripped = line.lstrip(" \t")
+    indent = line[:len(line) - len(stripped)]
+    at = "@" if stripped.startswith("@") else ""
+    s = '%s%s "%s"' % (at, kw, rel)
+    if ns:
+        s += " as " + ns
+    return indent + s
+
+
+def bridge_contracts(entry_path, entry_text=None, root=None, graph=None):
     """旁路契约表：把 include 图里各文件定义的 @contract 拉回 Python 侧。
 
-    - `as ns` 包含的 → 登记为 `ns.契约名`（§4.4 的跨文件引用写法，
-      native 0.6.4 缺这块，由这里补齐）；
-    - 内联包含的 → 登记为裸 `契约名`（与 native 实测行为一致）；
-    - 同一份文件被多处包含只过一次（内容相同不重复登记）；
-    - 同图内同名但**内容不一致** → 直接报错：上游没有"重复契约"专属错误码，
-      取语义最近的 E-CONTRACT-016（契约冲突），不自己发明码。
+    `graph` 可传入已算好的 include 图（`_walk_include_graph` 的结果），
+    省得同一份内容走两遍图。
+
+    - 从**原始**文件读（不是临时副本），`as ns` → `ns.契约名`（§4.4 写法，
+      native 0.6.4 缺这块，由这里补齐）；内联 → 裸 `契约名`；
+    - 入口自己的 @contract 优先，不做覆盖；
+    - 同一份文件被多处包含只过一次；同图内同名且**字段一致**静默去重；
+    - 同图内同名但字段不一致 → 报错。上游 sml-codes **没有**「重复定义」专属码
+      （016 是「契约叠加冲突」，不能借），所以用 rec-blog 侧通用码
+      `_GENERIC_CODE`（= `E-PARSE`）并在文案里写清是重复定义；
+    - 被包含文件里出现 `@is` → 明确报错（不静默忽略，否则契约会被悄悄跳过）。
     """
-    if entry_text is None:
-        with open(entry_path, "r", encoding="utf-8") as fh:
-            entry_text = fh.read()
+    root = os.path.realpath(str(root)) if root else include_root()
+    if graph is None:
+        if entry_text is None:
+            entry_text = _read_text(entry_path)
+        graph = _walk_include_graph(entry_path, entry_text, root=root)
     table = {}
     origin = {}                       # 限定名 → 首次定义它的文件（报错要指名道姓）
-    for item in _walk_include_graph(entry_path, entry_text):
-        with open(item["path"], "r", encoding="utf-8") as fh:
-            text = fh.read()
-        _clean, local, _is = _strip_directives(text, item["path"])
+    for item in graph:
+        text = _read_text(item["path"])
+        _clean, local, is_name = _strip_directives(text, item["path"])
+        if is_name:
+            raise SmlError(
+                "%s: [%s] 被包含文件里的 `@is %s` 暂不支持：契约应用只能写在入口文件"
+                "（当前实现只把入口的 @is 带回 Python 侧校验）—— 请删掉它，"
+                "或改用 `site.sml` 的 `contracts{}` 默认映射"
+                % (item["path"], _GENERIC_CODE, is_name))
         for name, spec in local.items():
             key = "%s.%s" % (item["ns"], name) if item["ns"] else name
             spec = dict(spec, name=key)
@@ -905,9 +1106,9 @@ def bridge_contracts(entry_path, entry_text=None):
                 if table[key] == spec:
                     continue          # 同一份文件被多处包含（菱形引用）：内容一致，静默去重
                 raise SmlError(
-                    "%s:%d: [E-CONTRACT-016] 契约 `%s` 在同一份内容的 include 图里被两份文件"
-                    "定义了不同字段（%s 与 %s）—— 只留一份定义，或用 `as ns` 命名空间区分"
-                    % (item["owner"], item["lineno"], key, item["path"], origin[key]))
+                    "%s: [%s] 契约 `%s` 重复定义且字段不一致 —— %s 与 %s 各写了一份；"
+                    "只留一份定义，或用 `as ns` 命名空间区分"
+                    % (item["path"], _GENERIC_CODE, key, origin[key], item["path"]))
             table[key] = spec
             origin[key] = item["path"]
     return table
@@ -960,57 +1161,30 @@ def _file_feature_flags():
             | _FEATURE_BITS["contract"])
 
 
-def _native_load_file(entry_path, clean, text, refs=()):
-    """对剥离完指令的文本跑文件入口 load_file。
+def _native_load_file(target, where, text, refs=(), tmap=None):
+    """对（临时树里的）`target` 跑文件入口 load_file。
 
-    include 的相对路径以内容文件所在目录为基准，而上游 loads 没有基准参数 ——
-    所以要么直接读原文件（无指令可剥时），要么在同目录落一个临时文件
-    （`_` 前缀：docs_in 与文章 glob 都不收录）。
+    `where` / `text` 是**原始**入口文件与其文本，只用于报错；
+    `tmap` 把 native 文案里的临时路径映射回原始路径。
     """
     mod = _native_mod()
-    p = os.path.abspath(entry_path)
-    tmp = None
-    target = p
-    if clean != text:
-        stem, ext = os.path.splitext(os.path.basename(p))
-        tmp = os.path.join(os.path.dirname(p),
-                           "_%s.native-%d-%d%s" % (stem, os.getpid(), id(clean) & 0xFFFF, ext))
-        try:
-            with open(tmp, "w", encoding="utf-8", newline="") as fh:
-                fh.write(clean)
-        except OSError as e:      # 目录只读之类的环境问题，别甩 ctypes 原始异常
-            raise SmlError("%s: [E-IO-001] 无法写出 include 预处理的临时文件 %s：%s"
-                           % (entry_path, tmp, e))
-        target = tmp
     try:
-        val = mod.load_file(target, flags=_file_feature_flags())
-    except getattr(mod, "SmlError") as e:      # noqa: B014 —— 上游富错误
-        raise _map_native_error(e, entry_path, text, refs)
+        return mod.load_file(target, flags=_file_feature_flags())
+    except mod.SmlError as e:
+        raise _map_native_error(e, where, text, refs, tmap)
     except Exception as e:                     # noqa: BLE001 —— ctypes/OSError 不裸抛
         raise SmlError("%s: [E-NATIVE-001] 原生后端调用失败（%s）：%s"
-                       % (entry_path, type(e).__name__, e))
-    finally:
-        if tmp:
-            try:
-                os.unlink(tmp)
-            except OSError:
-                pass
-    return val
+                       % (where, type(e).__name__, e))
 
 
 def _native_load_doc(path):
-    """文件入口：展开 include + 拉回被包含文件的契约表。
-
-    与祖先版本的差别：契约不再交给 native（类型系统不等价、缺 ns 限定名），
-    只让 native 做它擅长的那一半 —— 按规范展开数据；剩下的那一半
-    （@contract / @is / url|date|image 等内置类型）留在本文件的 Python 侧。
-    """
+    """文件入口：预处理 include 闭包 → native 展开数据 → 契约留 Python 侧。"""
     with open(str(path), "r", encoding="utf-8") as fh:
         return _load_doc_included(str(path), fh.read())
 
 
-def parse_doc_at(text, path):
-    """「文本 + 它所在的文件路径」入口：内容含 include 就走文件入口，
+def parse_doc_at(text, path, root=None):
+    """「文本 + 它所在的文件路径」入口：内容含 include 就走预处理 + native，
     否则与 `parse_doc()` 逐字一致。
 
     给写作台的保存前校验 / 预览用 —— 编辑器里那份可能还没落盘，但**路径**是
@@ -1020,24 +1194,43 @@ def parse_doc_at(text, path):
     p = str(path)
     if os.path.splitext(p)[1].lower() != ".sml" or not _scan_include_lines(text, p):
         return parse_doc(text, p)
-    return _load_doc_included(p, text)
+    return _load_doc_included(p, text, root=root)
 
 
-def _load_doc_included(path, text):
-    """含 include 的文件入口：契约桥接 + native 展开数据。"""
+def _load_doc_included(path, text, root=None):
+    """含 include 的文件入口。
+
+    流程（对应上面小节的设计）：
+      1. 扫 include 图（含越界 / 成环 / 深度 / 数量防护）；
+      2. 把闭包复制进系统临时目录并扁平化、剥离 @contract/@is、改写 include 路径；
+      3. native load_file 只解析临时入口；
+      4. 契约从**原始**文件收集（`bridge_contracts`）后交给 `lib/contract.py`；
+      5. finally 里删掉整个临时目录。
+    """
+    root = os.path.realpath(str(root)) if root else include_root()
     if not _use_native():
         refs = _scan_include_lines(text, path)
         raise SmlError("%s:%d: [E-FEATURE-001] %s"
                        % (path, refs[0][0] if refs else 1, _NATIVE_MISSING_HINT))
     clean, contracts, is_name = _strip_directives(text, path)
-    refs = scan_include_refs(text, path)
+    refs = scan_include_refs(text, path, root=root)
+    graph = _walk_include_graph(path, text, root=root)
+    tree = prepare_include_tree(path, entry_text=text, root=root, graph=graph)
+    try:
+        val = _native_load_file(tree.entry_temp, path, text, refs, tree.reverse)
+    finally:
+        tree.cleanup()
     # 旁路契约表：被包含文件里的 @contract —— 入口自己的契约优先，不做覆盖
-    for key, spec in bridge_contracts(path, text).items():
+    for key, spec in bridge_contracts(path, text, root=root, graph=graph).items():
         contracts.setdefault(key, spec)
-    val = _native_load_file(path, clean, text, refs)
     if is_name and isinstance(val, dict):
         val["__is"] = is_name
     return val, contracts
+
+
+def _read_text(path):
+    with open(str(path), "r", encoding="utf-8") as fh:
+        return fh.read()
 
 
 def parse_doc(text, path="<sml>"):
@@ -1150,26 +1343,29 @@ def _parse_contract_body(text, name=""):
     return spec
 
 
-def load_doc(path):
+def load_doc(path, root=None):
     """返回 (值, 契约表)。**文件入口**的分流发生在这里：
 
-    - 内容里有 include / import → 走 `_native_load_doc()`：native 按 SML 规范
-      展开数据，被包含文件的 @contract 由旁路契约表拉回 Python 侧校验；
-      native 不可用则**明确报错**（不静默退化成普通字段 —— 那会让正文变成垃圾）；
+    - 内容里有 include / import → 走 `_load_doc_included()`：把 include 闭包复制进
+      系统临时目录并扁平化、剥离 @contract/@is、改写 include 路径，再让 native
+      展开数据；契约由旁路契约表拉回 Python 侧校验。native 不可用则**明确报错**
+      （不静默退化成普通字段 —— 那会让正文变成垃圾）；
     - 没有 include → 维持原来的文本入口语义（含 @contract / @is 的既有处理）。
 
-    只按 include 分流的理由：文件入口会把剥离指令后的文本落成同目录临时文件，
-    让不含 include 的文件为此白写一次盘（GUI 实时校验 / 只读目录都会受影响），
-    而它在没有 include 时与文本入口的产出**逐字一致**。
+    只按 include 分流的理由：文件入口要落临时文件，让不含 include 的文件为此白写
+    一次盘（GUI 实时校验 / 只读目录都会受影响），而它在没有 include 时与文本入口
+    的产出**逐字一致**。Markdown 不进入（include 是 SML 指令）。
     """
     p = str(path)
+    if os.path.splitext(p)[1].lower() != ".sml":
+        with open(p, "r", encoding="utf-8") as fh:
+            return parse_doc(fh.read(), p)
     with open(p, "r", encoding="utf-8") as fh:
         text = fh.read()
-    # include 是 SML 的指令，Markdown 正文里出现 `include` 一律当普通文本。
-    if os.path.splitext(p)[1].lower() != ".sml" or not _scan_include_lines(text, p):
+    if not _scan_include_lines(text, p):
         return parse_doc(text, p)
     try:
-        return _load_doc_included(p, text)
+        return _load_doc_included(p, text, root=root)
     except SmlError:
         raise
     except Exception as e:                         # noqa: BLE001 —— 兜住 ctypes 原始异常

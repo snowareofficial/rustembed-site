@@ -1,0 +1,88 @@
+name: include 回归（需要 native）
+
+# 为什么单开一条流水线：
+#   include 的跨目录展开必须走 native（swsml cdylib）的文件入口 load_file，
+#   而 engine/native/ 是 .gitignore 的 —— 干净克隆里根本没有这个库。
+#   以前 `engine/test_sml_include.py` 的做法是「找不到 native 就 SKIP」，
+#   等于把门禁悄悄关掉（CI 全绿但什么都没测）。现在两条一起上：
+#     * 本 job **先装 native 再跑测试** ⇒ [B][D][E] 三组真跑；
+#     * 脚本本身缺 native 时**退出码 1** ⇒ 装不上就红，不静默跳过。
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: include-native-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # 与 engine/native/sml.dll 同版本；升级 vendor 时同步改这里
+  SML_REF: v0.6.4
+
+jobs:
+  include-native:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: 缓存 SML cdylib
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: engine/native/libsml.so
+          key: sml-native-${{ runner.os }}-${{ env.SML_REF }}
+
+      # 上游仓库 layout：rust/ 是 workspace 根，lib 名 `sml` ⇒ 产物 libsml.so
+      # （cargo 可能把 target-dir 重定向，所以用 find 兜底）
+      - name: 构建 SML cdylib 并放到 engine/native/
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch "$SML_REF" https://gitee.com/snoware/sml /tmp/sml-src
+          cd /tmp/sml-src/rust
+          cargo build --release -p swsml
+          LIB="$(find /tmp/sml-src -type f -name 'libsml.so' | head -1)"
+          if [ -z "$LIB" ]; then
+            echo "::error::没构建出 libsml.so（上游布局变了？）"
+            exit 1
+          fi
+          mkdir -p engine/native
+          cp "$LIB" engine/native/libsml.so
+          ls -l engine/native/
+
+      # 后端必须是 native：否则 [B][D][E] 会被跳过，这条流水线就白跑了
+      - name: 后端自检
+        run: |
+          python - <<'PY'
+          import sys
+          sys.path.insert(0, "engine/lib")
+          import sml
+          print("backend:", sml.backend_info())
+          assert sml.backend() == "native", "native 没生效，本 job 失去意义"
+          PY
+
+      - name: include 回归（跨目录 / 嵌套 / 菱形 / 循环 / 越界）
+        run: python engine/test_sml_include.py
+
+      - name: 其余既有门禁
+        run: |
+          python engine/test_contracts.py
+          python engine/test_render_safety.py
+          python engine/cli.py build --offline
+          python engine/cli.py check
+          python engine/test_structure.py

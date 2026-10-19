@@ -287,7 +287,7 @@ def validate_doc(path, front_matter=None, body=None, raw=None):
         if str(path).endswith(".sml"):
             try:
                 # 用「文本 + 所在路径」入口：内容里有 include 时展开，和 build 同口径
-                d, _cs = sml.parse_doc_at(raw, str(path))
+                d, _cs = sml.parse_doc_at(raw, str(path), root=str(CONTENT))
             except Exception as e:
                 return False, [{"field": "", "code": "E-PARSE", "msg": "SML 解析失败：%s" % e}]
             if not isinstance(d, dict):
@@ -553,7 +553,7 @@ def build_preview(path, front_matter, body, raw):
     """与 build 同源的渲染：返回 (html, toc, words)。"""
     if raw is not None and str(path).endswith(".sml"):
         try:
-            d, _cs = sml.parse_doc_at(raw, str(path))
+            d, _cs = sml.parse_doc_at(raw, str(path), root=str(CONTENT))
         except Exception as e:
             raise ValueError("SML 解析失败：%s" % e)
         if not isinstance(d, dict):

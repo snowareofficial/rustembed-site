@@ -170,15 +170,21 @@ rec-blog update                                         # 引擎 git pull --ff-o
   **当前没有自动差分测试**，改完必须手动跑两种后端比对；
   `engine/lib/_swsml.py` 是 swsml 0.6.4 的 vendor 副本，别就地「改进」，升级以上游为准；
   `build.py` 的 `guard_out()`、`.github/` 下任何文件勿改。
-- **include / 命名空间只在「文件入口」生效**：`load_doc(path)` 与 `parse_doc_at(text, path)`
-  （`build.load2()`、写作台校验与预览都走它们）。文本入口 `parse_doc(text, path)` 一律
-  **不展开** include，撞上就报错，绝不静默当字段。
+- **include / 命名空间只在「文件入口」生效**：`load_doc(path, root=None)` 与
+  `parse_doc_at(text, path, root=None)`（`build.load2()`、写作台校验与预览都走它们）。
+  文本入口 `parse_doc(text, path)` 一律**不展开** include，撞上就报错，绝不静默当字段。
+- **include 的允许根 = `site/content`**（`config.CONTENT`）：跨兄弟目录可以，
+  逃出内容目录（绝对路径 / `..` / symlink 指外）一律 `E-INCLUDE-003`。
+  native 自己的沙箱更紧（基准 = 包含者目录），靠**临时扁平化预处理**绕开，
+  不放宽 native（详见 `docs/ARCHITECTURE.md` §15）。
 - **含 include 的内容必须用 native 构建**：native 缺失时构建直接失败并报 `E-FEATURE-001`
   （附安装办法）。不含 include 的内容无论有没有 native，产物都一致。
 - **契约校验只在一处**：`lib/contract.py`。native 侧的类型系统不等价（`url`/`date`/`image`
   会被当成契约名）、命名空间隔离也没实现，别把 `@contract` / `@is` 交给它（细节见 §14）。
 - **桥接只沿真实 include 图走**：禁止扫描工作区所有 `@contract` 来"补全"契约表 —— 那会
   绕过命名空间隔离。
+- **临时树只在系统 temp，用完必删**：`site/content` 下不得出现任何副本；
+  测试有「源目录无残留 / 系统临时目录无残留」两条断言看着。
 - 黄页（services）性质：纯展示，**不参与交易、不担保、不抽成、不经手资金、不介入纠纷**；
   contact 只能引用成员档案 `links` 里本人已公开的字段，不得新收集个人信息；不设计支付/订单/撮合/站内私信/账号体系。
 - `--out` 只会清空目标目录：`guard_out()` 拒绝仓库根/站点目录**及其上级**、仓库内非 dist 位置；放行仓库外目录与 `dist/` 子树。
