@@ -454,6 +454,31 @@
     return li;
   }
 
+  function seriesRow(s, members) {
+    var li = el('li', 'row-series');
+    var box = el('details', 'series-box');
+    var sum = el('summary', 'row series-sum');
+    var dates = [];
+    for (var i = 0; i < s.posts.length; i++) {
+      var full = bySlug(S.man.posts, s.posts[i].slug);
+      if (full && full.date) dates.push(String(full.date).slice(0, 10));
+    }
+    dates.sort();
+    sum.appendChild(el('span', 'row-date', dates.length ? dates[dates.length - 1] : ''));
+    sum.appendChild(el('span', 'row-title', s.title));
+    sum.appendChild(el('span', 'row-words series-badge', '系列 · ' + s.posts.length + ' 章'));
+    box.appendChild(sum);
+    var ol = el('ol', 'rows series-posts');
+    for (var j = 0; j < s.posts.length; j++) {
+      var p = bySlug(S.man.posts, s.posts[j].slug);
+      if (p) ol.appendChild(postRow(p, members));
+    }
+    box.appendChild(ol);
+    li.appendChild(box);
+    return li;
+  }
+
+
   function proseFragment(path) {
     return fragment(path).then(function (html) {
       var d = el('div', 'prose');
@@ -927,7 +952,6 @@
     }
     f.appendChild(chips);
 
-    var years = {}, order = [];
     var posts = m.posts;
     if (query && query.tag) {
       posts = [];
@@ -935,10 +959,32 @@
         if ((m.posts[k].tags || []).indexOf(query.tag) >= 0) posts.push(m.posts[k]);
       }
     }
-    for (var j = 0; j < posts.length; j++) {
-      var y = String(posts[j].year || String(posts[j].date || '').slice(0, 4));
+
+    /* 标签页里把“同一 series 的多章”收成一条，显示成带“系列”标记的文章行 */
+    var entries = [];
+    var seriesGroups = {};
+    for (var pi = 0; pi < posts.length; pi++) {
+      var post = posts[pi];
+      var s = post.series ? byId(m.series || [], post.series) : null;
+      if (query && query.tag && s && s.posts.length > 1) {
+        if (!seriesGroups[s.id]) {
+          var g = { kind: 'series', s: s, date: String(post.date || '') };
+          seriesGroups[s.id] = g;
+          entries.push(g);
+        } else if (String(post.date || '') > seriesGroups[s.id].date) {
+          seriesGroups[s.id].date = String(post.date || '');
+        }
+      } else {
+        entries.push({ kind: 'post', post: post, date: String(post.date || '') });
+      }
+    }
+    entries.sort(function (a, b) { return b.date.localeCompare(a.date); });
+
+    var years = {}, order = [];
+    for (var ej = 0; ej < entries.length; ej++) {
+      var y = String(entries[ej].date || '').slice(0, 4) || String(entries[ej].post && entries[ej].post.year || '');
       if (!years[y]) { years[y] = []; order.push(y); }
-      years[y].push(posts[j]);
+      years[y].push(entries[ej]);
     }
 
     /* 过滤用的行登记表：显式保存「节点 + 可搜索文本」，不发任何请求 */
@@ -948,16 +994,29 @@
       var yr = order[yi];
       var d = el('details');
       if (yi === 0) d.setAttribute('open', 'open');
-      d.appendChild(el('summary', '', yr + ' 年（' + years[yr].length + ' 篇）'));
+      d.appendChild(el('summary', '', yr + ' 年（' + years[yr].length + ' 项）'));
       var ol = el('ol', 'rows');
       for (var ri = 0; ri < years[yr].length; ri++) {
-        var post = years[yr][ri];
-        var li = postRow(post, m.members);
-        var mem = byId(m.members, post.author);
-        li.setAttribute('data-filter', [
-          post.title, post.summary, post.date,
-          (post.tags || []).join(' '), mem ? mem.name : post.author
-        ].join(' '));
+        var entry = years[yr][ri];
+        var li, filter;
+        if (entry.kind === 'series') {
+          li = seriesRow(entry.s, m.members);
+          var names = [entry.s.title];
+          for (var si = 0; si < entry.s.posts.length; si++) names.push(entry.s.posts[si].title);
+          for (var sj = 0; sj < entry.s.posts.length; sj++) {
+            var sp = bySlug(m.posts, entry.s.posts[sj].slug);
+            if (sp) names.push((sp.tags || []).join(' '));
+          }
+          filter = names.join(' ') + ' 系列';
+          li.setAttribute('data-rowclass', 'row row-series');
+        } else {
+          li = postRow(entry.post, m.members);
+          var mem = byId(m.members, entry.post.author);
+          filter = [entry.post.title, entry.post.summary, entry.post.date,
+            (entry.post.tags || []).join(' '), mem ? mem.name : entry.post.author].join(' ');
+          li.setAttribute('data-rowclass', 'row');
+        }
+        li.setAttribute('data-filter', filter);
         ol.appendChild(li);
         rowNodes.push(li);
         rows++;
@@ -972,7 +1031,8 @@
       for (var i2 = 0; i2 < rowNodes.length; i2++) {
         var node = rowNodes[i2];
         var txt = String(node.getAttribute('data-filter') || '').toLowerCase();
-        node.className = (!q || txt.indexOf(q) >= 0) ? 'row' : 'row hide';
+        var base = node.getAttribute('data-rowclass') || 'row';
+        node.className = (!q || txt.indexOf(q) >= 0) ? base : base + ' hide';
       }
     }
     if (input.addEventListener) {
