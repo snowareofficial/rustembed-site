@@ -1,7 +1,8 @@
-name: 构建并发布到 pages 分支（Cloudflare 从这里取内容）
+name: 构建并放到 candidate（staging）；生产 promote 手动
 
-# 拓扑：Gitee（权威）→ 定时/手动 → 构建 → 强推静态产物到 pages 分支
-#       → Cloudflare Pages（Git 集成，生产分支 pages，无构建命令）自动发布
+# 拓扑：Gitee（内容/代码）→ 定时/手动 → 构建 + check
+#       → 强推静态产物到 candidate 分支（Cloudflare Preview / staging）
+#       → 人工验收后运行 promote-pages.yml，把 candidate 快进到 pages（生产）
 # 不需要 CLOUDFLARE_API_TOKEN；GitHub Actions 只负责产出分支。
 
 on:
@@ -118,7 +119,7 @@ jobs:
           python engine/check.py
           python engine/test_structure.py
 
-      - name: 发布到 pages 分支（内容未变则跳过）
+      - name: 发布到 candidate（staging）分支（内容未变则跳过）
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -127,10 +128,10 @@ jobs:
           git config user.name "pages-bot"
           git config user.email "pages-bot@users.noreply.github.com"
           git add -A
-          git commit -q -m "pages: $(git -C .. rev-parse --short HEAD)"
+          git commit -q -m "candidate: $(git -C .. rev-parse --short HEAD)"
           NEW_TREE="$(git rev-parse HEAD^{tree})"
 
-          git fetch --quiet "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" pages 2>/dev/null || true
+          git fetch --quiet "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" candidate 2>/dev/null || true
           OLD_TREE=""
           if git rev-parse FETCH_HEAD^{tree} >/dev/null 2>&1; then
             OLD_TREE="$(git rev-parse FETCH_HEAD^{tree})"
@@ -141,11 +142,12 @@ jobs:
             exit 0
           fi
 
-          git push --force "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:pages
-          echo "已发布 pages 分支：$NEW_TREE"
+          git push --force "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:candidate
+          echo "已发布 candidate（staging）分支：$NEW_TREE"
 
       - name: 摘要
         run: |
-          echo "### pages 发布" >> "$GITHUB_STEP_SUMMARY"
+          echo "### staging / candidate" >> "$GITHUB_STEP_SUMMARY"
           echo "- 源提交：${{ steps.src.outputs.sha }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- 产物：dist/ 已同步到 \`pages\` 分支" >> "$GITHUB_STEP_SUMMARY"
+          echo "- 产物：dist/ 已同步到 \`candidate\` 分支" >> "$GITHUB_STEP_SUMMARY"
+          echo "- 验收后执行：\`gh workflow run promote-pages.yml\`" >> "$GITHUB_STEP_SUMMARY"

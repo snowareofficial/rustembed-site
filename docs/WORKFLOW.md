@@ -243,5 +243,47 @@ Gitee 本身没有 CI，校验仍在 GitHub Actions 里做：`sync-code.yml` 在
 `compileall`、`engine/test_contracts.py`、`engine/test_render_safety.py`，不过就不会提交，
 也不会触发发布。真正的 `build + check` 由发布工作流在合并后的内容上跑。
 
+---
+
+## 7. staging 缓冲：candidate → pages
+
+发布分成两段，生产不再被定时任务直接覆盖：
+
+```
+Gitee master/code
+   → publish-pages.yml 构建 + check
+   → candidate 分支（Cloudflare Preview / staging）
+   → 人工验收
+   → promote-pages.yml 快进到 pages（生产）
+```
+
+分支职责：
+
+| 分支 | 内容 | 谁写 |
+|---|---|---|
+| `master` | 内容 + 工作副本 | 作者 PR |
+| `code` | engine/theme（同步源） | 维护者 |
+| `candidate` | 构建产物（staging） | CI 强推 |
+| `pages` | 构建产物（生产） | 只由 promote 写入 |
+
+操作：
+
+```powershell
+# 1) 触发构建，等它把 candidate 更新
+gh workflow run publish-pages.yml --repo snowareofficial/rustembed-site --ref master
+
+# 2) 看 staging（Cloudflare Preview 的 candidate 分支 URL）
+#    验收通过后 promote
+gh workflow run promote-pages.yml --repo snowareofficial/rustembed-site --ref master
+```
+
+Cloudflare Pages 项目需要允许 Preview deployments，否则 `candidate` 不会生成可访问的
+staging URL；生产分支仍保持 `pages`。回滚时把 `pages` 指回上一个 candidate 即可：
+
+```powershell
+gh workflow run promote-pages.yml -f ref=<旧的 candidate 提交>
+```
+
+
 
 
