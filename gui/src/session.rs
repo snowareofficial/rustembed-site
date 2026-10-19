@@ -126,13 +126,19 @@ impl Session {
     }
 }
 
-/// 调 Gitee `GET /api/v5/user?access_token=…` 校验令牌。
+/// 构造 Gitee `GET /api/v5/user` 校验请求。
+/// **红线：令牌只进 `Authorization` 头，绝不进 URL**（URL 会进日志/历史/代理）。
+pub fn gitee_user_request(client: &reqwest::Client, token: &str) -> reqwest::RequestBuilder {
+    client
+        .get("https://gitee.com/api/v5/user")
+        .header("Authorization", format!("token {}", token))
+        .header("User-Agent", UA)
+}
+
+/// 调 Gitee `GET /api/v5/user` 校验令牌（令牌走 Authorization 头）。
 /// 返回的身份信息只含 login/name/avatar_url；错误文本先过 redact，绝不带令牌。
 pub async fn gitee_user(client: &reqwest::Client, token: &str) -> Result<Identity, String> {
-    let resp = client
-        .get("https://gitee.com/api/v5/user")
-        .query(&[("access_token", token)])
-        .header("User-Agent", UA)
+    let resp = gitee_user_request(client, token)
         .send()
         .await
         .map_err(|e| redact(&e.to_string(), &[token]))?;
@@ -350,6 +356,33 @@ mod tests {
     #[test]
     fn 多处出现全部替换() {
         assert_eq!(redact("a t b t", &["t"]), "a *** b ***");
+    }
+
+    #[test]
+    fn gitee_校验请求令牌只进头不进url() {
+        let client = reqwest::Client::new();
+        let req = gitee_user_request(&client, "tok-secret-123")
+            .build()
+            .expect("构造校验请求");
+        let url = req.url().as_str().to_string();
+        assert!(
+            !url.contains("tok-secret-123"),
+            "URL 里不得出现令牌：{}",
+            url
+        );
+        assert!(
+            !url.contains("access_token"),
+            "URL 里不得有 access_token 参数：{}",
+            url
+        );
+        assert_eq!(url, "https://gitee.com/api/v5/user");
+        let auth = req
+            .headers()
+            .get("authorization")
+            .expect("必须带 Authorization 头")
+            .to_str()
+            .expect("头值可打印");
+        assert_eq!(auth, "token tok-secret-123", "令牌只走 Authorization 头");
     }
 
     #[test]

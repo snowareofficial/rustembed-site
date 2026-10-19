@@ -74,8 +74,6 @@ rec-blog --site <仓库根或站点目录> [--port N] [--no-open] [--desktop]
 | GET | `/api/reviewers` | PR 默认审核人：`REC_BLOG_REVIEWERS`（逗号分隔）优先，否则 `site.sml` 的 `reviewers` |
 | POST | `/api/pr` | `{paths,branch,message,title,body,reviewers}`；**需登录**（见 3.3） |
 
-`/api/ai-summary` 仍返回 **501 + 说明**，不假装成功。
-
 ### 3.2 登录态接口（Rust 直处理，不过 Python）
 
 | 方法 | 路径 | 说明 |
@@ -91,21 +89,43 @@ rec-blog --site <仓库根或站点目录> [--port N] [--no-open] [--desktop]
 
 ```
 校验：paths 非空且都在 site/content|theme/**（否则 400/403）；
-      分支名拒绝 master/main、空格、.. 与 shell/git 元字符（否则 400）；
+      分支名拒绝 master/main/staging、空格、.. 与 shell/git 元字符（否则 400）；
+      先用 GUI 登录的令牌调 GET /user 拿 login（失败 → stage=auth，不建分支）；
 执行：git checkout -b <branch> → git add <paths> → git commit -m <message>
-      → git push -u origin <branch>；
-      403/401 → fork 兜底：GET /user 拿 login → POST /forks → 轮询就绪 →
-                git remote add fork → push fork → PR head=<login>:<branch>；
-      POST /repos/{owner}/{repo}/pulls {title,head,base:"master",body,assignees}；
+      → git push -u origin <branch>（**临时 env 注入令牌**，见下）；
+      403/401 → fork 兜底：POST /forks → 轮询就绪 →
+                git remote add fork → push fork（同样带 env）→ PR head=<login>:<branch>；
+      POST /repos/{owner}/{repo}/pulls {title,head,base:"staging",body,assignees}；
 任一步失败 → 200 + {ok:false, stage, error, compare_url, commands}；
 成功 → {ok:true, branch, commit, pr_url, reviewers, via, head}。
 ```
 
-- **永不 `--force`、永不推 master、不自动重试、不改历史**；失败时分支与本地提交保留；
-- `compare_url` = `<repo_url>/compare/master...<branch>`，`commands` 为可复制命令（无 force）；
+- **目标分支是 `staging`**（`BASE_BRANCH`）：作者 PR 一律进 staging，staging → master
+  由维护者合并；标题行 chip、PR body、compare 链接全部指向 staging；
+- **永不 `--force`、永不推 master/main/staging、不自动重试、不改历史**；失败时分支与本地提交保留；
+- `compare_url` = `<repo_url>/compare/staging...<branch>`，`commands` 用 `shlex.quote`
+  逐段转义（路径/提交信息含空格、引号、`$`、反引号时复制进 shell 不会坏）；
 - 仓库坐标来自 `site.sml: repo_url`；令牌走 `Authorization: token` 头（不进 URL、不进日志）；
 - 站点不在 git 仓库里（`REPO` 解析不到 `.git`）时明确失败并给出手动命令；
   删除/重命名同步降级为文件系统操作（`via: "fs"`）。
+
+**push 的令牌注入（干净机器的关键路径）**：`git()` 多一个只作用于该子进程的 `env` 参数，
+push 时传 `_push_env(login, token)`：
+
+```
+GIT_CONFIG_COUNT=1
+GIT_CONFIG_KEY_0=http.extraHeader
+GIT_CONFIG_VALUE_0=Authorization: Basic base64(login:token)
+GIT_TERMINAL_PROMPT=0
+```
+
+- 不改全局 git 配置、不进 URL、不进 argv；继承来的 `GIT_CONFIG_*` 先清掉再设；
+- `GIT_TERMINAL_PROMPT=0`：没有可用凭据时立刻失败，绝不弹密码框（否则干净机器上会卡在交互）；
+- `GIT_CONFIG_COUNT` 系列**需要 git ≥ 2.31**（2021-03 发布；更老的 git 会忽略它，
+  表现是退回本机凭据/直接失败，不会泄 token）；
+- `http.extraHeader` 对该次 push 里 git 访问的任何 http 主机都生效（env 只活这一个进程）；
+- fork 的 push 走同一条路；测试用「本地裸仓库 + 记录请求头的本地 http 服务」验证：
+  env 构造、git 真的发出 `Authorization: Basic …` 头、令牌不进 URL/argv/返回内容。
 
 ### 3.4 反代与令牌注入
 

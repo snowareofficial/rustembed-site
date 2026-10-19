@@ -11,16 +11,20 @@
 import base64
 import json
 import os
+import re
+import shlex
 import shutil
 import struct
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 import urllib.error
 import urllib.parse
 import urllib.request
 import zlib
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -441,6 +445,100 @@ def _git(args, cwd):
                           capture_output=True, text=True, encoding="utf-8", timeout=60)
 
 
+class GiteeStub:
+    """本地假 Gitee：只实现 /user 与 /pulls，记录最后一次 PR 载荷。
+    gui_api 用 REC_BLOG_GITEE_API 指到这里，测试全程不联网。"""
+
+    def __init__(self):
+        self.prs = []            # [(payload, headers)]
+        self.user_calls = 0
+        self.srv = None
+        self.port = 0
+
+    def __enter__(self):
+        outer = self
+
+        class H(BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def _send(self, code, obj):
+                raw = json.dumps(obj).encode("utf-8")
+                self.send_response(code)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(raw)))
+                self.end_headers()
+                self.wfile.write(raw)
+
+            def do_GET(self):
+                if self.path.startswith("/api/v5/user"):
+                    outer.user_calls += 1
+                    self._send(200, {"login": "sal", "name": "Sal",
+                                     "avatar_url": "https://gitee.com/avatar.png"})
+                else:
+                    self._send(404, {"message": "stub: no %s" % self.path})
+
+            def do_POST(self):
+                n = int(self.headers.get("Content-Length") or 0)
+                body = json.loads(self.rfile.read(n).decode("utf-8") or "{}")
+                if self.path.startswith("/api/v5/repos/") and self.path.endswith("/pulls"):
+                    outer.prs.append((body, dict(self.headers)))
+                    self._send(201, {"html_url": "https://gitee.com/o/r/pulls/9",
+                                     "head": {"label": body.get("head")}})
+                else:
+                    self._send(404, {"message": "stub: no %s" % self.path})
+
+        self.srv = ThreadingHTTPServer(("127.0.0.1", 0), H)
+        self.port = self.srv.server_address[1]
+        threading.Thread(target=self.srv.serve_forever, daemon=True).start()
+        return self
+
+    def __exit__(self, *a):
+        self.srv.shutdown()
+        self.srv.server_close()
+
+    @property
+    def api(self):
+        return "http://127.0.0.1:%d/api/v5" % self.port
+
+    @property
+    def last_pr(self):
+        return self.prs[-1] if self.prs else ({}, {})
+
+
+class HeaderRecorder:
+    """本地 http 服务：只记录 git 实际发来的请求头（用来证明 extraHeader 真的上了线）。"""
+
+    def __init__(self):
+        self.requests = []      # [(path, headers)]
+
+    def __enter__(self):
+        outer = self
+
+        class H(BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def do_GET(self):
+                outer.requests.append((self.path, dict(self.headers)))
+                self.send_response(404)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+
+        self.srv = ThreadingHTTPServer(("127.0.0.1", 0), H)
+        self.port = self.srv.server_address[1]
+        threading.Thread(target=self.srv.serve_forever, daemon=True).start()
+        return self
+
+    def __exit__(self, *a):
+        self.srv.shutdown()
+        self.srv.server_close()
+
+    @property
+    def url(self):
+        return "http://127.0.0.1:%d/repo.git" % self.port
+
+
 class M3AuthAndPrTest(unittest.TestCase):
     """M3：写操作登录门禁 / 分支名校验 / PR 失败路径 / reviewers / git 仓库内集成。"""
 
@@ -502,8 +600,8 @@ class M3AuthAndPrTest(unittest.TestCase):
         after = _git(["status", "--porcelain", "--untracked-files=all"], REPO).stdout
         self.assertEqual(before, after, "未登录的调用不得改动真实仓库")
 
-    def test_20_分支名master_main_越界一律400(self):
-        for bad in ("master", "main", "a b", "../escape", "/abs", "-dash", "a..b"):
+    def test_20_分支名master_main_staging_越界一律400(self):
+        for bad in ("master", "main", "staging", "a b", "../escape", "/abs", "-dash", "a..b"):
             s, res = req(self.port, "/api/pr", "POST",
                          {"paths": [POST_REL], "branch": bad, "message": "m"},
                          gitee="fake-token")
@@ -524,7 +622,9 @@ class M3AuthAndPrTest(unittest.TestCase):
         self.assertEqual(s, 200, res)
         self.assertFalse(res["ok"], "非 git 仓库里必须失败")
         self.assertTrue(res["stage"], "失败要带 stage")
-        self.assertIn("/compare/master...post/m3-demo-202610190000", res["compare_url"])
+        # base 是 staging：compare 链接与默认分支都不能再指向 master
+        self.assertIn("/compare/staging...post/m3-demo-202610190000", res["compare_url"])
+        self.assertNotIn("master", res["compare_url"], "compare 不得再指向 master")
         cmds = res["commands"]
         self.assertEqual(cmds[0], "git checkout -b post/m3-demo-202610190000")
         self.assertTrue(any(c.startswith("git add ") for c in cmds))
@@ -534,6 +634,8 @@ class M3AuthAndPrTest(unittest.TestCase):
         for c in cmds:
             self.assertNotIn("--force", c, "任何命令都不得带 --force")
         self.assertNotIn("force", " ".join(cmds).replace("--force", ""))
+        self.assertNotIn("fake-token", json.dumps(res, ensure_ascii=False),
+                         "返回内容里不得出现令牌")
 
     def test_22_reviewers默认来自site_sml(self):
         s, res = req(self.port, "/api/reviewers")
@@ -541,8 +643,9 @@ class M3AuthAndPrTest(unittest.TestCase):
         self.assertEqual(res, ["sal"])
 
     def test_23_git仓库内_PR流程到push失败为止(self):
-        """真 git 仓库里跑 checkout -b → add → commit → push（无 remote 必败），
-        断言分支与提交都在、失败形状完整、绝无 force。"""
+        """真 git 仓库里跑 确认身份 → checkout -b → add → commit → push（无 remote 必败），
+        断言分支与提交都在、失败形状完整、compare 指向 staging、绝无 force。
+        Gitee 走本地桩（REC_BLOG_GITEE_API），不联网。"""
         repo = self.tmp / "gitrepo"
         site = repo / "site"
         (site / "content" / "posts" / "2026").mkdir(parents=True)
@@ -559,42 +662,194 @@ class M3AuthAndPrTest(unittest.TestCase):
         _git(["add", "-A"], repo)
         _git(["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "init"], repo)
 
-        env = dict(os.environ, GUI_TOKEN=TOKEN, REC_BLOG_SITE=str(site),
-                   PYTHONIOENCODING="utf-8")
-        proc = subprocess.Popen(
-            [sys.executable, "engine/gui.py", "--port", "0"],
-            cwd=str(REPO), env=env, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-            text=True, encoding="utf-8")
-        try:
-            line = proc.stdout.readline().strip()
-            self.assertTrue(line.startswith("GUI_PORT="), "握手失败：%r" % line)
-            port = int(line.split("=", 1)[1])
-            # 改一篇文章再提交
-            post.write_text("---\ntitle: 集成\nauthor: sal\ndate: 2026-10-19\ntags: [rust]\n"
-                            "summary: PR 流程\n---\n\n改过的正文。\n", encoding="utf-8")
-            branch = "post/integration-202610190000"
-            s, res = req(port, "/api/pr", "POST", {
-                "paths": [POST_REL], "branch": branch, "message": "写作台：改正文",
-                "reviewers": ["sal"]}, gitee="fake-token")
-            self.assertEqual(s, 200, res)
-            self.assertFalse(res["ok"], "没有 remote，push 必须失败")
-            self.assertEqual(res["stage"], "push")
-            self.assertIn("/compare/master...%s" % branch, res["compare_url"])
-            self.assertNotIn("--force", " ".join(res["commands"]))
-            # 分支已建、提交已在（本地提交保留，失败不擦）
-            branches = _git(["branch", "--list", branch], repo).stdout
-            self.assertIn(branch, branches)
-            subject = _git(["log", "-1", "--format=%s", branch], repo).stdout.strip()
-            self.assertEqual(subject, "写作台：改正文")
-            # 提交里带着那篇文章（add 确实发生过）
-            files = _git(["log", "-1", "--name-only", "--format=", branch], repo).stdout
-            self.assertIn("site/content/posts/2026/md-writing/index.md", files)
-        finally:
-            proc.terminate()
+        with GiteeStub() as stub:
+            env = dict(os.environ, GUI_TOKEN=TOKEN, REC_BLOG_SITE=str(site),
+                       REC_BLOG_GITEE_API=stub.api, PYTHONIOENCODING="utf-8")
+            proc = subprocess.Popen(
+                [sys.executable, "engine/gui.py", "--port", "0"],
+                cwd=str(REPO), env=env, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                text=True, encoding="utf-8")
             try:
-                proc.wait(timeout=15)
-            except subprocess.TimeoutExpired:
-                proc.kill()
+                line = proc.stdout.readline().strip()
+                self.assertTrue(line.startswith("GUI_PORT="), "握手失败：%r" % line)
+                port = int(line.split("=", 1)[1])
+                # 改一篇文章再提交
+                post.write_text("---\ntitle: 集成\nauthor: sal\ndate: 2026-10-19\ntags: [rust]\n"
+                                "summary: PR 流程\n---\n\n改过的正文。\n", encoding="utf-8")
+                branch = "post/integration-202610190000"
+                s, res = req(port, "/api/pr", "POST", {
+                    "paths": [POST_REL], "branch": branch, "message": "写作台：改正文",
+                    "reviewers": ["sal"]}, gitee="fake-token")
+                self.assertEqual(s, 200, res)
+                self.assertFalse(res["ok"], "没有 remote，push 必须失败")
+                self.assertEqual(res["stage"], "push")
+                self.assertIn("/compare/staging...%s" % branch, res["compare_url"])
+                self.assertNotIn("master", res["compare_url"])
+                self.assertNotIn("--force", " ".join(res["commands"]))
+                self.assertNotIn("fake-token", json.dumps(res, ensure_ascii=False))
+                self.assertEqual(stub.user_calls, 1, "push 前要用令牌确认一次身份")
+                # 分支已建、提交已在（本地提交保留，失败不擦）
+                branches = _git(["branch", "--list", branch], repo).stdout
+                self.assertIn(branch, branches)
+                subject = _git(["log", "-1", "--format=%s", branch], repo).stdout.strip()
+                self.assertEqual(subject, "写作台：改正文")
+                # 提交里带着那篇文章（add 确实发生过）
+                files = _git(["log", "-1", "--name-only", "--format=", branch], repo).stdout
+                self.assertIn("site/content/posts/2026/md-writing/index.md", files)
+            finally:
+                proc.terminate()
+                try:
+                    proc.wait(timeout=15)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+
+    def test_24_BASE_BRANCH是staging(self):
+        """PR 目标分支必须是 staging（staging → master 由维护者合，作者 PR 不得绕过）。"""
+        env = dict(os.environ, REC_BLOG_SITE=str(self.tmp), PYTHONIOENCODING="utf-8")
+        out = subprocess.run(
+            [sys.executable, "-c",
+             "import sys; sys.path.insert(0, 'engine'); import gui_api; "
+             "print('BASE=' + gui_api.BASE_BRANCH)"],
+            cwd=str(REPO), env=env, capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(out.returncode, 0, out.stderr[-400:])
+        self.assertEqual(out.stdout.strip().splitlines()[-1], "BASE=staging",
+                         "import 时可能有告警噪音，取最后一行标记；stdout=%r" % out.stdout[-200:])
+
+    def test_25_push带GUI令牌的Authorization且不进URL和argv(self):
+        """干净机器（无本机 git 凭据）三连验证：
+        A. `_push_env` 构造正确（Basic = base64(login:token)、GIT_TERMINAL_PROMPT=0、
+           不带继承来的 GIT_CONFIG_*）；
+        B. 真 git 带这个 env 发 http 请求时，**请求头里确实有 Authorization**
+           （本地服务记录 git 实际发出的头；git ≥ 2.31 才认 GIT_CONFIG_COUNT）；
+        C. 本地裸仓库当 origin 跑完整 PR 流程：push 真的成功、PR 建成且 base=staging，
+           返回内容与命令里都没有原始令牌。"""
+        token = "tok-secret-xyz"
+
+        # ---- A. env 构造 ----
+        env_probe = subprocess.run(
+            [sys.executable, "-c",
+             "import sys, json; sys.path.insert(0, 'engine'); import gui_api;"
+             "env = gui_api._push_env('sal', %r);"
+             "print(json.dumps({k: v for k, v in env.items()"
+             " if k.startswith('GIT_CONFIG_') or k == 'GIT_TERMINAL_PROMPT'}))" % token],
+            cwd=str(REPO), env=dict(os.environ, REC_BLOG_SITE=str(self.tmp)),
+            capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(env_probe.returncode, 0, env_probe.stderr[-400:])
+        push_env = json.loads(env_probe.stdout.strip().splitlines()[-1])
+        self.assertEqual(push_env.get("GIT_CONFIG_COUNT"), "1")
+        self.assertEqual(push_env.get("GIT_CONFIG_KEY_0"), "http.extraHeader")
+        value = push_env.get("GIT_CONFIG_VALUE_0", "")
+        self.assertTrue(value.startswith("Authorization: Basic "), value)
+        self.assertEqual(
+            base64.b64decode(value[len("Authorization: Basic "):]).decode("utf-8"),
+            "sal:" + token, "Basic 头必须是 base64(login:token)")
+        self.assertEqual(push_env.get("GIT_TERMINAL_PROMPT"), "0",
+                         "没有凭据时必须立刻失败，不弹密码框")
+        self.assertEqual([k for k in push_env if k.startswith("GIT_CONFIG_") and k[-2:] != "_0"]
+                         .count("GIT_CONFIG_COUNT"), 1, "不得混入继承来的 GIT_CONFIG_*")
+
+        # ---- B. 真 git 带这个 env 发 http，头必须上线 ----
+        with HeaderRecorder() as rec:
+            probe = subprocess.run(
+                [sys.executable, "-c",
+                 "import sys, json, subprocess; sys.path.insert(0, 'engine');"
+                 "import gui_api;"
+                 "subprocess.run(['git', 'ls-remote', %r],"
+                 " env=gui_api._push_env('sal', %r),"
+                 " capture_output=True, timeout=30)" % (rec.url, token)],
+                cwd=str(REPO), env=dict(os.environ, REC_BLOG_SITE=str(self.tmp)),
+                capture_output=True, text=True, encoding="utf-8", timeout=60)
+            self.assertEqual(probe.returncode, 0, probe.stderr[-400:])
+        self.assertTrue(rec.requests, "git 应该真的发起过 http 请求")
+        sent_path, sent_headers = rec.requests[-1]
+        self.assertNotIn(token, sent_path, "令牌不得进 URL：%s" % sent_path)
+        # headers.get 只返回值（不含头名）：必须正是 base64(login:token) 的 Basic 头
+        self.assertEqual(sent_headers.get("Authorization"),
+                         "Basic %s"
+                         % base64.b64encode(("sal:%s" % token).encode()).decode(),
+                         "git 必须用 env 里的 extraHeader 发 Authorization 头")
+
+        # ---- C. 本地裸仓库集成：push 成功 + PR 建成（base=staging） ----
+        repo = self.tmp / "gitrepo2"
+        site = repo / "site"
+        (site / "content" / "posts" / "2026").mkdir(parents=True)
+        (site / "content" / "contracts").mkdir(parents=True)
+        shutil.copy(REPO / "site" / "content" / "site.sml", site / "content" / "site.sml")
+        shutil.copy(REPO / "site" / "content" / "contracts" / "blog.sml",
+                    site / "content" / "contracts" / "blog.sml")
+        post = site / POST_REL
+        post.parent.mkdir(parents=True, exist_ok=True)
+        post.write_text("---\ntitle: 推送\nauthor: sal\ndate: 2026-10-19\ntags: [rust]\n"
+                        "summary: push env\n---\n\n初版。\n", encoding="utf-8")
+        shutil.copytree(REPO / "site" / "theme", site / "theme")
+        _git(["init", "-q"], repo)
+        _git(["add", "-A"], repo)
+        _git(["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "init"], repo)
+        bare = self.tmp / "origin.git"          # 本地裸仓库当 origin：push 真的成功
+        _git(["init", "-q", "--bare", str(bare)], repo)
+        _git(["remote", "add", "origin", str(bare)], repo)
+        # 造一处改动，让 commit 有东西可提
+        post.write_text("---\ntitle: 推送\nauthor: sal\ndate: 2026-10-19\ntags: [rust]\n"
+                        "summary: push env\n---\n\n改过的正文。\n", encoding="utf-8")
+
+        with GiteeStub() as stub:
+            env = dict(os.environ, GUI_TOKEN=TOKEN, REC_BLOG_SITE=str(site),
+                       REC_BLOG_GITEE_API=stub.api, PYTHONIOENCODING="utf-8")
+            proc = subprocess.Popen(
+                [sys.executable, "engine/gui.py", "--port", "0"],
+                cwd=str(REPO), env=env, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                text=True, encoding="utf-8")
+            try:
+                line = proc.stdout.readline().strip()
+                self.assertTrue(line.startswith("GUI_PORT="), "握手失败：%r" % line)
+                port = int(line.split("=", 1)[1])
+                branch = "post/push-env-202610190000"
+                s, res = req(port, "/api/pr", "POST", {
+                    "paths": [POST_REL], "branch": branch,
+                    "message": "写作台：push env", "reviewers": ["sal"]},
+                    gitee=token)
+                self.assertEqual(s, 200, res)
+                self.assertTrue(res.get("ok"), "裸仓库 push 应成功、PR 应建成：%s" % res)
+                self.assertEqual(res.get("via"), "origin")
+                self.assertIn("/pulls/9", res.get("pr_url", ""))
+                # push 真的到了裸仓库
+                remote_heads = _git(["branch", "--list", branch], bare).stdout
+                self.assertIn(branch, remote_heads)
+                # PR 的 base 是 staging、head 是本分支、审核人来自站点配置
+                payload, headers = stub.last_pr
+                self.assertEqual(payload.get("base"), "staging", payload)
+                self.assertEqual(payload.get("head"), branch, payload)
+                self.assertEqual(payload.get("assignees"), ["sal"], payload)
+                self.assertTrue(headers.get("Authorization", "").startswith("token "),
+                                "建 PR 的令牌走 header")
+                # 令牌不出现在任何返回内容里
+                self.assertNotIn(token, json.dumps(res, ensure_ascii=False),
+                                 "返回内容里不得出现令牌")
+            finally:
+                proc.terminate()
+                try:
+                    proc.wait(timeout=15)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+
+    def test_26_失败命令按shell转义且消息可含引号空格(self):
+        """路径/提交信息含空格、引号、$、反引号时，复制到 shell 里不能坏。"""
+        rel = POST_REL
+        message = '他说 "你好" 空格 $HOME `x` 结尾'
+        s, res = req(self.port, "/api/pr", "POST", {
+            "paths": [rel], "branch": "post/quoting-202610190000",
+            "message": message, "title": "T", "body": "B"}, gitee="fake-token")
+        self.assertEqual(s, 200, res)
+        self.assertFalse(res["ok"])
+        cmds = res["commands"]
+        add_cmd = [c for c in cmds if c.startswith("git add ")][0]
+        self.assertEqual(shlex.split(add_cmd)[2:], [rel],
+                         "路径要整段转义：%s" % add_cmd)
+        commit_cmd = [c for c in cmds if c.startswith("git commit -m ")][0]
+        parts = shlex.split(commit_cmd)
+        self.assertEqual(parts[parts.index("-m") + 1], message,
+                         "提交信息要整段转义：%s" % commit_cmd)
+        self.assertIn("git push -u origin post/quoting-202610190000", cmds)
 
 
 if __name__ == "__main__":

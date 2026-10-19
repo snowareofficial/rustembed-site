@@ -1117,7 +1117,7 @@
     $('pr-branch').value = S.pr.branch;
     $('pr-message').value = '写作台：更新 ' + S.pr.files.length + ' 个文件';
     $('pr-title').value = $('pr-message').value;
-    $('pr-body').value = '由写作台提交；分支 ' + S.pr.branch + ' → master。';
+    $('pr-body').value = '由写作台提交；分支 ' + S.pr.branch + ' → ' + 'staging（staging → master 由维护者合）。';
     // 审核人：默认来自站点配置（/api/reviewers）
     api.reviewers().then(function (list) {
       S.pr.reviewers = (list || []).slice();

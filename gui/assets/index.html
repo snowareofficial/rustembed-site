@@ -98,7 +98,7 @@
         </div>
         <div class="title-side">
           <span class="chip" id="contract-chip"><svg><use href="#i-shield"/></svg><span id="contract-name">—</span></span>
-          <span class="chip"><svg><use href="#i-branch"/></svg>→ master</span>
+          <span class="chip"><svg><use href="#i-branch"/></svg>→ staging</span>
         </div>
       </div>
 
@@ -244,7 +244,7 @@
   <div class="panel" role="dialog" aria-modal="true" aria-labelledby="prt">
     <div class="panel-h">
       <h3 id="prt">提交 PR</h3>
-      <span class="sub" id="pr-sub">分支 → commit → push → 建 PR；永不 force、永不推 master</span>
+      <span class="sub" id="pr-sub">分支 → commit → push → 建 PR（目标 base = staging，staging → master 由维护者合）；永不 force、不直推 master/staging</span>
       <div class="spacer"></div>
       <button class="icon-btn" id="pr-close"><svg><use href="#i-x"/></svg></button>
     </div>

@@ -23,6 +23,7 @@ import hmac
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -484,9 +485,11 @@ def pick_first(d, keys):
     return None
 
 
-def git(*args, check_stderr=False):
+def git(*args, check_stderr=False, env=None):
     """在仓库根跑 git；`check_stderr=True` 时**失败**返回 stderr（成功返回 ""），
     拿不到 git 返回 None。REPO 为 None（站点不在 git 仓库里）时直接失败，不碰任何目录。
+
+    `env` 只给这一次子进程（push 传注入令牌的临时 env），绝不改全局配置。
 
     `encoding="utf-8"`：git 输出按 UTF-8 解码（Windows 默认 GBK 会把中文
     提交信息/分支名解成 UnicodeDecodeError，管道线程炸掉、stdout 变 None）。
@@ -496,7 +499,7 @@ def git(*args, check_stderr=False):
     try:
         out = subprocess.run(["git", "--no-pager"] + list(args), cwd=str(REPO),
                              capture_output=True, text=True, encoding="utf-8",
-                             errors="replace", timeout=30)
+                             errors="replace", timeout=30, env=env)
     except (OSError, subprocess.SubprocessError):
         return None if check_stderr else ""
     if out.returncode == 0:
@@ -813,9 +816,11 @@ def api_new(payload):
 
 # ---------------------------------------------------------------- PR / 审核人
 
-GITEE_API = "https://gitee.com/api/v5"
+GITEE_API = os.environ.get("REC_BLOG_GITEE_API") or "https://gitee.com/api/v5"
 UA = "rec-blog-gui/0.1 (+writing desk)"
-BASE_BRANCH = "master"          # 站点仓库的默认分支（与标题行「→ master」chip 一致）
+# 站点仓库的集成分支：作者 PR 一律进 staging，staging → master 由维护者合并
+# （流程见 docs/WORKFLOW.md；标题行「→ staging」chip 与之一致）
+BASE_BRANCH = "staging"
 
 
 def _gitee(token, method, path, payload=None, timeout=20):
@@ -873,8 +878,9 @@ def api_reviewers():
 
 
 def _branch_ok(b):
-    """分支名：拒绝 master/main、空格、.. 与一切 shell/git 元字符。"""
-    if not b or len(b) > 120 or b in ("master", "main"):
+    """分支名：拒绝 master/main/staging（主干与集成分支都不许直接推）、
+    空格、.. 与一切 shell/git 元字符。"""
+    if not b or len(b) > 120 or b in ("master", "main", "staging"):
         return False
     if ".." in b or b.startswith(("/", "-", ".")) or b.endswith(("/", ".", ".lock")):
         return False
@@ -893,11 +899,13 @@ def default_branch(paths):
 
 
 def _pr_commands(branch, rels, message):
+    """失败时给用户的可复制命令。用 shlex.quote：路径/提交信息含空格、引号、
+    $、反引号时复制到 shell 里才不会坏（这是给人复制的，必须逐段转义）。"""
     return [
-        "git checkout -b %s" % branch,
-        "git add %s" % " ".join(rels),
-        'git commit -m "%s"' % str(message).replace('"', '\\"'),
-        "git push -u origin %s" % branch,
+        "git checkout -b %s" % shlex.quote(branch),
+        "git add %s" % " ".join(shlex.quote(r) for r in rels),
+        "git commit -m %s" % shlex.quote(str(message)),
+        "git push -u origin %s" % shlex.quote(branch),
     ]
 
 
@@ -931,6 +939,25 @@ def _is_auth_error(stderr):
                                 "password authentication was removed"))
 
 
+def _push_env(login, token):
+    """push 专用临时 env：把 GUI 登录的令牌以 Basic 认证头交给 git 子进程。
+
+    - 只作用于这一个子进程：不改全局 git 配置、不进 URL、不进 argv；
+    - `GIT_TERMINAL_PROMPT=0`：没有可用凭据时立刻失败，绝不弹密码框；
+    - `GIT_CONFIG_COUNT` 系列**需要 git ≥ 2.31**（见 docs/GUI-IMPLEMENT.md）；
+    - 顺带清掉继承来的 `GIT_CONFIG_*`，避免和用户环境里已有的配置项串味；
+    - `http.extraHeader` 对本次 push 里 git 访问的任何 http 主机都生效
+      （env 只活这一个进程，风险可控；fork 的 push 同样走这里）。
+    """
+    basic = base64.b64encode(("%s:%s" % (login, token)).encode("utf-8")).decode("ascii")
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_CONFIG_")}
+    env["GIT_CONFIG_COUNT"] = "1"
+    env["GIT_CONFIG_KEY_0"] = "http.extraHeader"
+    env["GIT_CONFIG_VALUE_0"] = "Authorization: Basic %s" % basic
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    return env
+
+
 def _create_pr(token, branch, title, body, reviewers, head=None):
     """Gitee 建 PR；head 缺省为同名分支，fork 兜底传 <login>:<branch>。"""
     or_pair = _owner_repo()
@@ -948,9 +975,9 @@ def _create_pr(token, branch, title, body, reviewers, head=None):
     return pr, None
 
 
-def _fork_and_push(token, branch, rels, message, title, body, reviewers):
+def _fork_and_push(token, login, branch, rels, message, title, body, reviewers):
     """push 403/401 的 fork 兜底：建 fork → 等就绪 → 推 fork → PR head=<login>:<branch>。
-    返回 (pr, None) 或 (None, (stage, error))。"""
+    login 由调用方先用 GET /user 确认（不重复请求）。返回 (pr, None) 或 (None, (stage, error))。"""
     or_pair = _owner_repo()
     if not or_pair:
         return None, ("repo", "site.sml 里没有可用的 repo_url")
@@ -977,7 +1004,8 @@ def _fork_and_push(token, branch, rels, message, title, body, reviewers):
               check_stderr=True)
     if err and "already exists" not in err:
         return None, ("fork", "添加 fork remote 失败：%s" % err)
-    err = git("push", "-u", "fork", branch, check_stderr=True)
+    # fork 的 push 同样带令牌 env（干净机器上没有本机凭据）
+    err = git("push", "-u", "fork", branch, check_stderr=True, env=_push_env(login, token))
     if err:
         return None, ("push", err)
 
@@ -989,8 +1017,9 @@ def _fork_and_push(token, branch, rels, message, title, body, reviewers):
 
 
 def api_pr(payload):
-    """提交 PR：checkout -b → add → commit → push → Gitee PR（403 走 fork 兜底）。
-    永不 force、永不推 master；任一步失败返回 compare_url + commands，不自动重试。"""
+    """提交 PR：确认身份 → checkout -b → add → commit → push → Gitee PR（403 走 fork 兜底）。
+    目标分支是 staging（staging → master 由维护者合）；永不 force、永不推 master/staging；
+    任一步失败返回 compare_url + commands，不自动重试、不改历史。"""
     paths = payload.get("paths") or []
     if not isinstance(paths, list) or not paths:
         return None, (400, "没有要提交的文件（paths 不能为空）")
@@ -1003,7 +1032,7 @@ def api_pr(payload):
 
     branch = str(payload.get("branch") or "").strip() or default_branch(paths)
     if not _branch_ok(branch):
-        return None, (400, "分支名不合法（不能是 master/main、不能含空格或 ..）：%s" % branch)
+        return None, (400, "分支名不合法（不能是 master/main/staging、不能含空格或 ..）：%s" % branch)
     message = str(payload.get("message") or "").strip() \
         or ("写作台：更新 %d 个文件" % len(rels))
     title = str(payload.get("title") or "").strip() or message.splitlines()[0]
@@ -1013,6 +1042,18 @@ def api_pr(payload):
     if REPO is None:
         return _pr_fail("repo", "站点不在 git 仓库里（找不到 .git），无法本地提交",
                         branch, rels, message)
+
+    # push 用 GUI 登录的令牌（Basic 头），先确认身份拿 login；
+    # 令牌只进这一个子进程的 env，不进 URL、不进 argv、不进返回内容
+    token = str(payload.get("_gitee_token") or "").strip()
+    if not token:
+        return _pr_fail("auth", "未登录：请先在顶栏「登录」（令牌只存本机钥匙串或内存）",
+                        branch, rels, message)
+    st, me = _gitee(token, "GET", "/user")
+    if st != 200 or not me.get("login"):
+        return _pr_fail("auth", "无法确认身份（GET /user：HTTP %s %s）"
+                        % (st, me.get("message", "")), branch, rels, message)
+    login = str(me["login"])
 
     err = git("checkout", "-b", branch, check_stderr=True)
     if err is None:
@@ -1031,10 +1072,10 @@ def api_pr(payload):
         return _pr_fail("commit", err, branch, rels, message)
     commit = git("rev-parse", "--short", "HEAD") or ""
 
-    err = git("push", "-u", "origin", branch, check_stderr=True)
+    err = git("push", "-u", "origin", branch, check_stderr=True, env=_push_env(login, token))
     if err and _is_auth_error(err):
         # 没有写权限：fork 兜底（head = <login>:<branch>），仍不 force
-        pr, ferr = _fork_and_push(payload.get("_gitee_token", ""), branch, rels, message,
+        pr, ferr = _fork_and_push(token, login, branch, rels, message,
                                   title, body, reviewers)
         if ferr:
             return _pr_fail(ferr[0], ferr[1], branch, rels, message)
