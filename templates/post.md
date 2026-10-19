@@ -1,7 +1,7 @@
 ---
 title: "文章标题"
 author: sal
-date: 2026-10-19
+date: YYYY-MM-DD
 tags: [ rust, embedded ]
 summary: "一两句摘要，列表和搜索结果会显示。"
 ---

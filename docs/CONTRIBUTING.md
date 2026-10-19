@@ -38,7 +38,7 @@ site/content/posts/2026/board-bringup/index.md
 ---
 title: "从零点亮一块板子"
 author: sal
-date: 2026-10-19
+date: YYYY-MM-DD
 tags: [ rust, embedded, cortex-m ]
 summary: "用 probe-rs 和一块最小板，走一遍上电、下载、串口输出。"
 ---
@@ -162,7 +162,7 @@ wants: [ 小批量硬件一起做 ]
 contact: [ github ]
 rate: "远程评审；需要寄样板时走快递；时间与方式私聊，不谈价格"
 status: active
-updated: 2026-10-19
+updated: YYYY-MM-DD
 ```
 
 > 模板不写 `@is`：引擎会按文件所在目录自动套契约。当前 SML 扩展对跨文件的 `@is` 会误报「未定义契约」，所以投稿文件里先不写；字段表用 `engine/cli.py contracts` 查。

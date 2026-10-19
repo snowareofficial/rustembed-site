@@ -5,7 +5,7 @@ QQ 群「Rust嵌入式探讨」的共建博客。**内容写 Markdown（默认�
 
 > **第一次投稿？先看 [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md)。**
 > 写文章只需要 Markdown，不需要懂 SML；不想碰 git 也可以把稿子交给群管理代投。
-> 模板在 [`templates/`](templates/)。
+> 模板在 [`templates/`](templates/)；按角色查文档看 [`docs/ROLES.md`](docs/ROLES.md)。
 
 ## 五分钟上手
 

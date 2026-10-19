@@ -919,7 +919,7 @@ def build_fonts(rep, out, manifest, bodies=()):
                 import brotli  # noqa: F401
             except ImportError:
                 flavor = "woff"
-                rep.warn("fonts", "缺 brotli（woff2 压缩），子集改用 woff —— 浏览器同样支持")
+                rep.warn("fonts", "fontTools 已子集化；缺 brotli 压缩后端，输出 woff（浏览器支持；需要 woff2 时安装 brotli）")
             text = site_text(manifest, bodies)
             subset_dir.mkdir(parents=True, exist_ok=True)
             stamp = subset_dir / ".stamp.json"
