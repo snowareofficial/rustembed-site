@@ -74,6 +74,23 @@ font-family: "Times New Roman", "Liberation Serif", "Nimbus Roman", "MiSans",
 - **系统字体，不产生外部请求、不打包字体文件**；缺字体时自然回退，不阻断构建；
 - 代码块/公式的 `--mono` 不受影响；MathML 由浏览器数学字体渲染，与正文衬线更协调。
 
+### 公式里的西文
+
+公式也跟随正文改用 Times 系：
+
+```css
+.math-inline math, .math-block math {
+  font-family: "STIX Two Math", "Times New Roman", "Cambria Math", serif;
+}
+```
+
+- 本机没装 STIX 时，字母/数字走 Times New Roman；
+- Times 本身**没有 OpenType MATH 表**，伸缩括号、大运算符由浏览器数学字体兜底，
+  复杂公式的排版不如专业数学字体精致；
+- 想要“Times 外观 + 专业数学排版”，可自托管 **STIX Two Math**（SIL OFL，约几百 KB）；
+  它带 MATH 表，且风格接近 Times，仍然零外部请求；
+- 不装 STIX 也不影响构建，只是复杂公式略逊于默认 Cambria Math。
+
 ## 常见问题
 
 | 现象 | 原因 / 处理 |
