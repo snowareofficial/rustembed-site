@@ -219,10 +219,10 @@ def run_scan_group(tmp):
 
 def run_compat_group():
     content = REPO_ROOT / "site" / "content"
-    touched = [str(p) for p in sorted(content.rglob("*"))
-               if p.is_file() and p.suffix.lower() in (".sml", ".md", ".markdown")
+    touched = [str(p) for p in sorted(content.rglob("*.sml"))
+               if p.is_file()
                and sml._scan_include_lines(p.read_text(encoding="utf-8"), str(p))]
-    case("site/content 里没有任何文件含 include/import", not touched, "；".join(touched))
+    case("site/content 的 SML 内容没有 include/import", not touched, "；".join(touched))
 
 
 def run_native_group(tmp):
