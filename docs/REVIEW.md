@@ -50,7 +50,7 @@ CI 已经跑过的话可以只看结果；本地改过内容就自己再跑一�
 ## 预览链接
 
 - staging 预览：`https://preview.rustembed.pages.dev/`
-- 生产：`https://rec-blog.swebase.cn/`
+- 生产：`https://rustembed.swebase.cn/`
 - 如果 preview 没更新，先看 CI 是否成功，不要直接合并。
 
 ## 合并

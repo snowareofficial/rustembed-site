@@ -23,7 +23,7 @@
                         │     构建命令留空、输出目录 = /
                         ▼
               Cloudflare Pages ──► rustembed.pages.dev
-                               └─► rec-blog.swebase.cn（别名 rust-embed.swebase.cn）
+                               └─► rustembed.swebase.cn
 ```
 
 **这条链路不需要 Cloudflare API token**：CF 只读 `pages` 分支，Actions 只负责产出分支。
@@ -71,7 +71,7 @@ Cloudflare 侧配置（Workers & Pages → 项目 → Settings → Build）：
 **Cloudflare Pages（发布）**
 
 10. 建项目 `rustembed`（首次 `wrangler pages deploy` 会自动创建）；
-11. 绑定域名：`rec-blog.swebase.cn`（主）、`rust-embed.swebase.cn`（别名）；
+11. 绑定域名：`rustembed.swebase.cn`（生产）；
 12. API Token 权限最小化：仅 `Cloudflare Pages: Edit` + 对应账号。
 
 **发布前自检（本地）**
@@ -116,7 +116,7 @@ GitHub 侧仍是只读镜像 + 构建发布，与这两个 Gitee 源无关。
 ## 2. Cloudflare Pages
 
 1. 建项目 `rustembed`（首次 `wrangler pages deploy` 会自动创建）；
-2. 绑定域名：`rec-blog.swebase.cn`（主）与 `rust-embed.swebase.cn`（别名）指向同一项目；
+2. 绑定域名：`rustembed.swebase.cn` 指向该项目；
 3. 若 DNS 不在 Cloudflare 托管，用 CNAME 指到 `<project>.pages.dev`；
 4. 构建命令与产物目录由 Actions 负责（`build.yml` 做校验门禁，`publish-pages.yml` 构建并把 `dist`
    强推到 `pages` 分支），CF 侧只读 `pages` 分支，不需要再设构建命令。

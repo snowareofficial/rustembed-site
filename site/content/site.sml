@@ -1,7 +1,7 @@
 title: "Rust嵌入式探讨"
 tagline: "一个 QQ 群的技术共建博客：嵌入式、Rust，以及把想法做出来的过程"
-url: "https://rec-blog.swebase.cn"
-domains: [ "rec-blog.swebase.cn" "rust-embed.swebase.cn" ]
+url: "https://rustembed.swebase.cn"
+domains: [ "rustembed.swebase.cn" ]
 # 仓库地址的唯一数据源：内容、文档、产物（llms.txt 等）都引用这里，避免多处各写一遍
 repo_url: "https://gitee.com/rustembed/site"
 # 第二个源：同一份代码的另一个发布点（作为 SML 应用示例）

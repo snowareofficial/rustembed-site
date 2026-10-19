@@ -1,7 +1,7 @@
 # rec-blog · Rust嵌入式探讨
 
 QQ 群「Rust嵌入式探讨」的共建博客。**内容写 Markdown（默认）或 SML**，构建期预渲染成静态页面，
-托管在 Cloudflare Pages：`rec-blog.swebase.cn`（主）、`rust-embed.swebase.cn`（别名）。
+托管在 Cloudflare Pages：`rustembed.swebase.cn`（生产）、`rustembed.pages.dev`（默认域名）。
 
 > **第一次投稿？先看 [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md)。**
 > 写文章只需要 Markdown，不需要懂 SML；不想碰 git 也可以把稿子交给群管理代投。

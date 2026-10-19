@@ -1375,7 +1375,7 @@ def _run(args):
             # site.url 与 repo_url/avatar 同纪律：过白名单后才进 manifest 与
             # og/sitemap/feed 的 URL 出口（站点配置也在 site/content/ 里，算投稿面）
             "url": urls.safe_url(args.base_url or sml.as_str(
-                site.get("url", "https://rec-blog.swebase.cn"))),
+                site.get("url", "https://rustembed.swebase.cn"))),
             "domains": [sml.as_str(x) for x in as_list(site.get("domains"))],
             "repo_url": urls.safe_url(sml.as_str(site.get("repo_url", ""))),
             "repo_mirror": urls.safe_url(sml.as_str(site.get("repo_mirror", ""))),

@@ -17,7 +17,7 @@ GitHub（镜像 + CI）
 
 Cloudflare Pages 项目 rustembed
 ├─ preview  → https://preview.rustembed.pages.dev/
-└─ pages    → https://rec-blog.swebase.cn/
+└─ pages    → https://rustembed.swebase.cn/
 ```
 
 Cloudflare 不直接跑构建，只托管 GitHub 上的 `preview` / `pages` 产物分支。
@@ -110,7 +110,7 @@ node tests/smoke.js
 ```bash
 curl -I https://preview.rustembed.pages.dev/
 curl -s https://preview.rustembed.pages.dev/manifest.json | head
-curl -I https://rec-blog.swebase.cn/
+curl -I https://rustembed.swebase.cn/
 ```
 
 看：

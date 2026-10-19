@@ -1,6 +1,6 @@
 # rec-blog 架构与内容规格（v0.1 草案）
 
-站名：**Rust嵌入式探讨** ｜ 域名：`rec-blog.swebase.cn`（CNAME → `swe.os.kg`）
+站名：**Rust嵌入式探讨** ｜ 域名：`rustembed.swebase.cn`（CNAME → `swe.os.kg`）
 权威仓库：`gitee.com/rustembed/site`（**只走 Gitee**）
 构建发布：Gitee 权威 + 单向镜像到 GitHub，GitHub Actions 构建 → Pages 托管（静态）
 
@@ -166,7 +166,7 @@ rec-blog/
   的内容明确报错；有的话它额外负责 include / 命名空间的展开，见 §14）
 - **仓库元数据**：仅构建期抓取，写进 manifest 并缓存 `meta/repos.json`，失败降级 stale
 - **内容树**：两层（series → 文章），不设分类层；跨文章聚合走标签归档
-- **托管**：Cloudflare Pages，主域 `rec-blog.swebase.cn`、别名 `rust-embed.swebase.cn`
+- **托管**：Cloudflare Pages，生产域名 `rustembed.swebase.cn`（默认域名 `rustembed.pages.dev`）
 
 ## 9. 导图目录（已实现）
 

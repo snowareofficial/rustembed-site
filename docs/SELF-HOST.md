@@ -140,8 +140,8 @@ Cloudflare 侧也可以在面板 Deployments → 选旧版本 → Rollback。
 ```bash
 curl -s 127.0.0.1:8787/healthz                 # {"ok":true,...}
 bash deploy/build.sh && ls dist/index.html     # 产物存在
-curl -I https://rec-blog.swebase.cn/llms.txt   # 200 + text/plain; charset=utf-8
-curl -I https://rec-blog.swebase.cn/feed.xml
+curl -I https://rustembed.swebase.cn/llms.txt   # 200 + text/plain; charset=utf-8
+curl -I https://rustembed.swebase.cn/feed.xml
 ```
 
 ## 7. 安全与纪律
