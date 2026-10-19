@@ -198,6 +198,8 @@ _html, _ = md.render("代码 `$x$` 保持原样\n")
 case("行内代码里的 $ 不被当公式", "<code>$x$</code>" in _html, _html[:200])
 _html, _ = md.render("坏公式 $\\frac{a$ 不炸\n")
 case("坏公式回退不抛异常", "<p>" in _html, _html[:200])
+_html, _ = md.render("$\\textcircled{1}\\textcircled{2}$\n")
+case("textcircled 宏转成圈号", "①" in _html and "②" in _html and "textcircled" not in _html, _html[:200])
 
 # --------------------------------------------------------- 4. --out 守卫
 def test_out_guard():
