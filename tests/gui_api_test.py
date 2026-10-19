@@ -8,15 +8,19 @@
 - 预览与构建同源；令牌不出现在日志里。
 """
 
+import base64
 import json
 import os
 import shutil
+import struct
 import subprocess
 import sys
 import tempfile
 import unittest
 import urllib.error
+import urllib.parse
 import urllib.request
+import zlib
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -64,6 +68,16 @@ class GuiApiTest(unittest.TestCase):
         dst.parent.mkdir(parents=True)
         shutil.copy(src, dst)
         cls.original = src.read_bytes()
+
+        # 资源库：原样拷一份（「坏链接资源」只在 test_13 里临时造，免得污染构建用例）
+        cls.res_dir = content / "resources"
+        cls.res_dir.mkdir(parents=True)
+        for f in sorted((REPO / "site" / "content" / "resources").glob("*.sml")):
+            shutil.copy(f, cls.res_dir / f.name)
+        cls.res_ids = sorted(p.stem for p in cls.res_dir.glob("*.sml"))
+        # 构建用例要跑 build.py，缺 theme/ 会直接失败
+        if not (cls.tmp / "theme").exists():
+            shutil.copytree(REPO / "site" / "theme", cls.tmp / "theme")
 
         cls.log_path = cls.tmp / "server.log"
         env = dict(os.environ, GUI_TOKEN=TOKEN, REC_BLOG_SITE=str(cls.tmp),
@@ -206,6 +220,206 @@ class GuiApiTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("branch", body)
         self.assertIn("dirty", body)
+
+
+    # ---------------------------------------------------------------- M2 用例
+    def png_bytes(self, w=1, h=1):
+        raw = b"".join(b"\x00" + b"\x00" * (w * 3) for _ in range(h))
+        def chunk(tag, data):
+            body = tag + data
+            return (struct.pack(">I", len(data)) + body
+                    + struct.pack(">I", zlib.crc32(body) & 0xFFFFFFFF))
+        return (b"\x89PNG\r\n\x1a\n"
+                + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0))
+                + chunk(b"IDAT", zlib.compress(raw))
+                + chunk(b"IEND", b""))
+
+    def test_11_图片上传_文件名清洗与去重(self):
+        data = self.png_bytes(4, 3)
+        b64 = base64.b64encode(data).decode("ascii")
+        s, res = req(self.port, "/api/asset", "POST",
+                     {"path": POST_REL, "name": "My Photo!.png", "data_base64": b64})
+        self.assertEqual(s, 200, res)
+        self.assertEqual(res["name"], "my-photo.png")           # 文件名清洗
+        self.assertTrue(res["url"].startswith("assets/"))
+        self.assertEqual(res["markdown"], "![my-photo](assets/my-photo.png)")
+        self.assertEqual(res["width"], 4)
+        self.assertEqual(res["height"], 3)
+        saved = self.tmp / "content" / "posts" / "2026" / "md-writing" / "assets" / "my-photo.png"
+        self.assertTrue(saved.exists())
+        # 同内容再传一次 → 复用同一个文件，不存第二份
+        s2, res2 = req(self.port, "/api/asset", "POST",
+                       {"path": POST_REL, "name": "My Photo!.png", "data_base64": b64})
+        self.assertEqual(s2, 200)
+        self.assertEqual(res2["name"], "my-photo.png")
+        self.assertEqual(len(list(saved.parent.glob("*.png"))), 1)
+        shutil.rmtree(saved.parent, ignore_errors=True)
+
+    def test_12_图片上传_超限与非图片被拒(self):
+        big = b"\x89PNG\r\n\x1a\n" + b"\x00" * (2 * 1024 * 1024 + 10)
+        s, res = req(self.port, "/api/asset", "POST",
+                     {"path": POST_REL, "name": "big.png",
+                      "data_base64": base64.b64encode(big).decode("ascii")})
+        self.assertEqual(s, 413, res)
+        s, res = req(self.port, "/api/asset", "POST",
+                     {"path": POST_REL, "name": "a.png",
+                      "data_base64": base64.b64encode(b"hello world").decode("ascii")})
+        self.assertEqual(s, 415, res)
+        s, res = req(self.port, "/api/asset", "POST",
+                     {"path": POST_REL, "name": "a.png", "data_base64": "!!!not-base64"})
+        self.assertEqual(s, 400, res)
+        assets = self.tmp / "content" / "posts" / "2026" / "md-writing" / "assets"
+        self.assertFalse(assets.exists() and (assets / "big.png").exists(),
+                         "被拒的图片不能落盘")
+
+    def test_13_资源列表_过滤与提取码(self):
+        bad_file = self.res_dir / "bad-url.sml"
+        bad_file.write_text(
+            'title: "坏链接资源"\nkind: tool\nurl: "javascript:alert(1)"\ncode: abcd\n'
+            'folder: "示例"\ntags: [bad]\n', encoding="utf-8")
+        try:
+            s, rows = req(self.port, "/api/resources")
+            self.assertEqual(s, 200)
+            self.assertTrue(rows)
+            for r in rows:
+                self.assertIn("code", r)
+            bad = [r for r in rows if r["id"] == "bad-url"]
+            self.assertTrue(bad, rows)
+            self.assertEqual(bad[0]["url"], "")            # javascript: 被清空
+            self.assertTrue(bad[0]["url_blocked"])
+            self.assertEqual(bad[0]["code"], "abcd")       # 提取码只当文本
+            # 按类型 / 文件夹 / 关键字过滤
+            kinds = {r["kind"] for r in rows if r["kind"]}
+            if kinds:
+                k = sorted(kinds)[0]
+                s, filtered = req(self.port, "/api/resources?kind=" + k)
+                self.assertEqual(s, 200)
+                self.assertTrue(filtered)
+                self.assertTrue(all(r["kind"] == k for r in filtered))
+            s, by_q = req(self.port, "/api/resources?q=" + urllib.parse.quote("坏链接"))
+            self.assertEqual(s, 200)
+            self.assertEqual([r["id"] for r in by_q], ["bad-url"])
+            s, by_folder = req(self.port, "/api/resources?folder=" + urllib.parse.quote("示例"))
+            self.assertEqual(s, 200)
+            self.assertEqual([r["id"] for r in by_folder], ["bad-url"])
+        finally:
+            bad_file.unlink(missing_ok=True)
+
+    def test_14_构建解析resource附件(self):
+        res_id = "tmp-res"
+        res_file = self.res_dir / (res_id + ".sml")
+        want_url = "https://example.com/book.pdf"
+        # 临时资源：带提取码，便于验证「资源改了附件跟着变」
+        res_file.write_text(
+            'title: "临时资源"\nkind: book\nurl: "%s"\ncode: abcd\nfolder: "临时"\n'
+            'tags: [tmp]\nnote: "用于 M2 回归"\n' % want_url, encoding="utf-8")
+        # 临时文章：附件只写 resource 引用（没有 url / code）
+        post_rel = "content/posts/2026/res-attach/index.md"
+        post = self.tmp / post_rel
+        post.parent.mkdir(parents=True, exist_ok=True)
+        post.write_text(
+            "---\ntitle: 资源附件\nauthor: sal\ndate: 2026-10-19\ntags: [rust]\n"
+            "summary: 验证 resource 解析\nattachments:\n"
+            "  - name: 附件\n    kind: link\n    resource: %s\n---\n\n正文。\n" % res_id,
+            encoding="utf-8")
+        try:
+            out = self.tmp / "dist"
+            b = subprocess.run(
+                [sys.executable, "engine/build.py", "--site", str(self.tmp),
+                 "--offline", "--out", str(out)],
+                cwd=str(REPO), capture_output=True, text=True, encoding="utf-8", timeout=300)
+            self.assertEqual(b.returncode, 0, b.stdout + b.stderr)
+            man = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+            got = [p for p in man["posts"] if p["slug"] == "res-attach"]
+            self.assertTrue(got, "构建产物里没有这篇文章")
+            atts = got[0]["attachments"]
+            self.assertEqual(len(atts), 1, atts)
+            self.assertEqual(atts[0]["url"], want_url)
+            self.assertEqual(atts[0]["code"], "abcd")
+            self.assertNotIn("javascript", json.dumps(atts, ensure_ascii=False))
+            # 资源改了，附件跟着变（引用 id 的意义就在这）
+            res_file.write_text(res_file.read_text(encoding="utf-8")
+                                .replace("abcd", "zzz9"), encoding="utf-8")
+            b2 = subprocess.run(
+                [sys.executable, "engine/build.py", "--site", str(self.tmp),
+                 "--offline", "--out", str(out)],
+                cwd=str(REPO), capture_output=True, text=True, encoding="utf-8", timeout=300)
+            self.assertEqual(b2.returncode, 0, b2.stdout + b2.stderr)
+            man2 = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+            atts2 = [p for p in man2["posts"] if p["slug"] == "res-attach"][0]["attachments"]
+            self.assertEqual(atts2[0]["code"], "zzz9")
+        finally:
+            shutil.rmtree(post.parent, ignore_errors=True)
+            res_file.unlink(missing_ok=True)
+
+    def test_15_构建_资源不存在就失败(self):
+        post_rel = "content/posts/2026/bad-attach/index.md"
+        post = self.tmp / post_rel
+        post.parent.mkdir(parents=True, exist_ok=True)
+        post.write_text(
+            "---\ntitle: 坏附件\nauthor: sal\ndate: 2026-10-19\ntags: [rust]\n"
+            "summary: 引用不存在的资源\nattachments:\n"
+            "  - name: 附件\n    kind: link\n    resource: nope-not-here\n---\n\n正文。\n",
+            encoding="utf-8")
+        try:
+            out = self.tmp / "dist-bad"
+            b = subprocess.run(
+                [sys.executable, "engine/build.py", "--site", str(self.tmp),
+                 "--offline", "--out", str(out)],
+                cwd=str(REPO), capture_output=True, text=True, encoding="utf-8", timeout=300)
+            self.assertNotEqual(b.returncode, 0, "引用不存在的资源必须让构建失败")
+            self.assertIn("nope-not-here", b.stdout + b.stderr)
+        finally:
+            shutil.rmtree(post.parent, ignore_errors=True)
+
+    def test_16_删除要确认_确认对了才删(self):
+        rel = "content/topics/tmp-del.md"
+        f = self.tmp / rel
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text('---\ntitle: "待删"\nsummary: "x"\n---\n\n正文。\n', encoding="utf-8")
+        s, res = req(self.port, "/api/delete", "POST", {"path": rel, "confirm": "错了"})
+        self.assertEqual(s, 400, res)
+        self.assertTrue(f.exists(), "确认不匹配时不能删")
+        s, res = req(self.port, "/api/delete", "POST", {"path": rel, "confirm": "tmp-del"})
+        self.assertEqual(s, 200, res)
+        self.assertFalse(f.exists(), "确认匹配后应删除")
+
+    def test_17_重命名改短名(self):
+        rel = "content/topics/tmp-mv.md"
+        f = self.tmp / rel
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text('---\ntitle: "待改名"\nsummary: "x"\n---\n\n正文。\n', encoding="utf-8")
+        s, res = req(self.port, "/api/rename", "POST", {"path": rel, "slug": "Bad_Slug"})
+        self.assertEqual(s, 422, res)
+        s, res = req(self.port, "/api/rename", "POST", {"path": rel, "slug": "tmp-moved"})
+        self.assertEqual(s, 200, res)
+        self.assertEqual(res["path"], "content/topics/tmp-moved.md")
+        self.assertTrue((self.tmp / "content/topics/tmp-moved.md").exists())
+        self.assertFalse(f.exists())
+
+    def test_18_外部改动后保存返回409(self):
+        rel = "content/topics/tmp-conflict.md"
+        f = self.tmp / rel
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text('---\ntitle: "原文"\nsummary: "x"\n---\n\n正文。\n', encoding="utf-8")
+        s, doc = req(self.port, "/api/doc?path=" + rel)
+        self.assertEqual(s, 200)
+        base = doc["hash"]
+        self.assertTrue(base)
+        f.write_text('---\ntitle: "别人改过"\nsummary: "x"\n---\n\n被外部改了。\n', encoding="utf-8")
+        s, res = req(self.port, "/api/doc", "PUT", {
+            "path": rel, "base_hash": base,
+            "front_matter": {"title": "我的版本", "summary": "x"}, "body": "我的正文\n"})
+        self.assertEqual(s, 409, res)
+        self.assertEqual(res.get("code"), "E-CONFLICT")
+        self.assertIn("别人改过", f.read_text(encoding="utf-8"), "409 时不能覆盖磁盘内容")
+        # 拿到新 hash 后再存 → 成功
+        s2, fresh = req(self.port, "/api/doc?path=" + rel)
+        s, res = req(self.port, "/api/doc", "PUT", {
+            "path": rel, "base_hash": fresh["hash"],
+            "front_matter": {"title": "我的版本", "summary": "x"}, "body": "我的正文\n"})
+        self.assertEqual(s, 200, res)
+        self.assertIn("我的正文", f.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
