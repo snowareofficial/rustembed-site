@@ -718,6 +718,12 @@ def test_math_font_switch():
     case("SML math font:text 带 math-text", "math-block math-text" in sml, sml)
 
 
+def test_font_subset_text():
+    print("[11] 字体子集收集：MathML 数字实体先 unescape")
+    txt = B.site_text({}, ["<math><mo>&#x02202;</mo></math>"])
+    case("site_text 含真实 ∂ 而非实体", "∂" in txt, txt)
+
+
 def main():
     print("== rec-blog 渲染安全回归 ==")
     test_contract_page_escaping()
@@ -731,6 +737,7 @@ def main():
     test_assets_generator()
     test_url_allowlist()
     test_math_font_switch()
+    test_font_subset_text()
     test_sml_error_types()
     test_safe_url_unit()
     test_localize_assets()
