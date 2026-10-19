@@ -84,7 +84,7 @@ A．当 $\operatorname* { l i m } _ { x \to + \infty } f ( x )$ 存在时， $\o
 
 B．当 $\operatorname* { l i m } _ { x \to + \infty } f ^ { \prime } ( x )$ 存在时， $\operatorname* { l i m } _ { x \to + \infty } f ( x )$ 存在．
 
-C．当 lim $\operatorname* { l i m } _ { x \to + \infty } { \frac { \int _ { 0 } ^ { x } f { \bigl ( } t { \bigr ) } \mathrm { d } t } { x } }$  0 dx f t t  存在时， lim  f x 存在． $\operatorname* { l i m } _ { x \to + \infty } f ( x )$
+C．当 lim $\operatorname* { l i m } _ { x \to + \infty } { \frac { \int _ { 0 } ^ { x } f { \bigl ( } t { \bigr ) } \mathrm { d } t } { x } }$ ( )0 dx f t t ∫ 存在时， lim ( )f x 存在． $\operatorname* { l i m } _ { x \to + \infty } f ( x )$
 
 D．当 $\operatorname* { l i m } _ { x \to + \infty } f ( x )$ 存在时， $\operatorname* { l i m } _ { x \to + \infty } { \frac { \int _ { 0 } ^ { x } f ( t ) \mathrm { d } t } { x } }$ 存在．
 
@@ -102,8 +102,8 @@ D正确，用 $\operatorname* { l i m } _ { x \to + \infty } { \frac { \int _ { 
 
 $\int _ { 0 } ^ { 4 } \biggl [ \int _ { - 2 } ^ { - \sqrt { 4 - y } } f \left( x , y \right) \mathrm { d } x + \int _ { \sqrt { 4 - y } } ^ { 2 } f \left( x , y \right) \mathrm { d } x \biggr ] \mathrm { d } y \ .$   
 $\int _ { 0 } ^ { 4 } \biggl [ \int _ { - 2 } ^ { \sqrt { 4 - y } } f \left( x , y \right) \mathrm { d } x + \int _ { \sqrt { 4 - y } } ^ { 2 } f \left( x , y \right) \mathrm { d } x \biggr ] \mathrm { d } y \ .$   
-C．    4 4 40 2 2, d , d dy yf x y x f x y x y         ．   
-D．  4 20 42 d , dyy f x y x   ．
+C． ( ) ( )4 4 40 2 2, d , d dy yf x y x f x y x y- - -- [ {+] } }∫ ∫ ∫ ．   
+D． ( )4 20 42 d , dyy f x y x∫ ∫ - ．
 
 【答案】A
 
@@ -167,7 +167,7 @@ D．不过原点的一条直线
 
 【解析】记 $A = \left( \alpha _ { 1 } , \alpha _ { 2 } , \alpha _ { 3 } \right)$ ，由 $\alpha _ { 1 } , \alpha _ { 2 }$ 线性无关， $\mathcal { \alpha } _ { 1 } , \mathcal { \alpha } _ { 2 } , \mathcal { \alpha } _ { 3 }$ 线性相关，可得 $r \left( A \right) = 2$ 。记$\overline { { A } } = \left( A \left| \alpha _ { 4 } \right. \right) = \left( \alpha _ { 1 } , \alpha _ { 2 } , \alpha _ { 3 } , \alpha _ { 4 } \right)$ ，再由 $\alpha _ { 1 } + \alpha _ { 2 } + \alpha _ { 4 } = 0$ ，则 $r \left( { \overline { { A } } } \right) = 2$ 。于是 $A x = \alpha _ { 4 }$ 有无穷多解。则 $x \alpha _ { 1 } + y \alpha _ { 2 } + z \alpha _ { 3 } = \alpha _ { 4 }$ 等价于 $\left( \alpha _ { 1 } , \alpha _ { 2 } , \alpha _ { 3 } \right) \cdot \left( x , y , z \right) ^ { \mathrm { T } } = \alpha _ { 4 }$ ，即 $A \cdot \left( x , y , z \right) ^ { \mathrm { T } } = \alpha _ { 4 }$ 。若过原点，则 $\alpha _ { 4 } = 0$ 与 $\alpha _ { 1 } , \alpha _ { 2 }$ 线性无关矛盾，故不过原点。
 
-$x \alpha _ { 1 } + y \alpha _ { 2 } + z \alpha _ { 3 } = \alpha _ { 4 } \Leftrightarrow \left\{ \begin{array} { c } { { a _ { 1 1 } x + a _ { 1 2 } y + a _ { 1 3 } z = a _ { 1 4 } } } \\ { { a _ { 2 1 } x + a _ { 2 2 } y + a _ { 2 3 } z = a _ { 2 4 } } } \\ { { \ldots } } \\ { { a _ { n 1 } x + a _ { n 2 } y + a _ { n 3 } z = a _ { n 4 } } } \end{array} \right.$ 21 22 23 24 a x a y a z a           ，由上述分析可知 r  A  r  A   2 ，故 $r \left( A \right) = r \left( { \overline { { A } } } \right) = 2$ 两平面交于一条直线，且不过原点。故选 $\mathrm { D }$ 。
+$x \alpha _ { 1 } + y \alpha _ { 2 } + z \alpha _ { 3 } = \alpha _ { 4 } \Leftrightarrow \left\{ \begin{array} { c } { { a _ { 1 1 } x + a _ { 1 2 } y + a _ { 1 3 } z = a _ { 1 4 } } } \\ { { a _ { 2 1 } x + a _ { 2 2 } y + a _ { 2 3 } z = a _ { 2 4 } } } \\ { { \ldots } } \\ { { a _ { n 1 } x + a _ { n 2 } y + a _ { n 3 } z = a _ { n 4 } } } \end{array} \right.$ 21 22 23 24 a x a y a z a    + + =     ，由上述分析可知 r ( A) = r ( A ) = 2 ，故 $r \left( A \right) = r \left( { \overline { { A } } } \right) = 2$ 两平面交于一条直线，且不过原点。故选 $\mathrm { D }$ 。
 
 7．设 $n$ 阶矩阵 $A , B , C$ 满足 $r \left( A \right) + r \left( B \right) + r \left( C \right) = r \left( A B C \right) + 2 n$ ，给出下列四个结论：
 
@@ -191,7 +191,7 @@ D． $\textcircled{3} \textcircled{4}$
 
 【答案】A
 
-【解析】 1 0 ,0 0   A $\scriptstyle A = { \left( { \begin{array} { l l } { 1 } & { 0 } \\ { 0 } & { 0 } \end{array} } \right) } , B = { \left( { \begin{array} { l l } { 0 } & { 0 } \\ { 0 } & { 1 } \end{array} } \right) } , C = E$ ，满足 $r ( A ) + r ( B ) + r ( C ) = r ( A B C ) + 2 n$ ，则$r ( A ) = 1 , r ( B ) = 1 , r ( C ) = 2$ ，排除结论 $\textcircled{3} \textcircled{4}$ ，故选 A.
+【解析】 1 0 ,0 0 =  A $\scriptstyle A = { \left( { \begin{array} { l l } { 1 } & { 0 } \\ { 0 } & { 0 } \end{array} } \right) } , B = { \left( { \begin{array} { l l } { 0 } & { 0 } \\ { 0 } & { 1 } \end{array} } \right) } , C = E$ ，满足 $r ( A ) + r ( B ) + r ( C ) = r ( A B C ) + 2 n$ ，则$r ( A ) = 1 , r ( B ) = 1 , r ( C ) = 2$ ，排除结论 $\textcircled{3} \textcircled{4}$ ，故选 A.
 
 8．设二维随机变量 $( X , Y )$ 服从正态分布 $N \big ( 0 , 0 ; 1 , 1 ; \rho \big )$ ，其中 $\rho \in \left( { - 1 , 1 } \right)$ .若 $^ { a , b }$ 为满足$a ^ { 2 } + b ^ { 2 } = 1$ 的任意实数，则 $D \big ( a X + b Y \big )$ 的最大值为
 
@@ -215,7 +215,7 @@ $$
 f ^ {\prime} (a) = \rho \left(2 \sqrt {1 - a ^ {2}} + 2 a \cdot \frac {- a}{\sqrt {1 - a ^ {2}}}\right) = 2 \rho \left(\sqrt {1 - a ^ {2}} - \frac {a ^ {2}}{\sqrt {1 - a ^ {2}}}\right) = 0
 $$
 
-即 $2 \rho \cdot \frac { 1 - a ^ { 2 } - a ^ { 2 } } { \sqrt { 1 - a ^ { 2 } } } = 0$ ， $2 a ^ { 2 } = 1 \Rightarrow a ^ { 2 } = \frac { 1 } { 2 } , b ^ { 2 } = \frac { 1 } { 2 }$ 2, b  ， 于 是 $a = \pm { \frac { 1 } { \sqrt { 2 } } } , b = \pm { \frac { 1 } { \sqrt { 2 } } }$ , b   所 以 最 大值为 $1 + | \rho |$ ，故选 C。
+即 $2 \rho \cdot \frac { 1 - a ^ { 2 } - a ^ { 2 } } { \sqrt { 1 - a ^ { 2 } } } = 0$ ， $2 a ^ { 2 } = 1 \Rightarrow a ^ { 2 } = \frac { 1 } { 2 } , b ^ { 2 } = \frac { 1 } { 2 }$ 2,= b = ， 于 是 $a = \pm { \frac { 1 } { \sqrt { 2 } } } , b = \pm { \frac { 1 } { \sqrt { 2 } } }$ , b =  所 以 最 大值为 $1 + | \rho |$ ，故选 C。
 
 9．设 $X _ { 1 } , X _ { 2 } , \cdots , X _ { 2 0 }$ 是来自总体 $B { \left( 1 , 0 . 1 \right) }$ 的简单随机样本.令 $T = \sum _ { i = 1 } ^ { 2 0 } X _ { i }$ ，利用泊松分布近似表示二项分布的方法可得 $P \{ T \leq 1 \} \approx$
 
@@ -234,19 +234,19 @@ $$
 P \{T \leqslant 1 \} = P \{T = 0 \} + P \{T = 1 \} = \frac {2 ^ {0}}{0 !} e ^ {- 2} + \frac {2 ^ {1}}{1 !} e ^ {- 2} = e ^ {- 2} + 2 e ^ {- 2} = \frac {3}{e ^ {2}}
 $$
 
-10．设 $X _ { 1 } , X _ { 2 } , \cdots , X _ { n }$ 为来自正态总体 $N \left( \mu , 2 \right)$ 的简单随机样本.记 ${ \overline { { X } } } = { \frac { 1 } { n } } \sum _ { i = 1 } ^ { n } X _ { i }$ ， $Z _ { \alpha }$ 表示标1in 准正态分布的上侧 $\alpha$ 分位数.假设检验问题： $H _ { 0 }$ ： $\mu { \leqslant } 1$ ， $H _ { 1 }$ ： $\mu > 1$ 的显著性水平为 $\alpha$ 的检验的拒绝域为
+10．设 $X _ { 1 } , X _ { 2 } , \cdots , X _ { n }$ 为来自正态总体 $N \left( \mu , 2 \right)$ 的简单随机样本.记 ${ \overline { { X } } } = { \frac { 1 } { n } } \sum _ { i = 1 } ^ { n } X _ { i }$ ， $Z _ { \alpha }$ 表示标1in =准正态分布的上侧 $\alpha$ 分位数.假设检验问题： $H _ { 0 }$ ： $\mu { \leqslant } 1$ ， $H _ { 1 }$ ： $\mu > 1$ 的显著性水平为 $\alpha$ 的检验的拒绝域为
 
 $\left\{ \left( X _ { 1 } , \ X _ { 2 } , \cdots , \ X _ { n } \right) \middle | \overline { { { X } } } > 1 + \frac { 2 } { n } Z _ { \alpha } \right\} .$
 
 【答案】D
 
-【解析】 $\frac { \overline { { X } } - \mu } { \sigma / \sqrt { n } } > z _ { \alpha } \Rightarrow \overline { { X } } > \sqrt { \frac { 2 } { n } } z _ { \alpha } + 1$ 12z  ，故选 D
+【解析】 $\frac { \overline { { X } } - \mu } { \sigma / \sqrt { n } } > z _ { \alpha } \Rightarrow \overline { { X } } > \sqrt { \frac { 2 } { n } } z _ { \alpha } + 1$ 12z + ，故选 D
 
 # 二、填空题： $1 1 { \sim } 1 6$ 小题，每小题 5 分，共 30分
 
 11． $\operatorname* { l i m } _ { x \to 0 ^ { + } } { \frac { x ^ { x } - 1 } { \ln x \cdot \ln ( 1 - x ) } } = \qquad \cdot$
 
-【答案】1
+【答案】-1
 
 【解析】
 
@@ -264,7 +264,7 @@ $$
 s \left(- \frac {7}{2}\right) = s \left(- \frac {7}{2} + 4\right) = s \left(\frac {1}{2}\right) = \frac {1}{8}.
 $$
 
-13.已知函数 $u ( x , y , z ) = x y ^ { 2 } z ^ { 3 }$ ,向量 $\pmb { n = ( 2 , 2 , - 1 ) }$ , 则 (1,1,1)n $\left. \frac { \hat { \alpha } u } { \hat { \sigma } \pmb { n } } \right| _ { ( 1 , 1 , 1 ) } = \_ \qquad .$
+13.已知函数 $u ( x , y , z ) = x y ^ { 2 } z ^ { 3 }$ ,向量 $\pmb { n = ( 2 , 2 , - 1 ) }$ , 则 (1,1,1)·n $\left. \frac { \hat { \alpha } u } { \hat { \sigma } \pmb { n } } \right| _ { ( 1 , 1 , 1 ) } = \_ \qquad .$
 
 【答案】 1
 
@@ -297,7 +297,7 @@ $$
 
 15. 设矩阵 $A = { \left( \begin{array} { l l l } { 4 } & { 2 } & { - 3 } \\ { a } & { 3 } & { - 4 } \\ { b } & { 5 } & { - 7 } \end{array} \right) } ,$ 若方程组 $A ^ { 2 } x = \mathbf { 0 }$ 与 $\pmb { A } \pmb { x } = \pmb { 0 }$ 不同 解， 则 $a - b =$
 
-【答案】4
+【答案】-4
 
 【解析】由题知， $\begin{array} { r } { A = \left( \begin{array} { c c c } { 4 } & { 2 } & { - 3 } \\ { a } & { 3 } & { - 4 } \\ { b } & { 5 } & { - 7 } \end{array} \right) , } \end{array}$ ，若 $A ^ { 2 } x = 0$ 与 $A x = 0$ 同解 ，则 三秩 相同 ，即
 
@@ -347,7 +347,7 @@ $$
 
 17．（本题满分 10分）
 
-计算   10 21 d1 2 2x  x  x  $\int \displaylimits _ { 0 } ^ { 1 } \frac { 1 } { \left( x + 1 \right) \left( x ^ { 2 } - 2 x + 2 \right) } \mathrm { d } x .$
+计算 ( )( )10 21 d1 2 2x + x - x +∫ $\int \displaylimits _ { 0 } ^ { 1 } \frac { 1 } { \left( x + 1 \right) \left( x ^ { 2 } - 2 x + 2 \right) } \mathrm { d } x .$
 
 17．解：
 
@@ -370,8 +370,8 @@ $$
 \begin{array}{l} \frac {\partial^ {2} g}{\partial x ^ {2}} = \left(f ^ {\prime \prime} (u) \frac {1}{y}\right) \frac {1}{y} = f ^ {\prime \prime} (u) \frac {1}{y ^ {2}} \dots \dots . (1) \\ \frac {\partial^ {2} g}{\partial x \partial y} = f ^ {\prime \prime} (u) \left(- \frac {x}{y ^ {2}}\right) \frac {1}{y} + f ^ {\prime} (u) \left(- \frac {1}{y ^ {2}}\right) = - \frac {x}{y ^ {3}} f ^ {\prime \prime} (u) - \frac {1}{y ^ {2}} f ^ {\prime} (u). \tag {2} \\ \frac {\partial^ {2} g}{\partial y ^ {2}} = f ^ {\prime \prime} (u) \left(- \frac {x}{y ^ {2}}\right) \frac {x}{y} + f ^ {\prime} (u) \left(\frac {2 x}{y ^ {2}}\right) = \frac {x ^ {2}}{y ^ {4}} f ^ {\prime \prime} (u) + \frac {2 x}{y ^ {3}} f ^ {\prime} (u) \dots (3) \\ \end{array}
 $$
 
-将（1）（2）（3）代入 22 2gx   $x ^ { 2 } \frac { \partial ^ { 2 } g } { \partial x ^ { 2 } } + x y \frac { \partial ^ { 2 } g } { \partial x \partial y } + y ^ { 2 } \frac { \partial ^ { 2 } g } { \partial y ^ { 2 } } = 1$ 2y  化简得：x
-   2 u f  u  uf  u  1 ，即    1f u f u   $u ^ { 2 } f ^ { \prime \prime } ( u ) + u f ^ { \prime } ( u ) = 1$ $f ^ { \prime \prime } { \bigl ( } u { \bigr ) } + { \frac { 1 } { u ^ { 2 } } } f ^ { \prime } { \bigl ( } u { \bigr ) } = { \frac { 1 } { u ^ { 2 } } } .$ 12
+将（1）（2）（3）代入 22 2gx · + $x ^ { 2 } \frac { \partial ^ { 2 } g } { \partial x ^ { 2 } } + x y \frac { \partial ^ { 2 } g } { \partial x \partial y } + y ^ { 2 } \frac { \partial ^ { 2 } g } { \partial y ^ { 2 } } = 1$ 2y ·+ 化简得：x·
+( ) ( )2 u f ≤≤ u + uf ≤ u = 1 ，即 ( ) ( )1f u f u≤≤ + ≤ $u ^ { 2 } f ^ { \prime \prime } ( u ) + u f ^ { \prime } ( u ) = 1$ $f ^ { \prime \prime } { \bigl ( } u { \bigr ) } + { \frac { 1 } { u ^ { 2 } } } f ^ { \prime } { \bigl ( } u { \bigr ) } = { \frac { 1 } { u ^ { 2 } } } .$ 12
 令 $\mathbf { \nabla } ^ { \prime } p ^ { \prime } = f ^ { \prime } ( u )$ 则 $| p ^ { \prime } + \frac { 1 } { u } p ^ { \prime } = \frac { 1 } { u ^ { 2 } }$ 2 u
 
 $$
@@ -379,7 +379,7 @@ p = e ^ {- \int_ {u} ^ {\frac {1}{u}} d u} \left[ \int \frac {1}{u ^ {2}} e ^ {\
 $$
 
 又 $\left. p ^ { \prime } \right| _ { u = 1 } = C = 2$ ，故 $p = { \frac { \ln u } { u } } + { \frac { 2 } { u } }$
-因此 ， f ln u 2   ，积分得   lf u   $\frac { \partial f } { \partial u } = \frac { \ln u } { u } + \frac { 2 } { u }$ $f \left( u \right) = \int \left( \frac { \ln u } { u } + \frac { 2 } { u } \right) d u = \frac { 1 } { 2 } \ln ^ { 2 } u + 2 \ln u + C \ ,$ u u u
+因此 ， f ln u 2· = + ，积分得 ( ) lf u = ∫ $\frac { \partial f } { \partial u } = \frac { \ln u } { u } + \frac { 2 } { u }$ $f \left( u \right) = \int \left( \frac { \ln u } { u } + \frac { 2 } { u } \right) d u = \frac { 1 } { 2 } \ln ^ { 2 } u + 2 \ln u + C \ ,$ u u u·
 又 $f ( 1 ) = C = 1$ ，故 $f { \bigl ( } u { \bigr ) } = { \frac { 1 } { 2 } } \ln ^ { 2 } u + 2 \ln u + 1$ 。
 
 # 19.（本题满分 10分）
@@ -397,18 +397,18 @@ $$
 \frac {f \left(x _ {2}\right) - f \left(x _ {1}\right)}{x _ {2} - x _ {1}} <   \frac {f \left(x _ {3}\right) - f \left(x _ {2}\right)}{x _ {3} - x _ {2}} <   \frac {f \left(x _ {4}\right) - f \left(x _ {3}\right)}{x _ {4} - x _ {3}} <   \frac {f \left(x _ {5}\right) - f \left(x _ {4}\right)}{x _ {5} - x _ {4}}
 $$
 
-在 $\frac { f \left( x _ { 2 } \right) - f \left( x _ { 1 } \right) } { x _ { 2 } - x _ { 1 } } < \frac { f \left( x _ { 3 } \right) - f \left( x _ { 2 } \right) } { x _ { 3 } - x _ { 2 } }$ 两边同时令 2 1x x  ，得 $x _ { 2 }  { x _ { 1 } } ^ { + }$
+在 $\frac { f \left( x _ { 2 } \right) - f \left( x _ { 1 } \right) } { x _ { 2 } - x _ { 1 } } < \frac { f \left( x _ { 3 } \right) - f \left( x _ { 2 } \right) } { x _ { 3 } - x _ { 2 } }$ 两边同时令 2 1x x + ，得 $x _ { 2 }  { x _ { 1 } } ^ { + }$
 $f _ { + } ^ { ^ { \prime } } \left( x _ { 1 } \right) \leq \frac { f \left( x _ { 3 } \right) - f \left( x _ { 1 } \right) } { x _ { 3 } - x _ { 1 } }$ ，两边同时令 $x _ { 2 }  { x _ { 3 } } ^ { - }$ ，得 $\frac { f \left( x _ { 3 } \right) - f \left( x _ { 1 } \right) } { x _ { 3 } - x _ { 1 } } \leq f _ { - } ^ { ^ { \prime } } \left( x _ { 3 } \right)$ ，即
-     3 1f x f xf x    $f _ { + } ^ { ^ { \prime } } \left( x _ { 1 } \right) \leq \frac { f \left( x _ { 3 } \right) - f \left( x _ { 1 } \right) } { x _ { 3 } - x _ { 1 } } { \leq f _ { - } ^ { ^ { \prime } } \left( x _ { 3 } \right) }$ ，同 理可 得 ${ f _ { + } } ^ { \prime } \left( x _ { 3 } \right) \leq \frac { f \left( x _ { 3 } \right) - f \left( x _ { 1 } \right) } { x _ { 3 } - x _ { 1 } } { \leq } { f _ { - } } ^ { \prime } \left( x _ { 5 } \right)$ . 因为
-$\frac { f \left( x _ { 3 } \right) - f \left( x _ { 1 } \right) } { x _ { 3 } - x _ { 1 } } < \frac { f \left( x _ { 5 } \right) - f \left( x _ { 3 } \right) } { x _ { 5 } - x _ { 3 } }$ f  x1  f  x5    .由 1 5 x , x 的任意性，可得 f   x  在 ${ f _ { \mathrm { + } } ^ { \prime } } \left( x _ { 1 } \right) \le { f _ { \mathrm { - } } ^ { \prime } } \left( x _ { 5 } \right)$ $x _ { 1 } , x _ { 5 }$ $f ^ { \prime } ( x )$
+( ) ( ) ( )3 1f x f xf x -≤ ≥ ≥ $f _ { + } ^ { ^ { \prime } } \left( x _ { 1 } \right) \leq \frac { f \left( x _ { 3 } \right) - f \left( x _ { 1 } \right) } { x _ { 3 } - x _ { 1 } } { \leq f _ { - } ^ { ^ { \prime } } \left( x _ { 3 } \right) }$ ，同 理可 得 ${ f _ { + } } ^ { \prime } \left( x _ { 3 } \right) \leq \frac { f \left( x _ { 3 } \right) - f \left( x _ { 1 } \right) } { x _ { 3 } - x _ { 1 } } { \leq } { f _ { - } } ^ { \prime } \left( x _ { 5 } \right)$ . 因为
+$\frac { f \left( x _ { 3 } \right) - f \left( x _ { 1 } \right) } { x _ { 3 } - x _ { 1 } } < \frac { f \left( x _ { 5 } \right) - f \left( x _ { 3 } \right) } { x _ { 5 } - x _ { 3 } }$ f+ ( x1 ) f- ( x5 )≤ ≥ ≤ .由 1 5 x , x 的任意性，可得 f ≤ ( x ) 在 ${ f _ { \mathrm { + } } ^ { \prime } } \left( x _ { 1 } \right) \le { f _ { \mathrm { - } } ^ { \prime } } \left( x _ { 5 } \right)$ $x _ { 1 } , x _ { 5 }$ $f ^ { \prime } ( x )$
 $\scriptstyle ( a , b )$ 内严格单调递增，充分性得证。
-再证必要性，即已知 f  x 单调递增，在 x1 , x2 , x2 , x3  上分别使用拉格朗日中值定理， $f ^ { \prime } ( x )$ $\left[ x _ { 1 } , x _ { 2 } \right] , \left[ x _ { 2 } , x _ { 3 } \right]$ 知存在 $\xi _ { 1 } \in { \left( x _ { 1 } , x _ { 2 } \right) } , \xi _ { 2 } \in { \left( x _ { 2 } , x _ { 3 } \right) }$ ，使
+再证必要性，即已知 f ≤( x) 单调递增，在[ x1 , x2 ],[ x2 , x3 ] 上分别使用拉格朗日中值定理， $f ^ { \prime } ( x )$ $\left[ x _ { 1 } , x _ { 2 } \right] , \left[ x _ { 2 } , x _ { 3 } \right]$ 知存在 $\xi _ { 1 } \in { \left( x _ { 1 } , x _ { 2 } \right) } , \xi _ { 2 } \in { \left( x _ { 2 } , x _ { 3 } \right) }$ ，使
 
 $$
 f ^ {\prime} \left(\xi_ {1}\right) = \frac {f \left(x _ {2}\right) - f \left(x _ {1}\right)}{x _ {2} - x _ {1}}, \quad f ^ {\prime} \left(\xi_ {2}\right) = \frac {f \left(x _ {3}\right) - f \left(x _ {2}\right)}{x _ {3} - x _ {2}},
 $$
 
-又由 f   x  单调递增，且 1 2    知， f 1   f 2  ，即 $f ^ { \prime } ( x )$ $\xi _ { 1 } < \xi _ { 2 }$ $f ^ { \prime } { \left( { \boldsymbol { \xi } } _ { 1 } \right) } < f ^ { \prime } { \left( { \boldsymbol { \xi } } _ { 2 } \right) }$
+又由 f ≤ ( x ) 单调递增，且 1 2 x < x 知， f ≤(x1 ) < f ≤(x2 ) ，即 $f ^ { \prime } ( x )$ $\xi _ { 1 } < \xi _ { 2 }$ $f ^ { \prime } { \left( { \boldsymbol { \xi } } _ { 1 } \right) } < f ^ { \prime } { \left( { \boldsymbol { \xi } } _ { 2 } \right) }$
 
 $$
 \frac {f \left(x _ {2}\right) - f \left(x _ {1}\right)}{x _ {2} - x _ {1}} <   \frac {f \left(x _ {3}\right) - f \left(x _ {2}\right)}{x _ {3} - x _ {2}}, \text {必 要 性 得 证 。}
@@ -418,14 +418,14 @@ $$
 
 20.（本题满分 10分）
 
-x t  ,设 $\varSigma$ 是由直线 $\left\{ { \begin{array} { l } { x = 0 , } \\ { y = 0 } \end{array} } \right.$ 绕直线 t为参数y t   , 旋转一周得到的曲面， $\textstyle { \sum _ { 1 } }$ 是 $\varSigma$ 介于平面z t 
+x t = ,设 $\varSigma$ 是由直线 $\left\{ { \begin{array} { l } { x = 0 , } \\ { y = 0 } \end{array} } \right.$ 绕直线 (t为参数)y t  = , 旋转一周得到的曲面， $\textstyle { \sum _ { 1 } }$ 是 $\varSigma$ 介于平面z t =
 $x + y + z = 0$ 与平面 $x + y + z = 1$ 之间部分的外侧，计算曲面侧积分
 
 $$
 I = \iint_ {\Sigma_ {1}} x \mathrm {d} y \mathrm {d} z + (y + 1) \mathrm {d} z \mathrm {d} x + (z + 2) \mathrm {d} x \mathrm {d} y.
 $$
 
-解：由题意可知直线 $\left\{ { \begin{array} { l } { x = 0 } \\ { y = 0 } \end{array} } \right.$ 0y  记为 $l _ { 1 }$ ； $\left\{ \begin{array} { l } { x = t } \\ { y = t } \\ { z = t } \end{array} \right.$ , 记为 $l _ { 2 }$ ，则直 线 $l _ { 1 }$ 绕直 线 $l _ { 2 }$ 旋转 所得 曲
+解：由题意可知直线 $\left\{ { \begin{array} { l } { x = 0 } \\ { y = 0 } \end{array} } \right.$ 0y = 记为 $l _ { 1 }$ ； $\left\{ \begin{array} { l } { x = t } \\ { y = t } \\ { z = t } \end{array} \right.$ , 记为 $l _ { 2 }$ ，则直 线 $l _ { 1 }$ 绕直 线 $l _ { 2 }$ 旋转 所得 曲
 面 $\Sigma$ 为 $\left( x - t \right) ^ { 2 } + \left( y - t \right) ^ { 2 } + \left( z - t \right) ^ { 2 } = 3 t ^ { 2 }$ 。已知 $\Sigma _ { 1 }$ 是 $\Sigma$ 介于平面 $x + y + z = 0$ 和平面$x + y + z = 1$ 之间的外侧，则补面 $\Sigma _ { 0 } : x + y + z = 1$ ，方向指向外侧。则 $\Sigma _ { 0 }$ 与 $\Sigma _ { 1 }$ 所围为封闭区域，则由高斯公式可知
 
 $$
