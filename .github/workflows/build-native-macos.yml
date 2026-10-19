@@ -27,6 +27,7 @@ jobs:
       - name: Build swsml cdylib
         run: |
           set -euo pipefail
+          REPO="${GITHUB_WORKSPACE}"
           cd /tmp/sml-src/rust
           cargo build --release -p swsml
           LIB="$(find /tmp/sml-src -type f -name 'libsml.dylib' | head -1)"
@@ -35,11 +36,11 @@ jobs:
             find /tmp/sml-src -type f \( -name '*.dylib' -o -name '*.so' -o -name '*.dll' \) | head -50
             exit 1
           fi
-          mkdir -p engine/native
-          cp "$LIB" engine/native/libsml.dylib
-          shasum -a 256 engine/native/libsml.dylib | tee engine/native/libsml.dylib.sha256
-          file engine/native/libsml.dylib
-          ls -l engine/native/
+          mkdir -p "$REPO/engine/native"
+          cp "$LIB" "$REPO/engine/native/libsml.dylib"
+          shasum -a 256 "$REPO/engine/native/libsml.dylib" | tee "$REPO/engine/native/libsml.dylib.sha256"
+          file "$REPO/engine/native/libsml.dylib"
+          ls -l "$REPO/engine/native/"
 
       - name: Upload dylib
         uses: actions/upload-artifact@v4
