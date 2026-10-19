@@ -45,7 +45,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 /* 安全网：任何破栏元素最多被裁掉一点，绝不产生横向滚动条 */
-html { overflow-x: clip; -webkit-text-size-adjust: 100%; }
+html { overflow-x: clip; -webkit-text-size-adjust: 100%; scroll-padding-top: 4.5rem; }
 
 body {
   margin: 0;

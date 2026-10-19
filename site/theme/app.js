@@ -2111,9 +2111,21 @@
     });
   }
 
-  function scrollToId(id) {
+  function scrollToId(id, tries) {
+    tries = tries || 0;
     var t = document.getElementById ? document.getElementById(id) : null;
-    if (t && typeof t.scrollIntoView === 'function') t.scrollIntoView();
+    if (!t) {
+      /* 视图函数在 fragment 被 append 之前就调用了这里；等下一轮再找 */
+      if (tries < 5 && typeof setTimeout === 'function') {
+        setTimeout(function () { scrollToId(id, tries + 1); }, 0);
+      }
+      return;
+    }
+    /* sticky 顶栏会盖住标题：用顶栏实际高度做偏移，而不是裸 scrollIntoView() */
+    var bar = document.querySelector ? document.querySelector('.topbar') : null;
+    var offset = (bar && bar.offsetHeight ? bar.offsetHeight : 48) + 12;
+    var y = t.getBoundingClientRect().top + (window.pageYOffset || 0) - offset;
+    if (window.scrollTo) window.scrollTo(0, y > 0 ? y : 0);
   }
 
   function setForm(form) {
