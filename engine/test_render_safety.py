@@ -200,6 +200,9 @@ _html, _ = md.render("坏公式 $\\frac{a$ 不炸\n")
 case("坏公式回退不抛异常", "<p>" in _html, _html[:200])
 _html, _ = md.render("$\\textcircled{1}\\textcircled{2}$\n")
 case("textcircled 宏转成圈号", "①" in _html and "②" in _html and "textcircled" not in _html, _html[:200])
+_html, _ = md.render("$\\Big \\{ x \\Big \\} \\Big \\vert y \\displaylimits$\n")
+case("Big 定界符/displaylimits 归一化",
+     "\\Big" not in _html and "\\vert" not in _html and "\\displaylimits" not in _html, _html[:300])
 
 # --------------------------------------------------------- 4. --out 守卫
 def test_out_guard():

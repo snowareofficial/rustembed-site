@@ -39,6 +39,13 @@ def _normalize_macros(expr):
 
     expr = re.sub(r"\\textcircled\s*\{\s*([^{}]+?)\s*\}", braced, expr)
     expr = re.sub(r"\\textcircled\s*([0-9A-Za-z])", bare, expr)
+    # latex2mathml 对 \displaylimits 和「尺寸命令 + 定界符」支持不完整，先归一化
+    expr = re.sub(r"\\displaylimits(?![A-Za-z])", "", expr)
+    expr = re.sub(
+        r"\\(?:Bigg|bigg|Big|big|Bigl|bigl|Bigr|bigr|Biggl|biggl|Biggr|biggr)\s*(?=\\|[\(\)\[\]\{\}\|])",
+        "",
+        expr,
+    )
     return expr
 
 
