@@ -17,11 +17,13 @@
   var NAV_LABEL = {
     home: '首页',
     library: '文章库', knowledge: '文章知识', topics: '主题词条', projects: '项目',
-    resources: '资源', members: '成员', services: '能力与合作', weekly: '周报',
+    resources: '资源', members: '成员', services: '技术互助', weekly: '周报',
     pages: '站文档', join: '加入我们'
   };
   var CONTACT_LABEL = { blog: '博客', homepage: '主页', github: 'GitHub', gitee: 'Gitee', email: '邮箱' };
   var STATUS_LABEL = { active: '进行中', wip: '开发中', archived: '已归档', paused: '暂停' };
+  /* 技术互助条目的状态词：与项目那套（进行中/开发中…）不是一回事，单独一张表 */
+  var SERVICE_STATUS_LABEL = { active: '可协作', paused: '暂缓' };
   var KIND_LABEL = { book: '书', tutorial: '教程', tool: '工具', video: '视频', course: '课程', route: '路线' };
   /* 文章形态：只由真实内容（标签 / 是否有图集）决定，推断不出就是阅读型 */
   var FORM_BY_TAG = {
@@ -161,7 +163,7 @@
       }
       if (count === 0) nav.appendChild(el('p', 'muted', '本页没有分节标题。'));
     }
-    /* 没有分节标题的页面（项目/成员/黄页/索引…）：告诉 CSS 左栏不必占位 */
+    /* 没有分节标题的页面（项目/成员/互助/索引…）：告诉 CSS 左栏不必占位 */
     if (document.body && document.body.setAttribute) {
       document.body.setAttribute('data-toc', (S.toc && S.toc.length) ? 'yes' : 'none');
     }
@@ -364,8 +366,9 @@
     return p;
   }
 
-  function statusBadge(v) {
-    return el('span', 'status ' + String(v || ''), STATUS_LABEL[v] || String(v || '—'));
+  function statusBadge(v, map) {
+    var M = map || STATUS_LABEL;
+    return el('span', 'status ' + String(v || ''), M[v] || String(v || '—'));
   }
 
   function kv(pairs) {
@@ -425,7 +428,7 @@
       if (pr.owner === m.id || (pr.contributors || []).indexOf(m.id) >= 0) npr++;
     }
     for (i2 = 0; i2 < (services || []).length; i2++) { if (services[i2].owner === m.id) ns++; }
-    body.appendChild(el('p', 'p-nums', '文章 ' + np + ' · 项目 ' + npr + ' · 黄页 ' + ns +
+    body.appendChild(el('p', 'p-nums', '文章 ' + np + ' · 项目 ' + npr + ' · 互助 ' + ns +
       (m.joined ? ' · 加入 ' + m.joined : '')));
     c.appendChild(body);
     return c;
@@ -600,7 +603,7 @@
       library: '按年份浏览全部文章', knowledge: '系列 / 标签 / 作者索引',
       topics: '主题词条与关系图', projects: '仓库元数据与活跃度比较',
       resources: '书 / 教程 / 工具 / 视频', members: '成员档案与作品',
-      services: '能力与合作黄页', weekly: '周报 / 月刊',
+      services: '技术互助', weekly: '周报 / 月刊',
       pages: '制度与写作文档', join: '加入 QQ 群'
     };
     var cards = el('div', 'nav-cards');
@@ -1140,11 +1143,11 @@
     h.appendChild(lnk('#/service/' + s.id, s.name));
     d.appendChild(h);
     var l1 = el('p', 'svc-line');
-    l1.appendChild(el('b', '', '能做什么'));
+    l1.appendChild(el('b', '', '能帮上什么'));
     l1.appendChild(document.createTextNode((s.skills || []).join('、')));
     d.appendChild(l1);
     var l2 = el('p', 'svc-line');
-    l2.appendChild(el('b', '', '想找什么'));
+    l2.appendChild(el('b', '', '想一起做什么'));
     l2.appendChild(document.createTextNode((s.wants || []).join('、') || '（未填写）'));
     d.appendChild(l2);
     var l3 = el('p', 'svc-line');
@@ -1158,7 +1161,7 @@
     l3.appendChild(document.createTextNode(ways.length ? ways.join(' / ') : '见条目内页'));
     d.appendChild(l3);
     var meta = el('p', 'row-tags');
-    meta.appendChild(statusBadge(s.status));
+    meta.appendChild(statusBadge(s.status, SERVICE_STATUS_LABEL));
     meta.appendChild(document.createTextNode(' · '));
     if (mem) meta.appendChild(lnk('#/member/' + mem.id, mem.name));
     meta.appendChild(document.createTextNode(' · 更新 ' + (s.updated || '—')));
@@ -1168,9 +1171,10 @@
 
   function viewServices() {
     var m = S.man;
-    var head = pageHead('扫读', '能力与合作', '每条固定三段式：能做什么 / 想找什么 / 怎么联系。');
+    var head = pageHead('扫读', '技术互助',
+      '这里只做技术互助与能力互补，不涉及设备买卖、报价与商务对接。');
     var f = filterable(head, m.services || [], {
-      placeholder: '按名称 / 技能 / 想找的内容 / 登记人过滤',
+      placeholder: '按名称 / 技能 / 想一起做的内容 / 登记人过滤',
       empty: '没有匹配的条目。',
       match: function (s, q) {
         var mem = byId(m.members, s.owner);
@@ -1180,7 +1184,7 @@
       render: function (s) { return serviceRow(s, m); }
     });
     f.appendChild(el('p', 'disc',
-      '黄页只做信息展示：不参与交易、不担保、不抽成、不经手资金、不介入纠纷；条目由本人提供并自负其责。'));
+      '技术互助只展示信息：不参与交易、不担保结果、不抽成、不经手资金、不介入纠纷；条目由本人提供并自负其责。'));
     setToc([], '', 'map.svg');
     return Promise.resolve(f);
   }
@@ -1425,7 +1429,7 @@
         if (!low || hay.indexOf(low) >= 0) hits.push(it);
       }
 
-      var TYPES = ['文章', '项目', '成员', '词条', '黄页', '资源', '周报', '文档'];
+      var TYPES = ['文章', '项目', '成员', '词条', '互助', '资源', '周报', '文档'];
       var counts = {};
       for (var hi = 0; hi < hits.length; hi++) {
         var ty = hits[hi].type || '其他';
@@ -1799,7 +1803,7 @@
       if (m.services[si2].owner === mem.id) svcs.push(m.services[si2]);
     }
     if (svcs.length) {
-      f.appendChild(el('p', 'section-h', '能力与合作'));
+      f.appendChild(el('p', 'section-h', '技术互助'));
       var ul3 = el('ul');
       for (var si3 = 0; si3 < svcs.length; si3++) {
         var li3 = el('li');
@@ -1835,15 +1839,15 @@
     var s = byId(m.services, id);
     var f = document.createDocumentFragment();
     if (!s) {
-      f.appendChild(el('h1', '', '没有这条黄页'));
+      f.appendChild(el('h1', '', '没有这条互助'));
       setToc([], '', '');
       return Promise.resolve(f);
     }
     var mem = byId(m.members, s.owner);
-    f.appendChild(crumb([['能力与合作', '#/services'], [s.name, '']]));
+    f.appendChild(crumb([['技术互助', '#/services'], [s.name, '']]));
     var h = el('h1');
     h.appendChild(document.createTextNode(s.name + ' '));
-    h.appendChild(statusBadge(s.status));
+    h.appendChild(statusBadge(s.status, SERVICE_STATUS_LABEL));
     f.appendChild(h);
 
     var who = el('p', 'row-tags');
@@ -1853,12 +1857,11 @@
     who.appendChild(document.createTextNode(' · 更新 ' + (s.updated || '—')));
     f.appendChild(who);
 
-    f.appendChild(el('p', 'lede', (s.skills || []).join('、')));
+    f.appendChild(el('p', 'section-h', '能帮上什么'));
+    f.appendChild(el('p', 'lede', (s.skills || []).join('、') || '（未填写）'));
     if ((s.wants || []).length) {
-      var w = el('p');
-      w.appendChild(el('b', '', '想找：'));
-      w.appendChild(document.createTextNode((s.wants || []).join('、')));
-      f.appendChild(w);
+      f.appendChild(el('p', 'section-h', '想一起做什么'));
+      f.appendChild(el('p', '', (s.wants || []).join('、')));
     }
 
     return proseFragment(s.html).then(function (prose) {
@@ -1867,7 +1870,7 @@
       /* 「怎么联系」面板：右栏被站点导航占用（§2 硬约束），这里放在正文之后 */
       f.appendChild(el('p', 'section-h', '怎么联系'));
       var pairs = [['登记人', mem ? mem.name : s.owner, mem ? '#/member/' + mem.id : '']];
-      if (s.rate) pairs.push(['费用 / 方式', s.rate]);
+      if (s.rate) pairs.push(['协作方式（不谈价格）', s.rate]);
       for (var ci = 0; ci < (s.contact || []).length; ci++) {
         var key = s.contact[ci];
         var val = mem && mem.links ? mem.links[key] : '';
@@ -1876,8 +1879,7 @@
       var info = kv(pairs);
       if (info) f.appendChild(info);
       f.appendChild(el('p', 'disc',
-        '本站只做信息展示，不参与交易、不担保、不抽成、不经手资金、不介入纠纷；' +
-        '联系方式仅引用成员档案中本人授权公开的字段。'));
+        '本站只展示这条信息：不参与交易、不担保结果、不抽成、不经手资金、不介入纠纷。'));
 
       setToc(s.toc, 'service/' + s.id, s.map);
       if (anchor) scrollToId(anchor);
@@ -2183,6 +2185,14 @@
     var foot = $('#footer');
     if (!foot) return;
     var m = S.man;
+    /* 授权分层声明是构建期注入的静态 span（id 以 license-notice 开头），
+     * JS 只重画链接行，不清它——否则干净构建里这三行会被 clear() 抹掉。 */
+    var keep = [];
+    var kids = foot.children || [];
+    for (var ki = 0; ki < kids.length; ki++) {
+      var c = kids[ki];
+      if (c && c.id && c.id.indexOf('license-notice') === 0) keep.push(c);
+    }
     clear(foot);
     foot.appendChild(el('span', '', '构建于 ' + String(m.built_at || '').slice(0, 10)));
     var rss = lnk('feed.xml', 'RSS'); foot.appendChild(rss);
@@ -2195,6 +2205,7 @@
     credit.appendChild(el('span', '', ' & '));
     credit.appendChild(outLink('https://sml.swebase.cn', 'SML'));
     foot.appendChild(credit);
+    for (var kj = 0; kj < keep.length; kj++) foot.appendChild(keep[kj]);
   }
 
   function render() {

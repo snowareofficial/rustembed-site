@@ -33,7 +33,7 @@ rec-blog/
 │  │  ├─ pages/<name>.sml        #   站文档：group + order 决定文档树
 │  │  ├─ topics/<id>.(md|sml)    #   主题词条：同标签文章自动归入
 │  │  ├─ members/<id>.sml        #   成员档案（同目录 <id>.jpg 自动作头像）
-│  │  ├─ services/<id>.sml       #   能力与合作黄页（纯展示）
+│  │  ├─ services/<id>.sml       #   技术互助（纯展示）
 │  │  ├─ projects/<id>.sml       #   项目（构建期抓仓库元数据）
 │  │  ├─ resources/<id>.sml      #   资源库
 │  │  ├─ weekly/YYYY-Wnn.sml     #   周报 / 月刊
@@ -173,7 +173,7 @@ rec-blog/
 
 - 生成器：`engine/lib/mindmap.py`（整齐树布局：子树高度定 y、列宽定 x、贝塞尔连线）
 - 产物：`dist/map.svg`、文章 `dist/p/<slug>.map.svg`（front matter 写 `map: true` 才生成，默认关）、
-  词条 `dist/topics/<id>.map.svg`、黄页 `dist/services/<id>.map.svg`、
+  词条 `dist/topics/<id>.map.svg`、技术互助 `dist/services/<id>.map.svg`、
   周报/文档页 `dist/w/<id>.map.svg` / `dist/pages/<id>.map.svg`（含自动生成的契约页）
 - 交互：节点包 `<a href="#/...">`，点击走 hash 路由；侧栏「目录 / 导图」切换，SVG 内联注入后锚点生效
 - 文章导图锚点为 `#/post/<slug>/<anchor>`，直接跳到对应章节

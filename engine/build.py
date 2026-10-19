@@ -67,15 +67,28 @@ REQ = {
     "site": ["title"],
 }
 
-# 黄页条目固定尾部：性质声明 + 免责声明。纯展示，不交易、不担保、不抽成、
+# 技术互助条目固定尾部：性质声明 + 免责声明。纯展示，不交易、不担保、不抽成、
 # 不经手资金、不介入纠纷；条目由 owner 本人提供并自负其责，本站不背书。
 SERVICE_DISCLAIMER = (
-    '<aside class="admonition warn"><p><strong>免责声明</strong>：本站只做信息展示，'
-    '不参与交易、不担保、不抽成、不经手资金、不介入纠纷。'
-    '本条黄页信息由成员本人提供并自负其责，不代表本站对任何个人或服务的认可或背书；'
-    '是否合作、如何合作、如何结算，请自行判断并在站外约定。'
+    '<aside class="admonition warn"><p><strong>免责声明</strong>：本站只展示这条信息：'
+    '不参与交易、不担保结果、不抽成、不经手资金、不介入纠纷。'
+    '本条互助信息由成员本人提供并自负其责，不代表本站对任何个人或服务的认可或背书；'
+    '是否协作、如何协作，请自行判断并在站外约定。'
     '联系方式仅引用成员档案中本人授权公开的字段，本站不代收任何新联系方式。'
     '条目内容按站点默认许可 CC BY-NC-SA 4.0（非商业）发布。</p></aside>\n')
+
+# 页脚授权分层声明（三行，原文见 docs/TECH-MUTUAL-AID.md §2）：
+# 文章/词条/知识库的许可、成员档案信息的归属与边界、本站不背书。
+# 由 inject_shell 注入 index.html 的 <footer id="footer">（JS 只重画链接，不动这三个 span），
+# 并进 site_text() 让字体子集收齐这些字。
+LICENSE_NOTICE = (
+    '<span id="license-notice">本站文章、词条与知识库内容默认采用 CC BY-NC-SA 4.0，禁止商业性使用。</span>\n'
+    '        <span id="license-notice-members">成员档案页的自我介绍、照片与能力信息由成员本人提供，'
+    '版权归成员本人，本站经授权展示；这些信息仅用于技术协作联系，未经本人同意，'
+    '不得用于商业招揽、打包售卖或对外培训。购买成员的服务，不等于获得其在本站发表内容的商业授权。</span>\n'
+    '        <span id="license-notice-site">本站只做技术互助展示，不参与交易撮合、资金托管与交付担保，'
+    '不对合作结果背书。</span>\n')
+FOOTER_TAG = '<footer class="footer" id="footer"></footer>'
 
 
 def now_iso():
@@ -675,7 +688,7 @@ def build_topics(rep):
 
 
 def build_services(rep, members):
-    """能力与合作黄页：成员自愿登记的纯展示条目。
+    """技术互助：成员自愿登记的纯展示条目。
 
     不变量（与 check.py 对齐）：每条必须有 owner 且 owner 必须是已建档成员；
     contact 只能引用该成员 links 里已公开的字段，不新收集个人信息。
@@ -852,6 +865,8 @@ def site_text(manifest, bodies=()):
     for f in sorted(THEME.glob("*")):
         if f.suffix.lower() in (".js", ".css", ".html"):
             parts.append(f.read_text(encoding="utf-8", errors="replace"))
+    # 页脚授权声明由构建期注入 index.html，不在 theme 源文件里，这里显式补上
+    parts.append(LICENSE_NOTICE)
     return "".join(parts)
 
 
@@ -1010,7 +1025,7 @@ def inject_head(rep, out, manifest, avatar, fonts_css=""):
 
 NAV_LABEL = {
     "library": "文章库", "knowledge": "文章知识", "topics": "主题词条", "projects": "项目",
-    "resources": "资源", "members": "成员", "services": "能力与合作", "weekly": "周报",
+    "resources": "资源", "members": "成员", "services": "技术互助", "weekly": "周报",
     "pages": "站文档", "join": "加入我们",
 }
 
@@ -1033,7 +1048,7 @@ def inject_shell(rep, out, manifest, posts):
         "library": "按年份浏览全部文章", "knowledge": "系列 / 标签 / 作者索引",
         "topics": "主题词条与关系图", "projects": "仓库元数据与活跃度比较",
         "resources": "书 / 教程 / 工具 / 视频", "members": "成员档案与作品",
-        "services": "能力与合作黄页", "weekly": "周报 / 月刊",
+        "services": "技术互助", "weekly": "周报 / 月刊",
         "pages": "制度与写作文档", "join": "加入 QQ 群",
     }
     NAV_ICON = {
@@ -1100,6 +1115,13 @@ def inject_shell(rep, out, manifest, posts):
     html = idx.read_text(encoding="utf-8")
     html = html.replace("<!--BUILD:NAV-->", nav_html)
     html = html.replace("<!--BUILD:FIRST-->", "".join(first))
+    # 页脚授权分层声明（三行）：静态注入，JS 起来后也保留（app.js 的 buildFooter 不清它）
+    if FOOTER_TAG in html:
+        html = html.replace(FOOTER_TAG,
+                            '<footer class="footer" id="footer">\n        ' + LICENSE_NOTICE
+                            + '</footer>')
+    else:
+        rep.warn("index.html", "页脚占位没找到（主题的 footer 结构变了？），授权声明未注入")
     html = re.sub(r'(<span id="brand-title">)[^<]*(</span>)',
                   lambda m: m.group(1) + esc(site.get("title", "")) + m.group(2), html)
     if "<!--BUILD:NAV-->" in html or "<!--BUILD:FIRST-->" in html:
@@ -1177,7 +1199,7 @@ def _run(args):
     print("-- 主题词条")
     topics = build_topics(rep)
     print("   %d 条" % len(topics))
-    print("-- 能力与合作")
+    print("-- 技术互助")
     services = build_services(rep, members)
     print("   %d 条" % len(services))
     print("-- 资源 / 周报 / 文档页")
@@ -1305,7 +1327,7 @@ def _run(args):
         site_map["children"].append({"label": "成员", "children": [
             {"label": m["name"], "href": "#/member/" + m["id"], "children": []} for m in members]})
     if services:
-        site_map["children"].append({"label": "能力与合作", "children": [
+        site_map["children"].append({"label": "技术互助", "children": [
             {"label": s["name"], "href": "#/service/" + s["id"], "children": []} for s in services]})
     if resources:
         site_map["children"].append({"label": "资源", "href": "#/resources", "children": [
@@ -1395,7 +1417,7 @@ def _run(args):
                        "tags": m["skills"], "url": "#/member/" + m["id"],
                        "text": " ".join([m["signature"]] + (m["skills"] or []))})
     for s in services:
-        search.append({"type": "黄页", "title": s["name"], "summary": " / ".join(s["skills"]),
+        search.append({"type": "互助", "title": s["name"], "summary": " / ".join(s["skills"]),
                        "tags": s["skills"] + s["wants"],
                        "url": "#/service/" + s["id"], "text": s["text"]})
     for r in resources:
@@ -1463,7 +1485,7 @@ def _run(args):
     for mem in members:
         L.append("- %s（%s）%s" % (mem["name"], mem["role"], mem["signature"]))
     L.append("")
-    L.append("## 能力与合作（黄页，仅信息展示：不交易、不担保、不抽成、不经手资金、不介入纠纷）")
+    L.append("## 技术互助（仅信息展示：不交易、不担保、不抽成、不经手资金、不介入纠纷）")
     for s in services:
         extra = ("；想找：" + "、".join(s["wants"])) if s["wants"] else ""
         rate = ("；" + s["rate"]) if s["rate"] else ""
@@ -1601,7 +1623,7 @@ def _run(args):
     if rep.errors and not args.warn_only:
         print("构建失败：%d 个错误" % len(rep.errors))
         return 1
-    print("产物：%s（文章 %d / 项目 %d / 成员 %d / 黄页 %d）" % (out, len(posts), len(projects), len(members), len(services)))
+    print("产物：%s（文章 %d / 项目 %d / 成员 %d / 互助 %d）" % (out, len(posts), len(projects), len(members), len(services)))
     return 0
 
 
