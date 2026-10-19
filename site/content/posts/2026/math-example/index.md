@@ -65,9 +65,7 @@ $$
 $$
 
 $\sum _ { n = 1 } ^ { \infty } { \frac { 1 } { n } }$ ： $\sum _ { n = 1 } ^ { \infty } \sin \frac { n ^ { 3 } \pi } { n ^ { 2 } + 1 }$
-
 sin $\begin{array} { r } { { \frac { ( n ^ { 3 } \pi ) } { n + 1 } } = ( - 1 ) ^ { n } \sin \left( { \frac { n ^ { 3 } \pi } { n ^ { 2 } + 1 } } - n \pi \right) = ( - 1 ) ^ { n } \sin { \frac { n } { n ^ { 2 } + 1 } } \pi } \end{array}$ (²-nπ）=（-1）sin ，为交错级数
-
 $\sum _ { n = 1 } ^ { \infty } \sin \frac { n ^ { 3 } \pi } { n ^ { 2 } + 1 }$ 8 $s i n { \frac { n } { n ^ { 2 } + 1 } } \pi$
 
 $$
@@ -95,13 +93,9 @@ D．当 $\operatorname* { l i m } _ { x \to + \infty } f ( x )$ 存在时， $\o
 【解析】A错误，反例：
 
 $f ( x ) = { \frac { \sin x ^ { 2 } } { x } } , \operatorname* { l i m } _ { x \to + \infty } f ( x ) = 0 , { \mathrm { ~ } } { \mathrm { / } } \operatorname* { l i m } _ { x \to + \infty } f ^ { \prime } ( x ) = \operatorname* { l i m } _ { x \to + \infty } { \frac { 2 x ^ { 2 } \cos x ^ { 2 } - \sin x ^ { 2 } } { x ^ { 2 } } } ,$ $f ( x ) = { \frac { \sin x ^ { 2 } } { x } } , \operatorname* { l i m } _ { x  + \infty } f ( x ) = 0$ $\operatorname* { l i m } _ { x \to + \infty } f ^ { \prime } ( x ) = \operatorname* { l i m } _ { x \to + \infty } { \frac { 2 x ^ { 2 } \cos x ^ { 2 } - \sin x ^ { 2 } } { x ^ { 2 } } }$ 极限不存在.
-
 B错误，反例： $f ( x ) = { \sqrt { x } } , f ^ { \prime } ( x ) = { \frac { 1 } { 2 { \sqrt { x } } } } , \operatorname* { l i m } _ { x  + \infty } f ^ { \prime } ( x ) = 0 ,$ ,  极限 存在 ，但 $\operatorname* { l i m } _ { x \to + \infty } f ( x )$ 极限不存在.
-
 C错误，反例:
-
 $f ( x ) = \cos x .$ 则 $\operatorname* { l i m } _ { x \to + \infty } { \frac { \int _ { 0 } ^ { x } f ( t ) \mathrm { d } t } { x } } = \operatorname* { l i m } _ { x \to + \infty } { \frac { \sin x } { x } }$ 存在，但 $\operatorname* { l i m } _ { x \to + \infty } f ( x ) = \operatorname* { l i m } _ { x \to + \infty } \cos x$ 不存在.
-
 D正确，用 $\operatorname* { l i m } _ { x \to + \infty } { \frac { \int _ { 0 } ^ { x } f ( t ) \mathrm { d } t } { x } } { = } \operatorname* { l i m } _ { x \to + \infty } { \frac { f ( x ) } { 1 } } { = } \mathrm { A }$ ，故 选 $\mathrm { D }$ .
 
 4．设函数 $f ( x , y )$ 连续，则 $\int _ { - 2 } ^ { 2 } \mathrm { d } x \int _ { 4 - x ^ { 2 } } ^ { 4 } f \big ( x , y \big ) \mathrm { d } y =$
@@ -115,11 +109,8 @@ D．  4 20 42 d , dyy f x y x   ．
 
 【解析】由题易知，此二重积分积分区域为
 
-
 $\mathrm { D } = \left\{ ( x , y ) { \big | } 4 - x ^ { 2 } \leq y \leq 4 , - 2 \leq x \leq 2 \right\}$ ，对应图像为上图所示。
-
 记 $\mathrm D _ { 1 } = \Big \{ ( x , y ) \Big | 4 - x ^ { 2 } \leq y \leq 4 , - 2 \leq x \leq 0 \Big \} , \mathrm D _ { 2 } = \Big \{ ( x , y ) \Big | 4 - x ^ { 2 } \leq y \leq 4 , 0 \leq x \leq 2 \Big \} \ \qquad \mathrm { ~ f ~ o ~ r ~ } \ \qquad \mathrm { ~ f ~ o ~ r ~ } \ \qquad \mathrm { ~ f ~ o ~ r ~ } \ \qquad \mathrm { ~ f ~ o ~ r ~ } \ \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \mathrm { ~ f ~ o ~ r ~ } \qquad \qquad \mathrm { ~ f ~ o ~ r ~ o ~ r ~ } \qquad \qquad \mathrm { ~ f ~ o ~ r ~ }$ ${ \mathrm { D } } _ { 2 } = \left\{ ( x , y ) { \left| 4 - x ^ { 2 } \leq y \leq 4 , 0 \leq x \leq 2 \right. } \right\}$ ， 且
-
 ${ \mathrm { I } } { = } \int _ { - 2 } ^ { 2 } \mathrm { d } x \int _ { 4 - x ^ { 2 } } ^ { 4 } f \left( x , y \right) \mathrm { d } y \ , \mathbb { M } { \mathrm { I } } = \int _ { D _ { 1 } } ^ { } f \left( x , y \right) \mathrm { d } \sigma + \int _ { D _ { 2 } } ^ { } f \left( x , y \right) \mathrm { d } \sigma$ $\mathbf { \Pi } [ = \int \intop _ { D _ { 1 } } f { \big ( } x , y { \big ) } \mathrm { d } \sigma + \intop _ { D _ { 2 } } f \left( x , y \right) \mathrm { d } \sigma$ ，交换积分次序得
 
 $$
@@ -233,7 +224,6 @@ A． $\frac { 1 } { \mathrm { e } ^ { 2 } }$
 B． 2 e
 
 3 C． 2
-
 4 D． 2e
 
 【答案】C
@@ -281,9 +271,7 @@ $$
 【解析】由题易知， ${ \frac { \partial u } { \partial x } } = y ^ { 2 } z ^ { 3 } , { \frac { \partial u } { \partial y } } = 2 x y z ^ { 3 } , { \frac { \partial u } { \partial z } } = 3 x y ^ { 2 } z ^ { 2 }$ =1,²7
 
 则在 $x = 1 , y = 1$ , $z = 1$ 处有 $\left( \frac { \partial u } { \partial x } , \frac { \partial u } { \partial y } , \frac { \partial u } { \partial z } \right) = ( 1 , 2 , 3 )$
-
 对于向量 $\vec { n } = ( 2 , 2 , - 1 )$ ，归一化可得 ${ \vec { n } } _ { 0 } = \left( { \frac { 2 } { 3 } } , { \frac { 2 } { 3 } } , - { \frac { 1 } { 3 } } \right)$
-
 故 $ \stackrel { \cdot } { \underset {  \{ \frac { \partial u } { \partial \tilde { n } } | _ { ( 1 , 1 , 1 ) } }  } { \chi }  = ( \frac { \hat { \alpha } u } { \hat { \alpha } x } , \frac { \hat { \alpha } u } { \hat { \alpha } y } , \frac { \hat { \alpha } u } { \hat { \alpha } z } ) \cdot \vec { n } _ { 0 } = ( 1 , 2 , 3 ) \cdot ( \frac { 2 } { 3 } , \frac { 2 } { 3 } , - \frac { 1 } { 3 } ) = 1 \cdot \frac { 2 } { 3 } + 2 \cdot \frac { 2 } { 3 } + 3 \cdot ( - \frac { 1 } { 3 } ) = 1$
 
 14. 已知有向曲线 $L$ 是沿抛物线 $y = 1 - x ^ { 2 }$ 从点 $( 1 , 0 )$ 到点 $( - 1 , 0 )$ 的一段，则曲线积分
@@ -297,11 +285,8 @@ $$
 【解析】由题易知可作曲线如右图所示.
 
 记 $L _ { 0 }$ 是从 $x = - 1$ 到 $x = 1$ 的直线,
-
 并记曲线积 $I = \int _ { L } ( y + \cos x ) d x + ( 2 x + \cos y ) d y$
-
 则在 $L _ { 0 }$ 与 $L$ 所围的封闭区域可用格林公式
-
 即 $I _ { 1 } = \oint _ { L _ { 0 } + L } ( y + \cos x ) d x + ( 2 x + \cos y ) d y$
 
 $$
@@ -317,7 +302,6 @@ $$
 【解析】由题知， $\begin{array} { r } { A = \left( \begin{array} { c c c } { 4 } & { 2 } & { - 3 } \\ { a } & { 3 } & { - 4 } \\ { b } & { 5 } & { - 7 } \end{array} \right) , } \end{array}$ ，若 $A ^ { 2 } x = 0$ 与 $A x = 0$ 同解 ，则 三秩 相同 ，即
 
 $r \left( A \right) = r \left( A ^ { 2 } \right) = r \left( \begin{array} { c } { { A } } \\ { { A ^ { 2 } } } \end{array} \right)$ 。如果 $A$ 可逆，三秩显然相同，则 $A ^ { 2 } x = 0$ 与 $A x = 0$ 同解，于是要想 $A ^ { 2 } x = 0$ 与 $A x = 0$ 不同解，即 $A$ 不可逆，于是 $\left| { \cal A } \right| = 0$ 。根据行列式的倍加性质易得
-
 
 $$
 \left| A \right| = \left| \left( \begin{array}{l l l} {4} & {2} & {- 3} \\ {a} & {3} & {- 4} \\ {b} & {5} & {- 7} \end{array} \right) \right| = \left| \left( \begin{array}{l l l} {4} & {2} & {- 1} \\ {a} & {3} & {- 1} \\ {b} & {5} & {- 2} \end{array} \right) \right| = \left| \left( \begin{array}{l l l} {4} & {0} & {- 1} \\ {a} & {1} & {- 1} \\ {b} & {1} & {- 2} \end{array} \right) \right| = 4 \left(- 2 + 1\right) - \left(a - b\right), \text {令} \left| A \right| = 0,
@@ -380,7 +364,6 @@ x ^ {2}   {\frac {\partial^ {2} g}{\partial x ^ {2}}} + x y   {\frac {\partial^ 
 $$
 
 解： 令 $u = \frac { x } { y }$ ,则 $\frac { \partial g } { \partial x } = f ^ { \prime } \bigl ( u \bigr ) \frac { 1 } { y } , \frac { \partial g } { \partial y } = f ^ { \prime } \bigl ( u \bigr ) \biggl ( - \frac { x } { y ^ { 2 } } \biggr )$
-
 又 $g \left( x , x \right) = f \left( \frac { x } { x } \right) = f \left( 1 \right) = 1 , \frac { \partial g } { \partial x } \Big \vert _ { ( x , x ) } = f ^ { \prime } \left( 1 \right) \frac { 1 } { x } = \frac { 2 } { x } ,$ $f ^ { \prime } ( 1 ) = 2$
 
 $$
@@ -388,9 +371,7 @@ $$
 $$
 
 将（1）（2）（3）代入 22 2gx   $x ^ { 2 } \frac { \partial ^ { 2 } g } { \partial x ^ { 2 } } + x y \frac { \partial ^ { 2 } g } { \partial x \partial y } + y ^ { 2 } \frac { \partial ^ { 2 } g } { \partial y ^ { 2 } } = 1$ 2y  化简得：x
-
    2 u f  u  uf  u  1 ，即    1f u f u   $u ^ { 2 } f ^ { \prime \prime } ( u ) + u f ^ { \prime } ( u ) = 1$ $f ^ { \prime \prime } { \bigl ( } u { \bigr ) } + { \frac { 1 } { u ^ { 2 } } } f ^ { \prime } { \bigl ( } u { \bigr ) } = { \frac { 1 } { u ^ { 2 } } } .$ 12
-
 令 $\mathbf { \nabla } ^ { \prime } p ^ { \prime } = f ^ { \prime } ( u )$ 则 $| p ^ { \prime } + \frac { 1 } { u } p ^ { \prime } = \frac { 1 } { u ^ { 2 } }$ 2 u
 
 $$
@@ -398,15 +379,12 @@ p = e ^ {- \int_ {u} ^ {\frac {1}{u}} d u} \left[ \int \frac {1}{u ^ {2}} e ^ {\
 $$
 
 又 $\left. p ^ { \prime } \right| _ { u = 1 } = C = 2$ ，故 $p = { \frac { \ln u } { u } } + { \frac { 2 } { u } }$
-
 因此 ， f ln u 2   ，积分得   lf u   $\frac { \partial f } { \partial u } = \frac { \ln u } { u } + \frac { 2 } { u }$ $f \left( u \right) = \int \left( \frac { \ln u } { u } + \frac { 2 } { u } \right) d u = \frac { 1 } { 2 } \ln ^ { 2 } u + 2 \ln u + C \ ,$ u u u
-
 又 $f ( 1 ) = C = 1$ ，故 $f { \bigl ( } u { \bigr ) } = { \frac { 1 } { 2 } } \ln ^ { 2 } u + 2 \ln u + 1$ 。
 
 # 19.（本题满分 10分）
 
 设函数 $f ( x )$ 在区间 $\left( a , b \right)$ 内可导.证明导函数 $f ^ { \prime } ( x )$ 在 $\left( a , b \right)$ 内严格单调增加的充分必要条件是:对 $\scriptstyle ( a , b )$ 内任意的 $x _ { 1 } , x _ { 2 } , x _ { 3 }$ ,当 $x _ { 1 } < x _ { 2 } < x _ { 3 }$ 时 $\frac { f \left( x _ { 2 } \right) - f \left( x _ { 1 } \right) } { x _ { 2 } - x _ { 1 } } < \frac { f \left( x _ { 3 } \right) - f \left( x _ { 2 } \right) } { x _ { 3 } - x _ { 2 } } .$
-
 解：充分性：若对 $( a , b )$ 内任意的 $x _ { 1 } , x _ { 2 } , x _ { 3 }$ ，当 $x _ { 1 } < x _ { 2 } < x _ { 3 }$ 时，都有
 
 $$
@@ -420,15 +398,10 @@ $$
 $$
 
 在 $\frac { f \left( x _ { 2 } \right) - f \left( x _ { 1 } \right) } { x _ { 2 } - x _ { 1 } } < \frac { f \left( x _ { 3 } \right) - f \left( x _ { 2 } \right) } { x _ { 3 } - x _ { 2 } }$ 两边同时令 2 1x x  ，得 $x _ { 2 }  { x _ { 1 } } ^ { + }$
-
 $f _ { + } ^ { ^ { \prime } } \left( x _ { 1 } \right) \leq \frac { f \left( x _ { 3 } \right) - f \left( x _ { 1 } \right) } { x _ { 3 } - x _ { 1 } }$ ，两边同时令 $x _ { 2 }  { x _ { 3 } } ^ { - }$ ，得 $\frac { f \left( x _ { 3 } \right) - f \left( x _ { 1 } \right) } { x _ { 3 } - x _ { 1 } } \leq f _ { - } ^ { ^ { \prime } } \left( x _ { 3 } \right)$ ，即
-
      3 1f x f xf x    $f _ { + } ^ { ^ { \prime } } \left( x _ { 1 } \right) \leq \frac { f \left( x _ { 3 } \right) - f \left( x _ { 1 } \right) } { x _ { 3 } - x _ { 1 } } { \leq f _ { - } ^ { ^ { \prime } } \left( x _ { 3 } \right) }$ ，同 理可 得 ${ f _ { + } } ^ { \prime } \left( x _ { 3 } \right) \leq \frac { f \left( x _ { 3 } \right) - f \left( x _ { 1 } \right) } { x _ { 3 } - x _ { 1 } } { \leq } { f _ { - } } ^ { \prime } \left( x _ { 5 } \right)$ . 因为
-
 $\frac { f \left( x _ { 3 } \right) - f \left( x _ { 1 } \right) } { x _ { 3 } - x _ { 1 } } < \frac { f \left( x _ { 5 } \right) - f \left( x _ { 3 } \right) } { x _ { 5 } - x _ { 3 } }$ f  x1  f  x5    .由 1 5 x , x 的任意性，可得 f   x  在 ${ f _ { \mathrm { + } } ^ { \prime } } \left( x _ { 1 } \right) \le { f _ { \mathrm { - } } ^ { \prime } } \left( x _ { 5 } \right)$ $x _ { 1 } , x _ { 5 }$ $f ^ { \prime } ( x )$
-
 $\scriptstyle ( a , b )$ 内严格单调递增，充分性得证。
-
 再证必要性，即已知 f  x 单调递增，在 x1 , x2 , x2 , x3  上分别使用拉格朗日中值定理， $f ^ { \prime } ( x )$ $\left[ x _ { 1 } , x _ { 2 } \right] , \left[ x _ { 2 } , x _ { 3 } \right]$ 知存在 $\xi _ { 1 } \in { \left( x _ { 1 } , x _ { 2 } \right) } , \xi _ { 2 } \in { \left( x _ { 2 } , x _ { 3 } \right) }$ ，使
 
 $$
@@ -446,7 +419,6 @@ $$
 20.（本题满分 10分）
 
 x t  ,设 $\varSigma$ 是由直线 $\left\{ { \begin{array} { l } { x = 0 , } \\ { y = 0 } \end{array} } \right.$ 绕直线 t为参数y t   , 旋转一周得到的曲面， $\textstyle { \sum _ { 1 } }$ 是 $\varSigma$ 介于平面z t 
-
 $x + y + z = 0$ 与平面 $x + y + z = 1$ 之间部分的外侧，计算曲面侧积分
 
 $$
@@ -454,7 +426,6 @@ I = \iint_ {\Sigma_ {1}} x \mathrm {d} y \mathrm {d} z + (y + 1) \mathrm {d} z \
 $$
 
 解：由题意可知直线 $\left\{ { \begin{array} { l } { x = 0 } \\ { y = 0 } \end{array} } \right.$ 0y  记为 $l _ { 1 }$ ； $\left\{ \begin{array} { l } { x = t } \\ { y = t } \\ { z = t } \end{array} \right.$ , 记为 $l _ { 2 }$ ，则直 线 $l _ { 1 }$ 绕直 线 $l _ { 2 }$ 旋转 所得 曲
-
 面 $\Sigma$ 为 $\left( x - t \right) ^ { 2 } + \left( y - t \right) ^ { 2 } + \left( z - t \right) ^ { 2 } = 3 t ^ { 2 }$ 。已知 $\Sigma _ { 1 }$ 是 $\Sigma$ 介于平面 $x + y + z = 0$ 和平面$x + y + z = 1$ 之间的外侧，则补面 $\Sigma _ { 0 } : x + y + z = 1$ ，方向指向外侧。则 $\Sigma _ { 0 }$ 与 $\Sigma _ { 1 }$ 所围为封闭区域，则由高斯公式可知
 
 $$
@@ -462,7 +433,6 @@ I _ {1} = \oiint_ {\Sigma_ {0} + \Sigma_ {1}} x \mathrm {d} y \mathrm {d} z + (y
 $$
 
 $= \iiint _ { \Omega } ( 1 + 1 + 1 ) \mathrm { d } \nu = 3 \iiint _ { \Omega } \mathrm { d } \nu = 3 \cdot { \frac { 1 } { 3 } } \pi { \left( { \frac { \sqrt { 2 } } { 2 } } \right) } ^ { 2 } { \left( { \frac { \sqrt { 2 } } { 2 } } \right) } = { \frac { \sqrt { 2 } } { 4 } } \pi$ (注： $\Omega$ 为圆 锥体 ) 。
-
 记 $D _ { x y }$ 为 $\Sigma _ { 0 }$ 在xoy面上的投影， $D _ { _ { x y } } = \left\{ ( x , y ) | 0 { \leqslant } x + y { \leqslant } 1 , x \geq 0 , y \geq 0 \right\}$
 
 $$
@@ -479,7 +449,6 @@ $$
 （2）求所有满足 $A \alpha = \alpha + \beta , A ^ { 2 } \alpha = \alpha + 2 \beta$ 的非零列向量 $\alpha$ ， $\beta$
 
 解：（1） $f ( \lambda ) = \mid A - \lambda E \mid = ( 1 - \lambda ) [ ( \lambda - a ) ( \lambda + 1 ) + 4 ]$
-
 可得 $( 1 - a ) ( 1 + 1 ) + 4 = 0 , a = 3$ $a = 3$
 
 （2）由（1）可知 $A = \left( \begin{array} { r r r } { { 0 } } & { { - 1 } } & { { 2 } } \\ { { - 1 } } & { { 0 } } & { { 2 } } \\ { { - 1 } } & { { - 1 } } & { { 3 } } \end{array} \right) , | A - \lambda E | = 0$ ,得 $\pmb { A }$ 中 $\lambda _ { 1 } = \lambda _ { 2 } = \lambda _ { 3 } = 1$ ，
@@ -495,7 +464,6 @@ $$
 $$
 
 其中 $a _ { 1 } + a _ { 2 } \neq 2 a _ { 3 }$
-
 则综上 $\mathbf { \Delta } \cdot \mathbf { a } = { \left( \begin{array} { l } { a _ { 1 } } \\ { a _ { 2 } } \\ { a _ { 3 } } \end{array} \right) } , \mathbf { \beta } \mathbf { \int } \mathbf { = } { \left( \begin{array} { l } { 2 a _ { 3 } - a _ { 1 } - a _ { 2 } } \\ { 2 a _ { 3 } - a _ { 1 } - a _ { 2 } } \\ { 2 a _ { 3 } - a _ { 1 } - a _ { 2 } } \end{array} \right) } , \left( a _ { 1 } a _ { 2 } a _ { 3 } \neq 0 , a _ { 1 } + a _ { 2 } \neq 2 a _ { 3 } \right)$
 
 22．（本题满分 12分）
@@ -510,7 +478,6 @@ $$
 （2）这种损失事件在一年内发生的次数记为 $N$ ，保险公司在一年内就这种损失事件产生的理赔次数记为 $M$ ，假设 $N$ 服从参数为8的泊松分布，在 $N = n \left( n \geq 1 \right)$ 的条件下， $M$ 服从二项分布 $B ( n , p )$ ，其中 $p = P \{ Y > 0 \}$ ，求 $M$ 的概率分布.
 
 解：
-
 $\mid { \cal P } \{ Y > 0 \} = { \cal P } \{ X - 1 0 0 > 0 \} = { \cal P } \{ X > 1 0 0 \} = \int _ { 1 0 0 } ^ { + \infty } \frac { 2 \times 1 0 0 ^ { 2 } } { \left( 1 0 0 + x \right) ^ { 3 } } d x = \frac { 1 } { 4 }$ dx =
 
 $$
