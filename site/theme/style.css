@@ -56,6 +56,12 @@ body {
   line-height: 1.9;
 }
 
+/* 正文西文优先 Times New Roman（系统字体，零外部请求）；中文缺字自动回退 MiSans */
+.prose {
+  font-family: "Times New Roman", "Liberation Serif", "Nimbus Roman", "MiSans",
+               system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", serif;
+}
+
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 img { max-width: 100%; height: auto; display: block; }

@@ -57,10 +57,22 @@ python engine/cli.py build      # 不需要 pip install fonttools（用 engine/v
 ## 字体栈（当前生效）
 
 ```css
+/* 界面/导航 */
 font-family: "MiSans", system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+/* 正文 .prose：西文优先 Times New Roman，中文缺字回退 MiSans */
+font-family: "Times New Roman", "Liberation Serif", "Nimbus Roman", "MiSans",
+             system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", serif;
 ```
 
 `--mono` 同理走等宽系统栈。正文、标题分别用 400 / 700 两个子集。
+
+### 西文为什么用 Times New Roman
+
+- 中文仍由自托管 MiSans 子集提供；西文/数字/数学符号优先系统 **Times New Roman**
+  （Windows/macOS）→ Linux 回退 `Liberation Serif` / `Nimbus Roman` → 最后 `serif`；
+- 只作用于正文 `.prose`，导航、按钮、表单仍用 MiSans，避免 UI 变“论文风”；
+- **系统字体，不产生外部请求、不打包字体文件**；缺字体时自然回退，不阻断构建；
+- 代码块/公式的 `--mono` 不受影响；MathML 由浏览器数学字体渲染，与正文衬线更协调。
 
 ## 常见问题
 
