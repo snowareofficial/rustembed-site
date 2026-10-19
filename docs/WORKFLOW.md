@@ -239,4 +239,9 @@ git push origin code          # Gitee：code 分支，之后只允许维护者�
 安全边界：**`code` 分支只给维护者推送权限**；内容投稿者只有 `master` 的 PR 权限，
 不能通过改 `engine/`、`site/theme/` 在 CI 里执行代码。`code` 分支必须开保护。
 
+Gitee 本身没有 CI，校验仍在 GitHub Actions 里做：`sync-code.yml` 在提交前会跑
+`compileall`、`engine/test_contracts.py`、`engine/test_render_safety.py`，不过就不会提交，
+也不会触发发布。真正的 `build + check` 由发布工作流在合并后的内容上跑。
+
+
 

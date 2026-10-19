@@ -32,6 +32,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: 取 Gitee 的 engine 与 site/theme
         id: gitee
         run: |
@@ -50,6 +54,13 @@ jobs:
           rsync -a --delete /tmp/gitee-src/engine/ engine/
           rsync -a --delete /tmp/gitee-src/site/theme/ site/theme/
           echo "Gitee code: $SHA"
+
+      - name: 代码自检（不过就不提交）
+        run: |
+          set -euo pipefail
+          python -m compileall -q engine
+          python engine/test_contracts.py
+          python engine/test_render_safety.py
 
       - name: 有变化则提交并触发发布
         id: commit
