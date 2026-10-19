@@ -1771,15 +1771,36 @@
     hero.appendChild(bigs);
     f.appendChild(hero);
 
-    f.appendChild(el('p', 'section-h', '文章'));
-    var ol = el('ol', 'rows');
-    var n = 0;
+    var ownPosts = [];
     for (var k = 0; k < m.posts.length; k++) {
       if (m.posts[k].author === mem.id || (m.posts[k].co_authors || []).indexOf(mem.id) >= 0) {
-        ol.appendChild(postRow(m.posts[k], m.members)); n++;
+        ownPosts.push(m.posts[k]);
       }
     }
-    if (n) f.appendChild(ol); else f.appendChild(el('p', 'muted', '还没有文章。'));
+    if (!ownPosts.length) {
+      f.appendChild(el('p', 'section-h', '文章'));
+      f.appendChild(el('p', 'muted', '还没有文章。'));
+    } else if (ownPosts.length > 6) {
+      /* 文章多时自动加“本页搜索 + 滚动区”，少时不占空间 */
+      f.appendChild(filterable(el('p', 'section-h', '文章'), ownPosts, {
+        tag: 'ol',
+        cls: 'rows rows-scroll',
+        placeholder: '在这位成员的文章中搜索标题 / 摘要 / 标签',
+        empty: '没有匹配的文章。',
+        match: function (x, q) {
+          return (x.title + ' ' + (x.summary || '') + ' ' + (x.tags || []).join(' '))
+            .toLowerCase().indexOf(q) >= 0;
+        },
+        render: function (x) { return postRow(x, m.members); }
+      }));
+    } else {
+      f.appendChild(el('p', 'section-h', '文章'));
+      var ol = el('ol', 'rows');
+      for (var k2 = 0; k2 < ownPosts.length; k2++) {
+        ol.appendChild(postRow(ownPosts[k2], m.members));
+      }
+      f.appendChild(ol);
+    }
 
     var mine = [];
     for (var pj = 0; pj < (m.projects || []).length; pj++) {

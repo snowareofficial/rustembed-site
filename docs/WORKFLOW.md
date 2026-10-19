@@ -234,7 +234,7 @@ git push origin code          # Gitee：code 分支，之后只允许维护者�
 |---|---|---|
 | 文章/成员/资源等 `site/content/**` | Gitee `master` | 下个 30 分钟窗口，或手动触发 publish |
 | `engine/**`、`site/theme/**` | Gitee `code` | 下个 30 分钟窗口，sync-code 提交后自动触发 publish |
-| `.github/workflows/**`、文档 | 只能 GitHub | 不会从 Gitee 同步（避免工作流被代码源改写） |
+| `.github/workflows/**`、文档 | Gitee `master` | 每 15 分钟由 sync-from-gitee 被动镜像；GitHub 不直接 push |
 
 安全边界：**`code` 分支只给维护者推送权限**；内容投稿者只有 `master` 的 PR 权限，
 不能通过改 `engine/`、`site/theme/` 在 CI 里执行代码。`code` 分支必须开保护。

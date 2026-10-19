@@ -1,10 +1,12 @@
 name: 从 Gitee 同步镜像
-# Gitee 是唯一权威源；GitHub 只做单向镜像，供 Actions 构建并发布到 Cloudflare Pages。
+# Gitee 是唯一权威源；GitHub 只做单向被动镜像，供 Actions 构建并发布到 Cloudflare Pages。
 # 防误覆盖：检测到 GitHub 上有 Gitee 没有的提交时默认中止；只有手动触发且勾选 force 才丢弃。
 
-# 整树镜像已停用：GitHub 现在是「代码源」，Gitee 是「内容源」。
-# 发布工作流只从 Gitee 取 site/content；再用本文件整树覆盖会把 engine/workflow 冲掉。
+# GitHub 不再接受日常直接 push：内容/代码先到 Gitee，再由本工作流定时拉取。
+# 注意：同步是整树镜像；Gitee master 必须包含要发布的代码与内容。
 on:
+  schedule:
+    - cron: "*/15 * * * *"
   workflow_dispatch:
     inputs:
       force:

@@ -29,7 +29,7 @@ Cloudflare 不直接跑构建，只托管 GitHub 上的 `preview` / `pages` 产�
 | `.github/workflows/publish-pages.yml` | 矩阵：Gitee `staging` → `preview`；Gitee `master` → `pages` |
 | `.github/workflows/build.yml` | 构建/自检/字体解密；PR 门禁 |
 | `.github/workflows/sync-code.yml` | 从 Gitee `code` 同步 `engine/`、`site/theme/`；GitHub 代码更新时跳过，防止回退 |
-| `.github/workflows/sync-from-gitee.yml` | 从 Gitee 拉内容/代码的辅助同步 |
+| `.github/workflows/sync-from-gitee.yml` | Gitee → GitHub 被动镜像，每 15 分钟；GitHub 不接受日常直接 push |
 
 ## 日常发布
 

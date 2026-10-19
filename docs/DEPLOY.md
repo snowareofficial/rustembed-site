@@ -9,7 +9,7 @@
 ```
 作者/管理员 ──push──► Gitee（权威源）
                         │
-                        │  ① 每 6h 镜像（sync-from-gitee.yml）
+                        │  ① 每 15 分钟镜像（sync-from-gitee.yml）
                         ▼
                      GitHub master
                         │
@@ -104,7 +104,7 @@ GitHub 侧仍是只读镜像 + 构建发布，与这两个 Gitee 源无关。
 
 - 权威源：`https://gitee.com/rustembed/site`，**所有改动先推这里**（GitHub 只读镜像，不回写）。
   仓库地址的唯一数据源是 `site/content/site.sml` 的 `repo_url`；改地址时先改这里，再同步本文档与 `.github/`、`.gitee/` 模板。
-- 镜像：`.github/workflows/sync-from-gitee.yml`，每 6 小时 + 手动触发；检测到 GitHub 上有 Gitee 没有的提交会**中止告警**，只有手动触发并勾 `force` 才丢弃。
+- 镜像：`.github/workflows/sync-from-gitee.yml`，每 15 分钟 + 手动触发；检测到 GitHub 上有 Gitee 没有的提交会**中止告警**，只有手动触发并勾 `force` 才丢弃。GitHub 不接受日常直接 push。
 
 需要配置的 Actions secrets：
 

@@ -119,7 +119,7 @@ git push origin master     # 权威源（必做）
 git push sitegen master    # 示例源（可选，推同一个提交）
 ```
 
-`.github/workflows/sync-from-gitee.yml` 每 6 小时把它单向镜像到 GitHub；
+`.github/workflows/sync-from-gitee.yml` 每 15 分钟把它单向镜像到 GitHub（GitHub 只做被动镜像，日常改动先推 Gitee）；
 `publish-pages.yml` 定时构建并把静态产物强推到 **`pages` 分支**，Cloudflare Pages 直接取那个分支发布（不需要 CF token）。
 `build.yml` 只做 PR/推送校验。
 需要的 secret：`GITEE_USER` / `GITEE_TOKEN`（只读即可）、`CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`；字体用 `FONT_PASSWORD` 解密加密包，AI 摘要用 `AI_BASE_URL` / `AI_API_KEY` / `AI_MODEL`（都可选，缺了自动降级）。
