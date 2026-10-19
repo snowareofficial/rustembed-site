@@ -492,6 +492,17 @@ body[data-form="code"] .code pre, body[data-form="tutorial"] .code pre { font-si
   border-top: 1px solid var(--line);
   font-size: 12.5px; color: var(--ink-mute);
 }
+.footer > span {
+  flex: 0 1 42rem;
+  max-width: 42rem;
+  text-align: center;
+  line-height: 1.75;
+  text-wrap: pretty;
+}
+/* 技术互助免责声明只在互助列表/详情页出现，不占全站页脚 */
+#license-notice-site { display: none; }
+body[data-page="services"] #license-notice-site,
+body[data-page="service"] #license-notice-site { display: block; }
 .footer a { color: var(--ink-mute); }
 
 /* ===== 13. 首页 / 小屏目录按钮 / 成员卡等高 ===== */
