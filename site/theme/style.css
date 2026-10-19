@@ -191,6 +191,12 @@ body[data-toc="none"] .col-left { display: none; }
 .byline { display: flex; flex-wrap: wrap; align-items: center; gap: .2rem .7rem; font-size: 12.5px; color: var(--ink-mute); margin: 0 0 1.4rem; }
 .byline a { color: var(--ink-soft); }
 .byline .avatar { width: 20px; height: 20px; border-radius: 50%; display: inline-block; vertical-align: -4px; margin-right: .3rem; }
+
+/* 文章多语言切换（phase 1：仅 posts，zh/en） */
+.lang-switch { display: flex; gap: .4rem; margin: 0 0 1.2rem; font-size: 12.5px; }
+.lang-opt { padding: .15rem .6rem; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--ink-soft); text-decoration: none; }
+.lang-opt.on { border-color: var(--ink); color: var(--ink); background: var(--surface-2); cursor: default; }
+.lang-opt:not(.on):hover { border-color: var(--ink); }
 .post-tail { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink-mute); }
 .license { font-size: 12.5px; color: var(--ink-mute); }
 

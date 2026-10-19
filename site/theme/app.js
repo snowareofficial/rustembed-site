@@ -1524,7 +1524,12 @@
       return f;
     });
   }
-  function viewPost(slug, anchor) {
+  /* 语言切换只改 query，保持当前滚动位置（切换前记下，渲染后再恢复） */
+  function langSwitchScroll() {
+    S._langScroll = (typeof window !== 'undefined' && window.scrollY) ? window.scrollY : null;
+  }
+
+  function viewPost(slug, anchor, q) {
     var m = S.man;
     var p = bySlug(m.posts, slug);
     var f = document.createDocumentFragment();
@@ -1534,9 +1539,45 @@
       setToc([], '', '');
       return Promise.resolve(f);
     }
+    /* 多语言（phase 1：仅 posts，白名单 zh/en）。
+       lang 只来自白名单：非法值（fr / ../x / javascript: 等）或不在 langs 里 → 回落 default_lang，
+       不做跳转、不接受任意 query 影响文件路径。 */
+    var reqLang = (q && q.lang) ? String(q.lang) : '';
+    var defaultLang = p.default_lang || 'zh';
+    var useLang = defaultLang;
+    if (reqLang && (reqLang === 'zh' || reqLang === 'en') && p.langs && p.langs[reqLang]) {
+      useLang = reqLang;
+    }
+    document.documentElement.setAttribute('lang', useLang);
+
+    /* 选 variant 字段（无 langs 时用顶层 zh 字段，保证旧前端零影响） */
+    var variant = (p.langs && p.langs[useLang]) ? p.langs[useLang] : null;
+    var htmlPath = variant ? variant.html : p.html;
+    var shownTitle = variant ? variant.title : p.title;
+    var shownSummary = variant ? variant.summary : p.summary;
+    var shownTags = variant ? variant.tags : p.tags;
+    var shownWords = variant ? variant.words : p.words;
+
     var mem = byId(m.members, p.author);
-    f.appendChild(crumb([['文章库', '#/library'], [p.title, '']]));
-    f.appendChild(el('h1', '', p.title));
+    f.appendChild(crumb([['文章库', '#/library'], [shownTitle, '']]));
+    f.appendChild(el('h1', '', shownTitle));
+
+    /* 语言切换：仅当存在多于一种语言时显示在标题下方 */
+    if (p.langs && Object.keys(p.langs).length > 1) {
+      var sw = el('div', 'lang-switch');
+      ['zh', 'en'].forEach(function (ln) {
+        if (!p.langs[ln]) return;
+        var label = ln === 'zh' ? '中文' : 'English';
+        if (ln === useLang) {
+          sw.appendChild(el('span', 'lang-opt on', label));
+        } else {
+          var a = lnk('#/post/' + slug + '?lang=' + ln, label, 'lang-opt');
+          if (a.addEventListener) a.addEventListener('click', langSwitchScroll);
+          sw.appendChild(a);
+        }
+      });
+      f.appendChild(sw);
+    }
 
     var by = el('div', 'byline');
     if (mem) {
@@ -1550,25 +1591,25 @@
     }
     by.appendChild(lnk('#/date/' + encodeURIComponent(String(p.date).slice(0, 10)),
       String(p.date).slice(0, 10), 'date-link'));
-    by.appendChild(el('span', '', num(p.words) + ' 字'));
-    by.appendChild(el('span', '', '约 ' + minutes(p.words) + ' 分钟'));
+    by.appendChild(el('span', '', num(shownWords) + ' 字'));
+    by.appendChild(el('span', '', '约 ' + minutes(shownWords) + ' 分钟'));
     if (p.updated && p.updated !== p.date) by.appendChild(el('span', '', '更新于 ' + p.updated));
     f.appendChild(by);
 
-    f.appendChild(el('p', 'lede', p.summary || ''));
+    f.appendChild(el('p', 'lede', shownSummary || ''));
     if (p.ai_summary) f.appendChild(summaryCard(p.ai_summary));
 
     /* 文章形态：只由真实内容决定（标签 / 是否有图集块） */
     var form = 'reading';
-    for (var ti = 0; ti < (p.tags || []).length; ti++) {
-      if (FORM_BY_TAG[p.tags[ti]]) { form = FORM_BY_TAG[p.tags[ti]]; break; }
+    for (var ti = 0; ti < (shownTags || []).length; ti++) {
+      if (FORM_BY_TAG[shownTags[ti]]) { form = FORM_BY_TAG[shownTags[ti]]; break; }
     }
     setForm(form);
 
-    return proseFragment(p.html).then(function (prose) {
+    return proseFragment(htmlPath).then(function (prose) {
       f.appendChild(prose);
       var tail = el('div', 'post-tail');
-      if ((p.tags || []).length) tail.appendChild(tagLine(p.tags));
+      if ((shownTags || []).length) tail.appendChild(tagLine(shownTags));
       tail.appendChild(el('p', 'license', '许可：' + (p.license || m.site.license || '见站点默认许可')));
       if ((p.attachments || []).length) {
         tail.appendChild(el('p', 'section-h', '附件'));
@@ -1598,6 +1639,11 @@
 
       setToc(p.toc, 'post/' + p.slug, p.map);
       if (anchor) scrollToId(anchor);
+      /* 语言切换后恢复滚动位置（仅切换时 S._langScroll 非 null） */
+      if (S._langScroll !== null && S._langScroll !== undefined) {
+        window.scrollTo(0, S._langScroll);
+        S._langScroll = null;
+      }
       return f;
     });
   }
@@ -2106,7 +2152,7 @@
     knowledge: function () { return viewKnowledge(); },
     topics: function () { return viewTopics(); },
     topic: function (r) { return viewTopic(r.seg[1], r.seg[2]); },
-    post: function (r) { return viewPost(r.seg[1], r.seg[2]); },
+    post: function (r) { return viewPost(r.seg[1], r.seg[2], r.q); },
     projects: function () { return viewProjects(); },
     project: function (r) { return viewProject(r.seg[1]); },
     resources: function () { return viewResources(); },
