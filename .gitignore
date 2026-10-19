@@ -29,3 +29,4 @@ site/meta/avatars/
 
 # Rust 写作台（gui/）的构建中间产物；gui/assets/** 必须入库（include_dir! 打进二进制）
 gui/target/
+gui/gen/
