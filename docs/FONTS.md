@@ -76,17 +76,28 @@ font-family: "Times New Roman", "Liberation Serif", "Nimbus Roman", "MiSans",
 
 ### 公式里的西文
 
-公式也跟随正文改用 Times 系：
+公式**默认用专业数学字体**（Cambria Math / STIX Two Math / Latin Modern Math），
+保证分式、伸缩括号的排版；个别公式想跟随正文 Times 时再单独声明：
 
 ```css
+/* 默认 */
 .math-inline math, .math-block math {
+  font-family: "Cambria Math", "STIX Two Math", "Latin Modern Math", serif;
+}
+/* 单独用正文字体 */
+.math-text math {
   font-family: "STIX Two Math", "Times New Roman", "Cambria Math", serif;
 }
 ```
 
-- 本机没装 STIX 时，字母/数字走 Times New Roman；
-- Times 本身**没有 OpenType MATH 表**，伸缩括号、大运算符由浏览器数学字体兜底，
-  复杂公式的排版不如专业数学字体精致；
+写法：
+
+- 行内：默认 `{math:x^2}`；跟随正文用 `{mathtext:x^2}`；
+- 块：默认 `$$...$$`；跟随正文用 `:::mathtext` 包住公式；
+- SML：`math { text: "...", font: "text" }`。
+
+- Times 本身**没有 OpenType MATH 表**，复杂公式的伸缩括号/大运算符会由浏览器数学字体兜底，
+  排版不如默认数学字体精致，所以只建议个别公式用；
 - 想要“Times 外观 + 专业数学排版”，可自托管 **STIX Two Math**（SIL OFL，约几百 KB）；
   它带 MATH 表，且风格接近 Times，仍然零外部请求；
 - 不装 STIX 也不影响构建，只是复杂公式略逊于默认 Cambria Math。

@@ -833,9 +833,13 @@ body[data-page="home"] .layout { grid-template-columns: minmax(0, 1fr); }
 .math-inline { white-space: nowrap; }
 .math-block { overflow-x: auto; overflow-y: hidden; margin: .9rem 0; padding: .2rem 0; text-align: center; }
 .math-inline math, .math-block math {
-  /* 公式西文跟随正文 Times；Times 没有 MATH 表，伸缩括号/大运算符由浏览器数学字体兜底 */
-  font-family: "STIX Two Math", "Times New Roman", "Cambria Math", serif;
+  /* 默认用专业数学字体（Cambria/STIX），保证分式、伸缩括号的排版 */
+  font-family: "Cambria Math", "STIX Two Math", "Latin Modern Math", serif;
   font-size: 1.02em;
+}
+/* 单独声明用正文字体（Times）时：{mathtext:...} / :::mathtext / SML font: "text" */
+.math-text math {
+  font-family: "STIX Two Math", "Times New Roman", "Cambria Math", serif;
 }
 .math-raw { font-family: var(--mono); font-size: 12.5px; color: var(--ink-mute); }
 

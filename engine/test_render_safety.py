@@ -704,6 +704,20 @@ def test_localize_assets():
              '<img src="assets/posts/myslug/nope.png"' in fixed2, fixed2)
 
 
+def test_math_font_switch():
+    print("[10] 公式字体：默认数学字体 / 单独用正文字体")
+    inline = R.inline("{math:x^2}")
+    case("默认内联公式无 math-text", "math-inline" in inline and "math-text" not in inline, inline)
+    inline_text = R.inline("{mathtext:x^2}")
+    case("mathtext 内联带 math-text", "math-inline math-text" in inline_text, inline_text)
+    html, _ = md.render(":::mathtext\nx^2\n:::\n")
+    case(":::mathtext 块带 math-text", "math-block math-text" in html and "<math" in html, html)
+    html, _ = md.render("$$\nx^2\n$$\n")
+    case("$$ 块默认无 math-text", "math-block" in html and "math-text" not in html, html)
+    sml = R.render([{"__type": "math", "text": "x^2", "font": "text"}], R.Ctx())
+    case("SML math font:text 带 math-text", "math-block math-text" in sml, sml)
+
+
 def main():
     print("== rec-blog 渲染安全回归 ==")
     test_contract_page_escaping()
@@ -716,6 +730,7 @@ def main():
     test_code_block_consistency()
     test_assets_generator()
     test_url_allowlist()
+    test_math_font_switch()
     test_sml_error_types()
     test_safe_url_unit()
     test_localize_assets()

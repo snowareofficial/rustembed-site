@@ -38,3 +38,18 @@ $$
 
 行内公式用 `$...$`，块公式用 `$$...$$`（独占连续几行）。构建期会转成 MathML，
 浏览器原生渲染，不加载 KaTeX/MathJax，也不产生任何外部请求；写坏了会回退成等宽文本，不会让构建失败。
+
+## 公式字体
+
+默认用数学字体，分式和伸缩括号的排版更稳：
+
+$$
+\frac{\partial^2 f}{\partial x\partial y}
+$$
+
+需要让公式跟随正文字体（Times）时，单独用 `:::mathtext`：
+
+:::mathtext
+\frac{\partial^2 f}{\partial x\partial y}
+:::
+

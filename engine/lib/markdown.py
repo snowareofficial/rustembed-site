@@ -285,7 +285,7 @@ def render(text, ctx=None, level=1):
             out.append('<ol class="steps">\n%s</ol>\n' % "".join(items))
             continue
 
-        m = re.match(r"^:::(shot|gallery|term|when)\s*(.*)$", line)
+        m = re.match(r"^:::(shot|gallery|term|when|mathtext)\s*(.*)$", line)
         if m:
             block_type = m.group(1)
             param = m.group(2).strip()
@@ -295,6 +295,10 @@ def render(text, ctx=None, level=1):
                 buf.append(lines[i])
                 i += 1
             i += 1
+
+            if block_type == "mathtext":
+                out.append(R.math_block("\n".join(buf).strip(), text_font=True))
+                continue
 
             if block_type == "shot":
                 full = "full" in param

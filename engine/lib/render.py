@@ -75,11 +75,12 @@ def _role(inner):
         return '<a class="ref" href="#%s">%s</a>' % (target.strip(), text.strip())
     if name == "term":
         return "<dfn>%s</dfn>" % arg
-    if name == "math":
+    if name in ("math", "mathtext"):
         # apply_roles 拿到的是已转义文本；公式要还原成原始 LaTeX（否则 < 会变成 &lt; 被拆成字符）
         mm = mathml.render(html.unescape(arg), display=False)
         if mm:
-            return '<span class="math-inline">%s</span>' % mm
+            cls = "math-inline math-text" if name == "mathtext" else "math-inline"
+            return '<span class="%s">%s</span>' % (cls, mm)
         return '<code class="math-raw" title="LaTeX">%s</code>' % arg
     if name == "em":
         return "<em>%s</em>" % arg
@@ -288,7 +289,8 @@ def render(v, ctx=None, level=0):
         expr = _text_of(v)
         mm = mathml.render(expr, display=True)
         if mm:
-            return '<div class="math-block">%s</div>\n' % mm
+            cls = "math-block math-text" if v.get("font") == "text" else "math-block"
+            return '<div class="%s">%s</div>\n' % (cls, mm)
         return '<pre class="math-raw">%s</pre>\n' % esc(expr)
 
     if t == "theorem":
@@ -451,9 +453,10 @@ def strip_html(s):
     return re.sub(r"\s+", " ", html.unescape(s)).strip()
 
 
-def math_block(expr):
-    """Markdown 的 $$...$$ 块公式。失败时回退为代码块。"""
+def math_block(expr, text_font=False):
+    """Markdown 的 $$...$$ 块公式；text_font=True 时用正文字体（Times）。失败回退代码块。"""
     mm = mathml.render(expr, display=True)
     if mm:
-        return '<div class="math-block">%s</div>\n' % mm
+        cls = "math-block math-text" if text_font else "math-block"
+        return '<div class="%s">%s</div>\n' % (cls, mm)
     return '<pre class="math-raw">%s</pre>\n' % esc(expr)
