@@ -7,6 +7,7 @@
 <!--BUILD:HEAD-->
 <title>Rust嵌入式探讨</title>
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="vendor/prism/prism.css">
 <link rel="alternate" type="application/rss+xml" title="RSS" href="feed.xml">
 </head>
 <body data-page="home" data-form="reading">
@@ -85,6 +86,10 @@
   </div>
 </div>
 
+<!-- 语法高亮：本地 vendor（MIT），不引 CDN。manual=true 是关键 —— 不设它 core 会在
+     DOMContentLoaded 自己扫一遍全页；本站要等每次路由渲染完由 app.js 主动高亮。 -->
+<script>window.Prism = window.Prism || {}; window.Prism.manual = true;</script>
+<script src="vendor/prism/prism.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

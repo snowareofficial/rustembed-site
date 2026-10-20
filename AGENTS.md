@@ -62,8 +62,10 @@ rec-blog/
 │  │  ├─ projects/<id>.sml 项目（构建期抓仓库元数据）
 │  │  ├─ resources/<id>.sml 资源条目
 │  │  ├─ weekly/<期>.sml   周报 / 月刊
+│  │  ├─ quotes/<成员 id>/quotes.sml  首页「一言」（每人 ≤3 条、全站 ≤60 条）
 │  │  └─ contracts/*.sml   内容契约（字段即文档；自动生成契约文档页）
 │  ├─ theme/               前端壳：index.html + app.js（路由/视图）+ style.css
+│  │  ├─ vendor/prism/     Prism 1.29.0（MIT）本地副本 + 本站自写的 SML 语法与配色（禁 CDN）
 │  ├─ fonts/               自托管 MiSans + XITS Math（+ STIX 兜底）：src/ 与 subset/ 均 gitignore；
 │  │                       加密包 misans-fonts.tar.gz.enc 入库（含三者），CI 用 FONT_PASSWORD 解密
 │  │                       （deploy/fonts-crypt.sh）；许可随产物发布到 dist/fonts/
@@ -97,6 +99,13 @@ site/content/**/*.(md|sml)
 
 要点：
 - **构建期对全部用户内容做 HTML 转义**（render/markdown 出口统一 esc），前端仍不信任任何投稿文本。
+- **第三方前端库只许本地 vendor**：语法高亮用 `site/theme/vendor/prism/`（Prism 1.29.0 MIT +
+  本站自写的 SML 语法与配色），`site/theme/index.html` 加载前先设 `Prism.manual = true`，
+  每次路由渲染完由 `app.js` 调 `Prism.highlightAllUnder(view)`。**不许改成 CDN**：
+  本站运行时零外部请求，加载失败必须退回纯文本（`check.py` 与两个测试脚本都盯着这条）。
+- **成员 links 的两个键不能重名**：一人两个 Gitee 要写 `gitee` + `gitee_org`
+  （同名 `gitee` 会被对象覆盖，构建不报错但页面只显示一条）。加键要同步三处：
+  `contracts/blog.sml` 的 `MemberLinks`、`app.js` 的 `CONTACT_LABEL`、`docs/EDIT-SITE-DATA.md`。
 - **URL 协议白名单已落地**（`engine/lib/urls.py`）：只放行 http / https / mailto / tel、
   页内 `#` 锚点与相对路径；`javascript:` / `data:` / `vbscript:` / `file:` / 协议相对 `//host` 一律拒绝。
   已覆盖五处出口：`{link:}`、SML `a`/`img`（含 shot/gallery）、Markdown 链接与图片；
@@ -145,6 +154,7 @@ rec-blog update                                         # 引擎 git pull --ff-o
 
 前端三连（改了 `site/theme/**` 就一起跑）：
 `node tests/series_tag_test.js`（标签页系列合并 / 成员页列表 / 页脚声明）→
+`node tests/reading_controls_test.js`（最近条数 / 一言 / 代码折叠 / 高亮 / 成员链接标签）→
 `node tests/gui_dom_test.js` → `node tests/smoke.js`。
 样式相关的（滚动区、页脚显隐、375px 溢出）再跑 `node tests/browser-check.js`：
 它要先 `python engine/cli.py preview` 起服务，且**自己挑一个能 bind 的调试端口** ——
@@ -249,6 +259,7 @@ Windows 默认保留 9211–9310，以前写死 `9222+pid%200` 会稳定落进�
 | projects/ | Project | name one_liner repo status |
 | resources/ | Resource(loose) | title kind url |
 | weekly/ | Weekly(loose) | period title |
+| quotes/ | （无契约，构建期限额） | text（source 可选） |
 
 nav 顺序：`library knowledge topics projects resources members services weekly pages join`。
 

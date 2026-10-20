@@ -290,7 +290,41 @@ need(_md._scalar("[ rust, embedded ]") == ["rust", "embedded"],
 need(_md._scalar('[ "New York" , "LA" ]') == ["New York", "LA"],
      "front matter 引号内空格被误拆")
 
-print("结构断言 %d 条（三栏 / 左栏纯净 / 右栏收起 / 版心 / 溢出 / 首屏 / 零外链 / 回归钉）" % checks)
+# ---- I 阅读控制：最近条数 / 一言 / 长代码折叠 / 本地高亮 ----
+_theme = config.THEME
+_site = man.get("site") or {}
+need(isinstance(_site.get("code_collapse_lines"), int) and _site["code_collapse_lines"] >= 1,
+     "manifest.site.code_collapse_lines 应为正整数（前端折叠阈值），实为 %r" % (_site.get("code_collapse_lines"),))
+need(isinstance(man.get("quotes"), list), "manifest.quotes 应为数组（空数组 = 不显示「一言」按钮）")
+need(len(man.get("quotes") or []) <= 60, "manifest.quotes 超过 60 条上限")
+
+# 折叠阈值取自站点配置，不是写死在前端里
+need("code_collapse_lines" in js_code, "app.js 要读 manifest.site.code_collapse_lines（阈值可配）")
+need("code-long" in css_nc and "is-collapsed" in css_nc, "CSS 缺少长代码折叠样式（.code-long / .is-collapsed）")
+need(re.search(r"\.code-long\.is-collapsed\s+pre\s*\{[^}]*max-height", css_nc) is not None,
+     "折叠态没有限制 <pre> 高度（应 max-height = 阈值行数）")
+need("var(--code-lines" in css_nc, "折叠高度应由 JS 写入的 --code-lines 变量决定")
+need(re.search(r"@media\s*\(prefers-reduced-motion:\s*reduce\)", css_nc) is not None,
+     "CSS 没有处理 prefers-reduced-motion（「一言」浮层不该在这种情况下做动画）")
+need(".quote-veil" in css_nc and ".quote-btn" in css_nc, "CSS 缺少「一言」按钮 / 浮层样式")
+need(".recent-panel" in css_nc and ".recent-range" in css_nc, "CSS 缺少「最近更新」面板样式")
+# 最近条数与一言都是纯前端能力：抽屉 fundamentals 必须齐全
+need("localStorage" in js_code, "recent 条数没走本地持久化")
+need("rec-blog:recent-limit" in js, "缺少 localStorage 键名 rec-blog:recent-limit")
+
+# 高亮：本地 vendor + 许可 + 产物里零外链
+_pu = DIST / "vendor" / "prism"
+need((_pu / "prism.js").exists(), "dist/vendor/prism/prism.js 缺失（构建没递归拷主题目录）")
+need((_pu / "prism.css").exists(), "dist/vendor/prism/prism.css 缺失")
+need((_pu / "LICENSE").exists(), "第三方代码必须随产物发布 LICENSE")
+need('src="vendor/prism/prism.js"' in html, "index.html 没引用本地 prism.js")
+need('href="vendor/prism/prism.css"' in html, "index.html 没引用本地 prism.css")
+_ext_res = re.findall(r'(?:src|href)="(?:https?:)?//[^"]+"', html)
+need(not _ext_res, "index.html 引入了外部资源（运行时零外部请求）：%s" % " ".join(_ext_res))
+need("Prism" in js_code and "highlightAllUnder" in js_code, "app.js 没有接 Prism.highlightAllUnder")
+need((_theme / "vendor" / "prism" / "prism.js").exists(), "site/theme/vendor/prism/prism.js 不在源码里（没入库？）")
+
+print("结构断言 %d 条（三栏 / 左栏纯净 / 右栏收起 / 版心 / 溢出 / 首屏 / 零外链 / 阅读控制 / 回归钉）" % checks)
 if fails:
     print("失败 %d 项：" % len(fails))
     for f in fails:

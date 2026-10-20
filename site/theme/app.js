@@ -12,7 +12,8 @@
  */
 (function () {
 
-  var S = { man: null, frags: {}, toc: [], tocBase: '', tocLinks: [], mapHref: '', page: '' };
+  var S = { man: null, frags: {}, toc: [], tocBase: '', tocLinks: [], mapHref: '', page: '',
+            quote: { timer: 0, idx: 0 }, recent: null };
 
   var NAV_LABEL = {
     home: '首页',
@@ -20,7 +21,14 @@
     resources: '资源', members: '成员', services: '技术互助', weekly: '周报',
     pages: '站文档', join: '加入我们'
   };
-  var CONTACT_LABEL = { blog: '博客', homepage: '主页', github: 'GitHub', gitee: 'Gitee', email: '邮箱' };
+  /* 联系键 → 中文标签。未知键不会被丢掉（下面统一回落到键名），
+   * 所以往 contracts/blog.sml 的 MemberLinks 加字段时必须同步这张表 ——
+   * 一人两个 Gitee（个人空间 / 组织空间）就是为这种情形准备的：
+   * gitee 是个人号，gitee_org 是第二个空间，写成两个同名 gitee 会互相覆盖。 */
+  var CONTACT_LABEL = {
+    blog: '博客', homepage: '个人主页', github: 'GitHub',
+    gitee: 'Gitee', gitee_org: 'Gitee 空间', email: '邮箱'
+  };
   var STATUS_LABEL = { active: '进行中', wip: '开发中', archived: '已归档', paused: '暂停' };
   /* 技术互助条目的状态词：与项目那套（进行中/开发中…）不是一回事，单独一张表 */
   var SERVICE_STATUS_LABEL = { active: '可协作', paused: '暂缓' };
@@ -655,24 +663,375 @@
     }
     f.appendChild(cards);
 
-    var latest = (m.posts || []).slice(0, 3);
-    if (latest.length) {
-      f.appendChild(el('p', 'section-h', '最近更新'));
-      var ol = el('ol', 'rows');
-      for (var j = 0; j < latest.length; j++) {
-        var p = latest[j];
-        var li = el('li', 'row');
-        li.appendChild(el('span', 'row-date', String(p.date || '').slice(0, 10)));
-        li.appendChild(lnk('#/post/' + p.slug, p.title, 'row-title'));
-        li.appendChild(el('span', 'row-words', num(p.words) + ' 字'));
-        ol.appendChild(li);
-      }
-      f.appendChild(ol);
+    /* 最近更新：条数可调（默认 3），按 date 倒序，列表单独重绘 */
+    if ((m.posts || []).length) {
+      var recentList = el('ol', 'rows');
+      recentList.id = 'recent-list';
+      f.appendChild(recentSection(recentList));
+      f.appendChild(recentList);
     }
     setToc([], '', '');
     return Promise.resolve(f);
   }
 
+
+  /* ---------- 本地存储：隐私模式 / 禁用存储时一律安静降级 ---------- */
+
+  function storeGet(key) {
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  }
+
+  function storeSet(key, val) {
+    try { localStorage.setItem(key, String(val)); } catch (e) {}
+  }
+
+  function reducedMotion() {
+    try {
+      return !!(typeof matchMedia === 'function'
+        && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    } catch (e) { return false; }
+  }
+
+  /* ---------- 首页「最近更新」条数 ----------
+   *
+   * 默认 3 条，用户可调 1–15（再多人眼也不会一屏读完，太多了就把「最近」稀释成「全部」）。
+   * 排序按 date 倒序 —— 不依赖 manifest 顺序（那是构建期按 (date, slug) 排的，
+   * 但前端不该假设任何顺序）。文章比条数少就全显示：不补位、不编造、不说「暂无更多」。
+   * 条数只存在 localStorage：阅读偏好不是投稿内容，不该写进仓库。 */
+  var RECENT_MIN = 1, RECENT_MAX = 15, RECENT_DEFAULT = 3;
+  var RECENT_KEY = 'rec-blog:recent-limit';
+
+  function clampRecent(n) {
+    n = parseInt(n, 10);
+    if (!isFinite(n)) return RECENT_DEFAULT;
+    if (n < RECENT_MIN) return RECENT_MIN;
+    if (n > RECENT_MAX) return RECENT_MAX;
+    return n;
+  }
+
+  function readRecent() { return clampRecent(storeGet(RECENT_KEY)); }
+
+  function writeRecent(n) {
+    n = clampRecent(n);
+    storeSet(RECENT_KEY, n);
+    if (S.recent) S.recent.limit = n;
+    return n;
+  }
+
+  function recentPosts(limit) {
+    var ps = ((S.man && S.man.posts) || []).slice();
+    ps.sort(function (a, b) {
+      var da = String((a && a.date) || ''), db = String((b && b.date) || '');
+      if (da === db) return 0;
+      return da < db ? 1 : -1;                 /* date 字符串按字典序即时间序倒序 */
+    });
+    limit = clampRecent(limit);
+    return ps.slice(0, Math.min(limit, ps.length));
+  }
+
+  function recentRow(p) {
+    var li = el('li', 'row');
+    li.appendChild(el('span', 'row-date', String(p.date || '').slice(0, 10)));
+    li.appendChild(lnk('#/post/' + p.slug, p.title, 'row-title'));
+    li.appendChild(el('span', 'row-words', num(p.words) + ' 字'));
+    return li;
+  }
+
+  /* 三滑条图标：与「更多/设置」区分开 —— 它就是「调参数」的意思 */
+  function slidersIcon() {
+    var s = document.createElementNS ? document.createElementNS('http://www.w3.org/2000/svg', 'svg') : el('svg');
+    s.setAttribute('class', 'ico');
+    s.setAttribute('viewBox', '0 0 24 24');
+    s.setAttribute('aria-hidden', 'true');
+    var bars = [6, 12, 18];
+    for (var i = 0; i < bars.length; i++) {
+      var y = bars[i];
+      var line = document.createElementNS ? document.createElementNS('http://www.w3.org/2000/svg', 'line') : el('line');
+      line.setAttribute('x1', '3'); line.setAttribute('x2', '21');
+      line.setAttribute('y1', String(y)); line.setAttribute('y2', String(y));
+      line.setAttribute('stroke', 'currentColor');
+      line.setAttribute('stroke-width', '1.6');
+      line.setAttribute('stroke-linecap', 'round');
+      s.appendChild(line);
+      var knob = document.createElementNS ? document.createElementNS('http://www.w3.org/2000/svg', 'circle') : el('circle');
+      knob.setAttribute('cx', i === 1 ? '15' : '9');
+      knob.setAttribute('cy', String(y));
+      knob.setAttribute('r', '2');
+      knob.setAttribute('fill', 'currentColor');
+      s.appendChild(knob);
+    }
+    return s;
+  }
+
+  /* 「最近更新」小节头：标题 + 右侧可调按钮 + 小面板。
+   * 面板只是「range + 当前数值」，改完立刻重绘列表，不重新渲染整页（不刷新、不跳到顶部）。 */
+  function recentSection(list) {
+    var wrap = el('div', 'recent-row');
+    wrap.appendChild(el('p', 'section-h', '最近更新'));
+
+    var btn = el('button', 'recent-btn');
+    btn.setAttribute('type', 'button');
+    btn.setAttribute('id', 'recent-btn');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.setAttribute('aria-controls', 'recent-panel');
+    btn.setAttribute('aria-label', '调整最近更新条数');
+    btn.setAttribute('title', '调整最近更新条数');
+    btn.appendChild(slidersIcon());
+
+    var panel = el('div', 'recent-panel');
+    panel.setAttribute('id', 'recent-panel');
+    panel.setAttribute('hidden', '');
+    var lab = el('label', 'recent-label', '显示条数');
+    lab.setAttribute('for', 'recent-range');
+    var val = el('span', 'recent-val', readRecent() + ' 篇');
+    var head = el('div', 'recent-panel-head');
+    head.appendChild(lab);
+    head.appendChild(val);
+    panel.appendChild(head);
+
+    var range = el('input', 'recent-range');
+    range.setAttribute('type', 'range');
+    range.setAttribute('id', 'recent-range');
+    range.setAttribute('min', String(RECENT_MIN));
+    range.setAttribute('max', String(RECENT_MAX));
+    range.setAttribute('step', '1');
+    range.setAttribute('value', String(readRecent()));
+    range.setAttribute('aria-label', '最近更新显示条数');
+    panel.appendChild(range);
+    panel.appendChild(el('p', 'recent-hint', '1–15 篇 · 记住的选择存在本机浏览器里'));
+
+    wrap.appendChild(btn);
+    wrap.appendChild(panel);
+
+    function setPanel(open) {
+      if (open) panel.removeAttribute('hidden'); else panel.setAttribute('hidden', '');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    function draw() {
+      clear(list);
+      var items = recentPosts(S.recent ? S.recent.limit : readRecent());
+      for (var i = 0; i < items.length; i++) list.appendChild(recentRow(items[i]));
+      clear(val);
+      val.appendChild(document.createTextNode(
+        ((S.recent ? S.recent.limit : readRecent())) + ' 篇 · 共 ' + ((S.man.posts || []).length) + ' 篇'));
+    }
+    if (btn.addEventListener && range.addEventListener) {
+      btn.addEventListener('click', function (ev) {
+        if (ev && ev.stopPropagation) ev.stopPropagation();
+        setPanel(panel.hasAttribute('hidden'));
+      });
+      /* input 事件：拖动过程中就重绘；Esc 由全局 keydown 收口 */
+      range.addEventListener('input', function () {
+        writeRecent(range.value);
+        draw();
+      });
+    }
+    draw();
+    S.recent = { limit: readRecent(), draw: draw, panel: panel, close: function () { setPanel(false); } };
+    return wrap;
+  }
+
+  function closeRecentPanel() {
+    if (S.recent && S.recent.close) S.recent.close();
+  }
+
+  /* ---------- 首页「一言」 ----------
+   *
+   * 句子来自构建期写进 manifest 的 quotes（里人录：site/content/quotes/<成员>/quotes.sml）。
+   * 前端只读本地数组、不发请求；没有句子就不显示按钮（不编造、不用占位鸡汤）。
+   * 点击 → 全屏变暗 + 中间一句；8 秒自动消失，期间点页面任何位置立刻消失。
+   * 关闭一定清定时器：否则看不见的计时器会在你跳到别的页面后还把浮层拉回来。 */
+  var QUOTE_MS = 8000;
+
+  function quoteList() {
+    return (S.man && S.man.quotes) || [];
+  }
+
+  function quoteVisible() {
+    var v = quoteVeil();
+    return !!(v && !v.hasAttribute('hidden'));
+  }
+
+  /* 浮层 / 按钮是自己插到 body 上的：句柄记在 S.quote 里，不用每次 $() 再查一遍
+     （既省一次查询，也免得依赖「移除后还查得到」这种用法） */
+  function quoteBtn() {
+    if (S.quote && S.quote.btn && S.quote.btn.parentNode) return S.quote.btn;
+    return $('#quote-btn');
+  }
+
+  function quoteVeil() {
+    if (S.quote && S.quote.veil && S.quote.veil.parentNode) return S.quote.veil;
+    return $('#quote-veil');
+  }
+
+  function clearQuoteTimer() {
+    if (S.quote && S.quote.timer) {
+      if (typeof clearTimeout === 'function') clearTimeout(S.quote.timer);
+      S.quote.timer = 0;
+    }
+  }
+
+  function closeQuote() {
+    clearQuoteTimer();
+    var v = quoteVeil();
+    if (v) v.setAttribute('hidden', '');
+  }
+
+  function openQuote() {
+    var qs = quoteList();
+    var v = quoteVeil();
+    if (!qs.length || !v) return;
+    clearQuoteTimer();
+    var idx = Math.floor(Math.random() * qs.length);
+    if (idx >= qs.length) idx = qs.length - 1;
+    if (S.quote) S.quote.idx = idx;
+    var q = qs[idx] || {};
+    var t = (S.quote && S.quote.textEl) || $('#quote-text');
+    var s = (S.quote && S.quote.srcEl) || $('#quote-source');
+    if (t) { clear(t); t.appendChild(document.createTextNode(String(q.text || ''))); }
+    if (s) {
+      clear(s);
+      var src = String(q.source || '');
+      if (src) s.appendChild(document.createTextNode('— ' + src));
+    }
+    v.removeAttribute('hidden');
+    S.quote.timer = (typeof setTimeout === 'function') ? setTimeout(closeQuote, QUOTE_MS) : 0;
+  }
+
+  /* 浮层与按钮都在 body 上（不在 #view 里）：换路由时显式拆掉，避免「上一页的浮层」 */
+  function unmountQuote() {
+    closeQuote();
+    var b = quoteBtn();
+    if (b && b.parentNode) b.parentNode.removeChild(b);
+    var v = quoteVeil();
+    if (v && v.parentNode) v.parentNode.removeChild(v);
+    if (S.quote) { S.quote.btn = null; S.quote.veil = null; S.quote.textEl = null; S.quote.srcEl = null; }
+    if (document.body && document.body.classList) document.body.classList.remove('quote-anim');
+  }
+
+  function mountQuote() {
+    unmountQuote();
+    if (!quoteList().length || !document.body) return;
+    if (!reducedMotion()) document.body.classList.add('quote-anim');
+    var btn = el('button', 'quote-btn');
+    btn.setAttribute('type', 'button');
+    btn.setAttribute('id', 'quote-btn');
+    btn.setAttribute('aria-label', '读一句');
+    btn.setAttribute('title', '读一句');
+    btn.appendChild(el('span', 'quote-btn-mark', '“'));
+    if (btn.addEventListener) {
+      btn.addEventListener('click', function (ev) {
+        if (ev && ev.stopPropagation) ev.stopPropagation();
+        if (quoteVisible()) closeQuote(); else openQuote();
+      });
+    }
+    var veil = el('div', 'quote-veil');
+    veil.setAttribute('id', 'quote-veil');
+    veil.setAttribute('hidden', '');
+    veil.setAttribute('role', 'presentation');
+    var card = el('div', 'quote-card');
+    card.setAttribute('role', 'dialog');
+    card.setAttribute('aria-label', '一言');
+    var p = el('p', 'quote-text');
+    p.id = 'quote-text';
+    var s = el('p', 'quote-source');
+    s.id = 'quote-source';
+    card.appendChild(p);
+    card.appendChild(s);
+    veil.appendChild(card);
+    document.body.appendChild(btn);
+    document.body.appendChild(veil);
+    S.quote.btn = btn;
+    S.quote.veil = veil;
+    S.quote.textEl = p;
+    S.quote.srcEl = s;
+  }
+
+  /* ---------- 代码块：长代码折叠 + 语法高亮 ----------
+   *
+   * 折叠阈值来自 site.sml 的 code_collapse_lines（默认 20 行）：
+   *  · 折叠只加 CSS 类 + max-height，**不改动 DOM 里的代码文本** —— 复制按钮取的是
+   *    textContent，折叠状态下复制到的仍然是完整代码；
+   *  · 所有改动都在运行时做：禁用 JS 时代码块保持原样全展开；
+   *  · 高亮交给本地 vendor 的 Prism（MIT），失败就退回纯文本。 */
+  var CODE_COLLAPSE_DEFAULT = 20;
+
+  function codeCollapseLines() {
+    var n = parseInt((S.man && S.man.site && S.man.site.code_collapse_lines), 10);
+    return (isFinite(n) && n > 0) ? n : CODE_COLLAPSE_DEFAULT;
+  }
+
+  function countLines(text) {
+    var s = String(text || '');
+    if (!s) return 0;
+    var n = 1;
+    for (var i = 0; i < s.length; i++) { if (s.charAt(i) === '\n') n++; }
+    return s.charAt(s.length - 1) === '\n' ? n - 1 : n;
+  }
+
+  function setupCodeBlocks(viewEl) {
+    if (!viewEl || typeof viewEl.querySelectorAll !== 'function') return;
+    var boxes = viewEl.querySelectorAll('.code');
+    var limit = codeCollapseLines();
+    for (var i = 0; i < boxes.length; i++) setupOneCodeBox(boxes[i], limit);
+  }
+
+  function setupOneCodeBox(box, limit) {
+    var code = box.getElementsByTagName ? box.getElementsByTagName('code')[0] : null;
+    if (!code) return;
+    var lines = countLines(code.textContent);
+    if (lines <= limit) return;                       /* 短代码：一个按钮都不给 */
+    var head = null;
+    var kids = box.childNodes;
+    for (var k = 0; k < kids.length; k++) {
+      if (kids[k] && kids[k].className && String(kids[k].className).indexOf('code-head') >= 0) head = kids[k];
+    }
+    if (!head) return;
+    box.className = String(box.className || '') + ' code-long';
+    if (box.style && box.style.setProperty) box.style.setProperty('--code-lines', String(limit));
+
+    var pre = null;
+    for (var j = 0; j < kids.length; j++) {
+      if (kids[j] && kids[j].tagName && String(kids[j].tagName).toLowerCase() === 'pre') pre = kids[j];
+    }
+    if (pre && !pre.id) pre.id = 'code-pre-' + nextCodeId();
+
+    var btn = el('button', 'code-more');
+    btn.setAttribute('type', 'button');
+    if (pre) btn.setAttribute('aria-controls', pre.id);
+
+    var apply = function (collapsed) {
+      /* 折叠态给「展开全部（N 行）」，展开态给「收起」：按钮说的是「点了会发生什么」 */
+      clear(btn);
+      btn.appendChild(document.createTextNode(collapsed ? '展开全部（' + lines + ' 行）' : '收起'));
+      btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      btn.setAttribute('title', collapsed ? '展开全部 ' + lines + ' 行' : '收起这段代码');
+      var cls = String(box.className || '').replace(' is-collapsed', '').replace('is-collapsed', '').trim();
+      box.className = (collapsed ? cls + ' is-collapsed' : cls).trim();
+    };
+    apply(true);
+    if (btn.addEventListener) {
+      btn.addEventListener('click', function () {
+        apply(String(box.className || '').indexOf('is-collapsed') < 0);
+      });
+    }
+    head.appendChild(btn);
+  }
+
+  var CODE_SEQ = 0;
+  function nextCodeId() { CODE_SEQ++; return String(CODE_SEQ); }
+
+  function highlightCode(viewEl) {
+    if (!viewEl) return false;
+    var P = (typeof window !== 'undefined') ? window.Prism : null;
+    if (!P || typeof P.highlightAllUnder !== 'function') return false;
+    try {
+      P.highlightAllUnder(viewEl);
+      return true;
+    } catch (e) {
+      return false;                                  /* 高亮失败：正文原样是纯文本，够读 */
+    }
+  }
 
   /* ---------- 附件：统一文件图标 + 下载渠道 ---------- */
   var DL_CHANNELS = [
@@ -2358,6 +2717,11 @@
       return view.then(function (fr) {
         var viewEl = $('#view');
         if (viewEl) { clear(viewEl); viewEl.appendChild(fr); }
+        /* 正文落地后的三步加工：长代码折叠 → 高亮 → 首页「一言」浮层。
+           顺序有意义：折叠先给 <pre> 建好 id 与类，高亮只改 <code> 内部。 */
+        setupCodeBlocks(viewEl);
+        highlightCode(viewEl);
+        if (key === 'home') mountQuote(); else unmountQuote();
         buildToc();
         buildFooter();
         var brand = $('#brand-title');
@@ -2422,13 +2786,21 @@
     if (typeof document.addEventListener === 'function') {
       document.addEventListener('click', function (ev) {
         var t = ev && ev.target;
+        /* 一言浮层：出现期间点页面任何位置都立刻消失（包括点浮层自己） */
+        if (quoteVisible()) closeQuote();
+        /* 面板外的点击收起「显示条数」面板（按钮自己会 stopPropagation） */
+        if (t && typeof t.closest === 'function' && !t.closest('#recent-panel')) closeRecentPanel();
         if (t && typeof t.closest === 'function' && t.closest('[data-close]')) {
           if (ev.preventDefault) ev.preventDefault();
           hideModal();
         }
       });
       document.addEventListener('keydown', function (ev) {
-        if (ev && ev.key === 'Escape') hideModal();
+        if (ev && ev.key === 'Escape') {
+          hideModal();
+          closeQuote();
+          closeRecentPanel();
+        }
       });
     }
     /* 代码块复制：事件委托，只写这一处 */
@@ -2510,6 +2882,20 @@
       relGraph: relGraph, langBar: langBar, safeUrl: safeUrl,
       attachCard: attachCard, resourceRow: resourceRow, codeChip: codeChip,
       copyText: copyText, toast: toast,
+      /* 阅读控制三项（最近条数 / 一言 / 代码块），测试直接驱动这几个钩子 */
+      recent: {
+        key: RECENT_KEY, min: RECENT_MIN, max: RECENT_MAX, def: RECENT_DEFAULT,
+        read: readRecent, write: writeRecent, clamp: clampRecent, list: recentPosts,
+        closePanel: closeRecentPanel
+      },
+      quotes: {
+        autoMs: QUOTE_MS, list: quoteList, open: openQuote, close: closeQuote,
+        mount: mountQuote, unmount: unmountQuote, visible: quoteVisible
+      },
+      code: {
+        threshold: codeCollapseLines, setup: setupCodeBlocks,
+        highlight: highlightCode, countLines: countLines
+      },
       buildSiteNav: buildSiteNav, buildToc: buildToc, route: route,
       viewLibrary: viewLibrary, viewPost: viewPost, viewTopic: viewTopic,
       viewProject: viewProject, viewMember: viewMember, viewService: viewService,

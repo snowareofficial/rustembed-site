@@ -1,7 +1,7 @@
 # 技术互助示例。改成本人信息即可；不想展示就把整个文件删掉。
 # 硬性规则：
 #   owner 必须是成员 id（content/members/<id>.sml）；
-#   contact 只能写该成员 links 里已公开的键（blog / homepage / github / gitee / email）
+#   contact 只能写该成员 links 里已公开的键（blog / homepage / github / gitee / gitee_org / email）
 #   —— 本站不代收任何新联系方式，不介入交易与纠纷。
 
 name: "PCB 布局与 EMC 走线复查"

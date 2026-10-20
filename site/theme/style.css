@@ -901,3 +901,83 @@ body.toc-collapsed .panel-btn { color: var(--accent); border-color: var(--accent
 @media (max-width: 1039px) {
   .panel-btn { display: none; }
 }
+
+/* ---------- 15. 阅读控制：最近条数 / 一言 / 长代码块 ---------- */
+
+/* 最近更新：标题右侧一个「三滑条」按钮，点开是个小面板（range + 当前数值） */
+.recent-row { display: flex; align-items: flex-start; justify-content: space-between; gap: .6rem; position: relative; }
+.recent-row .section-h { flex: 1 1 auto; }
+.recent-btn {
+  display: grid; place-items: center; flex: 0 0 auto; margin-top: 1.7rem;
+  width: 1.9rem; height: 1.7rem; padding: 0; cursor: pointer;
+  background: var(--surface); color: var(--ink-mute);
+  border: 1px solid var(--line); border-radius: var(--radius);
+}
+.recent-btn:hover { color: var(--ink); border-color: var(--line-strong); }
+.recent-btn .ico { width: 1rem; height: 1rem; }
+.recent-panel {
+  position: absolute; right: 0; top: 3.1rem; z-index: 30; width: 14rem;
+  padding: .55rem .7rem .65rem; background: var(--surface);
+  border: 1px solid var(--line-strong); border-radius: var(--radius);
+}
+.recent-panel[hidden] { display: none; }
+.recent-panel-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 11.5px; color: var(--ink-mute); }
+.recent-val { color: var(--ink-soft); }
+.recent-range { display: block; width: 100%; margin: .35rem 0 0; }
+.recent-hint { margin: .35rem 0 0; font-size: 11px; color: var(--ink-mute); }
+
+/* 首页右下角「一言」：圆形悬浮按钮 54px */
+.quote-btn {
+  position: fixed; right: 1.1rem; bottom: 1.1rem; z-index: 70;
+  display: grid; place-items: center; width: 54px; height: 54px;
+  border-radius: 50%; cursor: pointer;
+  background: var(--surface); color: var(--ink-soft);
+  border: 1px solid var(--line-strong);
+}
+.quote-btn:hover { color: var(--accent); border-color: var(--accent); }
+.quote-btn-mark { font-family: Georgia, "Times New Roman", serif; font-size: 22px; line-height: 1; }
+.quote-veil {
+  position: fixed; inset: 0; z-index: 75; display: grid; place-items: center;
+  padding: 1.6rem; background: rgba(18, 15, 11, .74);
+}
+.quote-veil[hidden] { display: none; }
+.quote-card { max-width: 34rem; text-align: center; color: #f7f3eb; }
+.quote-text { margin: 0; font-size: clamp(18px, 3.2vw, 26px); line-height: 1.95; }
+.quote-source { margin: .9rem 0 0; font-size: 12.5px; color: rgba(247, 243, 235, .76); }
+/* 只有 JS 打算做动画时才挂 quote-anim（另外这层 media 查询再兜一道） */
+@keyframes quote-in { from { opacity: 0; } to { opacity: 1; } }
+body.quote-anim .quote-veil { animation: quote-in .18s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  body.quote-anim .quote-veil { animation: none; }
+}
+
+/* 长代码块折叠：阈值由 site.sml 的 code_collapse_lines 决定，
+   JS 把具体行数写进 --code-lines；* 1.7em 对应 .code pre 的 line-height，
+   + 1.4rem 是把上下 padding 补回来 —— 这样「显示 20 行」就是真的 20 行。 */
+.code-long { position: relative; }
+.code-more {
+  font-size: 11px; line-height: 1.5; padding: .06rem .4rem; cursor: pointer;
+  color: var(--ink-soft); background: var(--surface);
+  border: 1px solid var(--line-strong); border-radius: 4px;
+}
+.code-more:hover { color: var(--ink); }
+.code-long.is-collapsed pre {
+  max-height: calc(var(--code-lines, 20) * 1.7em + 1.4rem);
+  overflow-y: auto;
+}
+/* 底部渐隐：提示还有内容，且不遮住交互（pointer-events: none） */
+.code-long.is-collapsed::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3.4em;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(236, 230, 220, 0), var(--surface-3));
+}
+@media (prefers-color-scheme: dark) {
+  .code-long.is-collapsed::after {
+    background: linear-gradient(to bottom, rgba(43, 38, 29, 0), var(--surface-3));
+  }
+}
+/* 窄屏：面板别顶出屏外 */
+@media (max-width: 640px) {
+  .recent-panel { right: 0; left: auto; width: min(14rem, calc(100vw - 2.4rem)); }
+  .quote-btn { right: .8rem; bottom: .8rem; width: 52px; height: 52px; }
+}

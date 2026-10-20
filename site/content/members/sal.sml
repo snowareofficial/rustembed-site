@@ -5,13 +5,13 @@
 @sal_links {
   blog: "https://sml.swebase.cn"
   gitee: "https://gitee.com/Ironbayberry"
-  homepage: "https://gitee.com/snoware/"
+  gitee_org: "https://gitee.com/snoware/"
   email: "sal@mail.swebase.cn"
 }
 
 name: "Sal"
 role: 管理员
-signature: "写格式、写工具、偶尔写板子。"
-skills: [ rust embedded sml python ]
+signature: "为你而来，有你我在"
+skills: [ rust embedded sml python linux server ]
 links: &sal_links
 joined: 2026-01-01
