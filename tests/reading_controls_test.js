@@ -7,6 +7,8 @@
  *   [3] 首页一言：只在首页、8 秒自动消失、任意点击 / Esc 关闭、空数据隐藏
  *   [4] 长代码块折叠：阈值取 site.code_collapse_lines、展开/收起、复制取全文
  *   [5] 语法高亮：本地 vendor 的 Prism（MIT），语言齐全，产物里没有外部 CDN
+ *   [6] 系列收拢 + #/series/<id> 目录页（20 章按 order 列出 / 无效 id 空态）
+ *   [10] 本页目录的「读到哪儿」标记：.toc a.cur + ::before 小三角（桌面与抽屉同步）
  *
  * 与另外三个 Node 脚本同样零依赖；真实尺寸 / 真实 CSS 交给 tests/browser-check.js。
  */
@@ -707,6 +709,64 @@ async function main() {
     eq(app.store['rec-blog:library-limit'], '20', '书库条数写自己的 key');
     eq(app.store['rec-blog:recent-limit'], undefined, '书库条数不影响首页条数');
     console.log('  书库：滑块 / 滚动区 / 过滤都不回归');
+  }
+  console.log('== [10] 本页目录：当前阅读位置的小三角 ==');
+  {
+    /* 三个分节的假文章：目录里要能看到「读到哪儿」，滚到第二节三角得跟着走。 */
+    const TOC = [
+      { id: 'sec-1', text: '第一节', level: 2 },
+      { id: 'sec-2', text: '第二节', level: 2 },
+      { id: 'sec-3', text: '第三节', level: 3 }
+    ];
+    const body = '<h2 id="sec-1">第一节</h2><p>第一段</p>'
+      + '<h2 id="sec-2">第二节</h2><p>第二段</p><h3 id="sec-3">第三节</h3>';
+    const app = makeApp(
+      manifest({ posts: [post('toc-post', '2026-06-06', '有分节的文章', ['rust'], '', { toc: TOC })] }),
+      { bodies: { 'p/toc-post.html': body } });
+    await app.rec.started;
+    app.location.hash = '#/post/toc-post';
+    await app.rec.render();
+
+    const nav = app.document.querySelector('#toc-nav');
+    const drawer = app.document.querySelector('#toc-nav-m');
+    eq(nav.querySelectorAll('a').length, 3, '左栏目录 3 个分节');
+    eq(drawer.querySelectorAll('a').length, 3, '抽屉目录同样 3 个（同一份 toc）');
+    const cur0 = nav.querySelector('a.cur');
+    need(!!cur0, '目录里有当前项 .cur');
+    eq(cur0 && cur0.getAttribute('data-anchor'), 'sec-1', '默认高亮第一节（第一个分节）');
+    need(!!drawer.querySelector('a.cur'), '抽屉目录也标出当前项（窄屏同样看得到）');
+
+    /* 桩没有布局，按 spyToc 的判据（top <= 120）手工喂一次真实的滚动位置 */
+    const setTop = (id, top) => {
+      const n = app.document.getElementById(id);
+      if (n) n.getBoundingClientRect = () => ({ top, left: 0, width: 0, height: 0, bottom: top, right: 0 });
+    };
+    setTop('sec-1', -320); setTop('sec-2', 40); setTop('sec-3', 600);
+    app.window.dispatch('scroll');
+    const cur2 = nav.querySelector('a.cur');
+    eq(cur2 && cur2.getAttribute('data-anchor'), 'sec-2', '滚到第二节后三角跟着走');
+    eq(nav.querySelectorAll('a.cur').length, 1, '同一时刻只有一个当前项');
+    eq((drawer.querySelector('a.cur') || {}).getAttribute
+      ? drawer.querySelector('a.cur').getAttribute('data-anchor') : null, 'sec-2',
+      '抽屉里的当前项同步（两份 DOM 一起标）');
+    /* 层级不能丢：第三节是 lv3 */
+    setTop('sec-1', -900); setTop('sec-2', -600); setTop('sec-3', 10);
+    app.window.dispatch('scroll');
+    const cur3 = nav.querySelector('a.cur');
+    has(cur3 ? cur3.className : '', 'lv3', '当前项仍带层级类（lv3）');
+    has(cur3 ? cur3.className : '', 'cur', '当前项仍带 cur 类');
+
+    /* 三角的画法：DOM 桩不算 CSS，这里断言规则本身（真实尺寸交给 browser-check） */
+    const css = readMaybe(path.join(THEME, 'style.css')) || '';
+    const mark = (css.match(/\.toc a\.cur::before\s*\{[^}]*\}/) || [''])[0];
+    need(mark.length > 0, 'style.css 里有 .toc a.cur::before 规则（不只靠左边框区分）');
+    has(mark, 'content: "▸"', '标记是 ▸ 字符（不引图标字体 / 外部资源）');
+    has(mark, 'var(--accent)', '三角用 accent 色');
+    has(mark, 'position: absolute', '三角定位在预留槽里（不把标题文字挤右移）');
+    const tocA = (css.match(/\.toc a \{[^}]*\}/) || [''])[0];
+    has(tocA, 'position: relative', '.toc a 是定位上下文（三角不出容器、不被裁切）');
+    has(tocA, 'padding', '.toc a 左侧预留了恒定槽位');
+    console.log('  目录：默认第一节 → 滚到第二节三角跟着走；抽屉同步；规则 = ▸ / accent / 绝对定位');
   }
 }
 

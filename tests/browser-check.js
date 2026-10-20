@@ -814,6 +814,124 @@ async function main() {
     need(quote.w >= 52 && quote.w <= 56, '按钮直径 52–56px', quote.w + 'px');
     need(quote.round, '按钮是正圆');
   }
+  /* ---------- 本页目录：读到哪儿（真实 CSS + 真实滚动） ----------
+   * DOM 桩只能断言规则文本；「三角有没有被裁掉 / 会不会把页面挤宽 / 颜色对不对」
+   * 只有真浏览器能量。窄屏那份目录是抽屉，单独量一次。 */
+  console.log('== 本页目录：当前阅读位置的小三角 ==');
+  await metrics(1280, 900, false);
+  await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' }] });
+  await go('#/post/md-writing', 'post', { toc: 'yes' });
+  const tocMark = await cdp.eval(`(async () => {
+    const links = Array.from(document.querySelectorAll('#toc-nav a'));
+    if (links.length < 2) return { links: links.length };
+    const want = links[1].getAttribute('data-anchor');
+    const target = document.getElementById(want);
+    window.scrollTo(0, target.getBoundingClientRect().top + (window.pageYOffset || 0) - 60);
+    await new Promise((r) => setTimeout(r, 400));
+    const cur = document.querySelector('#toc-nav a.cur');
+    if (!cur) return { links: links.length, cur: null };
+    const cs = getComputedStyle(cur, '::before');
+    const col = document.getElementById('col-left');
+    const box = cur.getBoundingClientRect();
+    const colBox = col.getBoundingClientRect();
+    return {
+      links: links.length, want: want, cur: cur.getAttribute('data-anchor'),
+      curCount: document.querySelectorAll('#toc-nav a.cur').length,
+      content: cs.content, color: cs.color, curColor: getComputedStyle(cur).color,
+      inCol: box.left >= colBox.left - 1 && box.right <= colBox.right + 1,
+      colScrollW: col.scrollWidth, colClientW: col.clientWidth,
+      scrollW: document.documentElement.scrollWidth, clientW: document.documentElement.clientWidth
+    };
+  })()`);
+  need(tocMark.links >= 2, '文章页目录至少 2 个分节', String(tocMark.links));
+  eq2(tocMark.cur, tocMark.want, '滚到第二节 → 目录高亮第二节');
+  eq2(tocMark.curCount, 1, '同一时刻只有一个当前项');
+  includes2(tocMark.content, '▸', '当前项有小三角 ▸');
+  eq2(tocMark.color, tocMark.curColor, '三角是 accent 色（与当前项同色）');
+  need(tocMark.inCol, '整行（含三角）在左栏框内，没被裁切');
+  need(tocMark.colScrollW <= tocMark.colClientW + 1, '左栏不出横向滚动条（三角没撑宽）',
+    tocMark.colScrollW + ' ≤ ' + tocMark.colClientW);
+  need(tocMark.scrollW <= tocMark.clientW + 1, '1280px 整页无横向滚动',
+    tocMark.scrollW + ' ≤ ' + tocMark.clientW);
+  await cdp.shot(path.join(SHOTS, 'toc-mark-1280.png'));
+
+  await metrics(375, 812, true);
+  await go('#/post/md-writing', 'post', { toc: 'yes' });
+  const tocMob = await cdp.eval(`(async () => {
+    const d = document.getElementById('mobile-toc');
+    d.setAttribute('open', 'open');
+    await new Promise((r) => setTimeout(r, 300));
+    const cur = document.querySelector('#toc-nav-m a.cur');
+    if (!cur) return { cur: null };
+    const cs = getComputedStyle(cur, '::before');
+    const box = cur.getBoundingClientRect();
+    const dBox = d.getBoundingClientRect();
+    return {
+      cur: cur.getAttribute('data-anchor'), content: cs.content,
+      visible: cur.checkVisibility ? cur.checkVisibility({ checkVisibilityCSS: true }) : true,
+      inDrawer: box.left >= dBox.left - 1 && box.right <= dBox.right + 1,
+      scrollW: document.documentElement.scrollWidth, clientW: document.documentElement.clientWidth
+    };
+  })()`);
+  need(!!tocMob.cur, '窄屏抽屉目录也标出当前项', String(tocMob.cur));
+  includes2(tocMob.content, '▸', '抽屉里的三角同样画出来');
+  need(tocMob.visible === true, '抽屉里的当前项真的可见');
+  need(tocMob.inDrawer, '抽屉里的行（含三角）没被裁切');
+  need(tocMob.scrollW <= tocMob.clientW + 1, '375px 抽屉展开后无横向滚动',
+    tocMob.scrollW + ' ≤ ' + tocMob.clientW);
+  await cdp.shot(path.join(SHOTS, 'toc-mark-375.png'));
+
+  /* ---------- 系列目录页：点系列行进得去、章节回文章、无效 id 不崩 ---------- */
+  console.log('== 系列目录页 #/series/<id> ==');
+  await metrics(1280, 900, false);
+  await go('#/library?tag=rust', 'library');
+  const seriesEntry = await cdp.eval(`(() => {
+    const a = document.querySelector('#view a[href^="#/series/"]');
+    return a ? a.getAttribute('href') : null;
+  })()`);
+  need(!!seriesEntry, '书库 / 标签页的系列行有 #/series/<id> 入口', String(seriesEntry));
+  if (seriesEntry) {
+    await go(seriesEntry, 'series');
+    /* 截图要能看见页头（面包屑 / h1 / 「共 N 章」/ 从第一章开始）：
+       同文档导航不重置滚动，这里手动回到顶部。 */
+    await cdp.eval('window.scrollTo(0, 0)');
+    const sp = await cdp.eval(`(() => {
+      const view = document.getElementById('view');
+      const rows = view.querySelectorAll('.rows li.row');
+      const first = rows.length ? rows[0].querySelector('a.row-title') : null;
+      const chip = view.querySelector('.chips a.chip');
+      return {
+        h1: (view.querySelector('h1') || {}).textContent || '',
+        title: document.title,
+        lede: (view.querySelector('.lede') || {}).textContent || '',
+        crumb: !!view.querySelector('.crumb a[href="#/library"]'),
+        rows: rows.length,
+        firstHref: first ? first.getAttribute('href') : null,
+        chipHref: chip ? chip.getAttribute('href') : null,
+        heads: Array.from(view.querySelectorAll('.section-h')).map((n) => n.textContent).join(','),
+        toc: document.body.getAttribute('data-toc'),
+        scrollW: document.documentElement.scrollWidth, clientW: document.documentElement.clientWidth
+      };
+    })()`);
+    need(sp.h1.length > 0, '系列页有 h1 标题', sp.h1);
+    includes2(sp.title, sp.h1, '标签页标题写系列名（不是通用的「系列」）');
+    includes2(sp.lede, '章 · 系列', '系列页写明「共 N 章 · 系列」');
+    need(sp.rows >= 2, '目录列出全部章节', String(sp.rows));
+    need(!!sp.firstHref && sp.firstHref.indexOf('#/post/') === 0, '章节链接回 #/post/<slug>',
+      String(sp.firstHref));
+    need(!!sp.chipHref && sp.chipHref.indexOf('#/post/') === 0, '「从第一章开始阅读」指向第一章',
+      String(sp.chipHref));
+    need(sp.crumb === true, '面包屑能回文章库');
+    includes2(sp.heads, '目录', '系列页有「目录」段');
+    eq2(sp.toc, 'none', '系列页没有分节标题 → 左栏不占位');
+    need(sp.scrollW <= sp.clientW + 1, '系列页无横向滚动', sp.scrollW + ' ≤ ' + sp.clientW);
+    await cdp.shot(path.join(SHOTS, 'series-1280.png'));
+
+    await go('#/series/一定没有这个系列', 'series');
+    const bad = await cdp.eval(`(() => document.getElementById('view').textContent)()`);
+    includes2(bad, '没有这个系列', '无效系列 id 显示空态（不崩）');
+  }
+
   cdp.close();
   cleanup();
 

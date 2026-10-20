@@ -167,8 +167,11 @@
         if (!t || !t.id) continue;
         var a = lnk('#/' + S.tocBase + '/' + t.id, t.text, 'lv' + (t.level || 2));
         a.setAttribute('data-anchor', t.id);
+        a.setAttribute('data-level', String(t.level || 2));
         nav.appendChild(a);
-        if (k === 0) S.tocLinks.push(a);
+        /* 桌面左栏与窄屏抽屉是同一份目录的两份 DOM：两份都要跟着滚动标当前项，
+           否则抽屉里永远看不到「读到哪儿」。 */
+        S.tocLinks.push(a);
         count++;
       }
       if (count === 0) nav.appendChild(el('p', 'muted', '本页没有分节标题。'));
@@ -196,7 +199,8 @@
     for (var i = 0; i < S.tocLinks.length; i++) {
       var a = S.tocLinks[i];
       var on = a.getAttribute('data-anchor') === id;
-      a.className = 'lv' + ((S.toc[i] && S.toc[i].level) || 2) + (on ? ' cur' : '');
+      /* 层级从节点自带属性取：S.tocLinks 现在装了左栏 + 抽屉两份，不能再用下标对 S.toc */
+      a.className = 'lv' + (a.getAttribute('data-level') || 2) + (on ? ' cur' : '');
     }
   }
 
