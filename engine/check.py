@@ -191,6 +191,53 @@ if contracts_page:
     need(not re.search(r"<(script|img|svg|iframe|object|embed)\b", body, re.I),
          "契约文档页出现裸标签（契约名未转义？）")
 
+# ---- 阅读控制：代码块折叠阈值 / 一言 / 本地高亮 ----
+
+_lines = m["site"].get("code_collapse_lines")
+need(isinstance(_lines, int) and not isinstance(_lines, bool) and _lines >= 1,
+     "site.code_collapse_lines 应该是正整数（来自 site.sml），实为 %r" % (_lines,))
+
+_quotes = m.get("quotes")
+need(isinstance(_quotes, list), "manifest.quotes 应该是数组（没有句子给空数组，前端据此隐藏按钮）")
+need(len(_quotes or []) <= 60, "manifest.quotes 有 %d 条，超过 60 条上限" % len(_quotes or []))
+_per_member = {}
+for _q in (_quotes or []):
+    need(isinstance(_q, dict) and _q.get("text"), "一句话缺 text：%r" % (_q,))
+    need(_q.get("member"), "一句话缺 member（署不到具体成员的句子不收录）")
+    need(_q.get("member") in {x["id"] for x in m["members"]},
+         "一句话的 member `%s` 不在成员档案里" % _q.get("member"))
+    _per_member[_q.get("member")] = _per_member.get(_q.get("member"), 0) + 1
+for _mid, _cnt in _per_member.items():
+    need(_cnt <= 3, "成员 %s 录了 %d 条，超过每人 3 条上限" % (_mid, _cnt))
+
+# 高亮必须本地 vendor：产物里带上三件套、index.html 引用本地路径、不许跨站引资源
+_prism = DIST / "vendor" / "prism"
+need((_prism / "prism.js").exists(), "缺少 dist/vendor/prism/prism.js（主题子目录没拷到产物？）")
+need((_prism / "prism.css").exists(), "缺少 dist/vendor/prism/prism.css")
+need((_prism / "LICENSE").exists(), "第三方代码必须随产物发布许可：dist/vendor/prism/LICENSE")
+need('href="vendor/prism/prism.css"' in idx, "index.html 没有引用本地 prism.css")
+need('src="vendor/prism/prism.js"' in idx, "index.html 没有引用本地 prism.js")
+_ext = re.findall(r'(?:src|href)="(?:https?:)?//[^"]+"', idx)
+need(not _ext, "index.html 出现了外部资源引用（运行时零外部请求）：%s" % " ".join(_ext))
+
+# 成员头像：源里有就该落成产物，manifest 里写了就该有文件
+_AVATAR_EXT = (".jpg", ".jpeg", ".png", ".webp")
+
+
+def _has_avatar_source(mid):
+    for d in (ROOT / "content" / "members", ROOT / "content" / "avatars", ROOT):
+        for ext in _AVATAR_EXT:
+            if (d / (mid + ext)).exists():
+                return True
+    return False
+
+
+for mem in m["members"]:
+    if _has_avatar_source(mem["id"]):
+        need(mem.get("avatar"), "成员 %s 目录里放着头像，manifest.avatar 却是空的" % mem["id"])
+    if mem.get("avatar"):
+        need((DIST / mem["avatar"]).exists(), "成员 %s 的头像不在产物里：%s" % (mem["id"], mem["avatar"]))
+
 print("文章 %d / 项目 %d / 成员 %d / 资源 %d / 周报 %d / 文档 %d / 黄页 %d"
       % (len(m["posts"]), len(m["projects"]), len(m["members"]),
          len(m["resources"]), len(m["weekly"]), len(m["pages"]),

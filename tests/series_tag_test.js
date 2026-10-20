@@ -196,14 +196,16 @@ async function testLibraryTag() {
   need(!series[0].classList.contains('hide'), '按未命中标签的章节标题也能搜到该系列');
 }
 
-/* 无标签的书库页不合并 */
+/* 无标签的书库页也合并多章系列，避免文章库变成流水账 */
 async function testLibraryNoTag() {
-  console.log('== [1b] 无标签的书库页：系列不合并 ==');
+  console.log('== [1b] 无标签的书库页：多章系列也合并 ==');
   const app = makeApp(manifest());
   await app.rec.started;
   const frag = await app.rec.VIEWS.library({ q: {} });
-  eq(frag.querySelectorAll('li.row-series').length, 0, '书库页（无 tag）不合并系列');
-  eq(frag.querySelectorAll('li.row').length, 6, '书库页 6 篇文章各自一行');
+  eq(frag.querySelectorAll('li.row-series').length, 1, '书库页合并 1 个多章系列');
+  eq(plainRows(frag).length, 3, '普通行 = 2 篇普通 + 1 个单章系列');
+  includes(textOf(frag), 'Rust 嵌入式入门', '系列行保留系列标题');
+  includes(textOf(frag), '多章系列折叠为 1 条', '页头说明折叠数量');
 }
 
 /* 系列数据异常：series id 不存在、series 缺 posts 字段 */
@@ -295,6 +297,17 @@ async function testFooter(app) {
     await app.rec.render();
     eq(app.document.body.getAttribute('data-page'), want, hash + ' → body[data-page]=' + want);
   }
+
+  /* 反复渲染不能把已移入 .footer-legal 的声明清掉（回归：二次渲染清空页脚） */
+  app.location.hash = '#/services';
+  await app.rec.render();
+  await app.rec.render();
+  for (const id of LICENSE_IDS) {
+    need(!!app.document.getElementById(id), '二次渲染后仍保留 #' + id);
+  }
+  const kept = Array.from(app.document.querySelectorAll('span'))
+    .filter((s) => s.id && s.id.indexOf('license-notice') === 0);
+  eq(kept.length, 3, '二次渲染后页脚仍有 3 行授权声明');
 
   /* 构建期注入：dist/index.html 里必须有三行声明（需要先 build） */
   const distHtml = path.join(ROOT, 'dist', 'index.html');

@@ -4,13 +4,14 @@
 # 片段复用：@名字 { } 定义一次，&名字 以值的形式引用（SML 原生能力）
 @sal_links {
   blog: "https://sml.swebase.cn"
-  gitee: "https://gitee.com/snoware"
+  gitee: "https://gitee.com/Ironbayberry"
+  gitee_org: "https://gitee.com/snoware/"
   email: "sal@mail.swebase.cn"
 }
 
 name: "Sal"
 role: 管理员
-signature: "写格式、写工具、偶尔写板子。"
-skills: [ rust embedded sml python ]
+signature: "为你而来，有你我在"
+skills: [ rust embedded sml python linux server ]
 links: &sal_links
 joined: 2026-01-01

@@ -62,6 +62,23 @@ links: { github: "https://github.com/…" }
 - `id` 是文件名，文章 `author`、服务 `owner` 都引用它；
 - `links` 里的联系方式要本人同意才公开；不想公开就删掉。
 
+`links` 的键（改 / 加键要同时改三处：`contracts/blog.sml` 的 `MemberLinks`、
+`site/theme/app.js` 的 `CONTACT_LABEL`、这里的说明）：
+
+| 键 | 显示标签 | 用途 |
+|---|---|---|
+| `blog` | 博客 | 个人博客 / 主页之外的写作处 |
+| `homepage` | 个人主页 | 个人站点 |
+| `github` | GitHub | |
+| `gitee` | Gitee | Gitee 个人空间 |
+| `gitee_org` | Gitee 空间 | Gitee 组织 / 第二个空间 |
+| `email` | 邮箱 | 由本人提供并授权展示 |
+
+一个人两个 Gitee 时**必须用两个不同的键**：写成两个 `gitee:` 时对象后面的键会覆盖前面的，
+构建不会报错，但页面上只会剩一条。`gitee_org` 就是为这种情况留的。
+
+未知的键不会丢（页面上会显示键名本身），但构建期会告警 —— 因为读者看不懂那个标签。
+
 ## 项目 `projects/<英文短名>.sml`
 
 ```sml
@@ -157,8 +174,27 @@ body: [
 | `reviewers` | PR 默认审核人 |
 | `contracts { … }` | 目录 → 契约的默认映射 |
 | `group { … }` | 群信息、规则、时间线 |
+| `code_collapse_lines` | 代码超过多少行自动折叠（默认 20，前端按钮可展开） |
 
 **不要改 `contracts` 映射**，除非你同时改了契约和构建代码。
+
+## 一言 `quotes/<成员 id>/quotes.sml`
+
+首页右下角那个圆按钮点出来的一句话，来自这里：
+
+```sml
+# site/content/quotes/sal/quotes.sml
+quotes: [
+  { text: "写格式、写工具、偶尔写板子。" source: "本人提供" }
+  { text: "另一句。" source: "出处（可留空）" }
+]
+```
+
+- `text` 必填，`source` 选填（作者 / 出处，留空就不显示）；
+- 目录名必须是**已建档成员的 id**（`content/members/<id>.sml`）—— 句子署的是真人，
+  查不到人就整份不收录；
+- 每人最多 3 条、全站最多 60 条，超出的部分构建期丢弃并告警；
+- **不要替别人代写**。没有句子时首页不会显示这个按钮（前端不编造、不留占位鸡汤）。
 
 ## 常见错误
 

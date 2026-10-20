@@ -574,6 +574,10 @@ def build_projects(rep, cache, offline):
     return out
 
 
+# 成员 links 的已知键。未知键不会被丢掉（前端回落到键名），但会构建期告警：
+# 联系人的个数由键名决定，写错键名 = 给读者一个看不懂的标签。
+KNOWN_MEMBER_LINK_KEYS = {"blog", "homepage", "github", "gitee", "gitee_org", "email"}
+
 AVATAR_EXT = (".jpg", ".jpeg", ".png", ".webp")
 
 
@@ -588,6 +592,78 @@ def find_avatar(mid):
 
 
 AVATAR_CACHE = ROOT / "meta" / "avatars"   # 构建期下载的远端头像缓存（不入库）
+
+
+# ---- 阅读习惯配置：写在 site.sml，进 manifest 由前端取用 ----
+
+DEFAULT_CODE_COLLAPSE_LINES = 20          # 代码超过这么多行就折叠（前端按钮可展开）
+
+
+def collapse_lines(site):
+    """代码块折叠阈值。site.sml 里 `code_collapse_lines: 20`；非法值退回默认并告警。"""
+    v = site.get("code_collapse_lines", DEFAULT_CODE_COLLAPSE_LINES)
+    try:
+        n = int(sml.as_str(v))
+    except (TypeError, ValueError):
+        return DEFAULT_CODE_COLLAPSE_LINES
+    # 上限只为挡住手滑多打一个 0（塞一整篇渲染进来）；下限保证「折叠后还有得看」
+    return n if 1 <= n <= 500 else DEFAULT_CODE_COLLAPSE_LINES
+
+
+# ---- 一言 ----
+
+QUOTES_DIR = CONTENT / "quotes"           # content/quotes/<成员 id>/quotes.sml
+QUOTES_PER_MEMBER = 3                     # 每人最多 3 条
+QUOTES_TOTAL = 60                         # 全站最多 60 条
+
+
+def build_quotes(rep, members):
+    """收录「一言」：content/quotes/<成员 id>/quotes.sml → manifest.quotes。
+
+    契约之外的硬约束：
+      · 只收**有成员档案**的人的句子 —— 句子署的是真人，凭空出現的成员 id 没处溯源；
+      · 每人最多 3 条、全站最多 60 条，超出部分构建期丢并告警（提纯——句子多了就稀释）；
+      · 一条都不收录时返回空表，前端会连按钮都不渲染：绝不编造句子填版面。
+    """
+    if not QUOTES_DIR.is_dir():
+        return []
+    known = {m["id"]: m for m in members}
+    out = []
+    for d in sorted(p for p in QUOTES_DIR.iterdir() if p.is_dir()):
+        f = d / "quotes.sml"
+        where = f.relative_to(ROOT).as_posix()
+        mid = d.name
+        if not f.exists():
+            rep.warn(where, "目录里没有 quotes.sml（约定：content/quotes/<成员 id>/quotes.sml）")
+            continue
+        if mid not in known:
+            rep.warn(where, "没有对应的成员档案 content/members/%s.sml，整份不收录" % mid)
+            continue
+        data, cs = load2(f)
+        register_contracts(rep, where, cs)
+        kept = []
+        for row in as_list(data.get("quotes")):
+            if not isinstance(row, dict):
+                continue
+            text = sml.as_str(row.get("text", "")).strip()
+            if not text:
+                continue
+            kept.append({
+                "member": mid,
+                "name": known[mid].get("name") or mid,
+                "text": text,
+                "source": sml.as_str(row.get("source", "")).strip(),
+            })
+        if len(kept) > QUOTES_PER_MEMBER:
+            rep.warn(where, "%s 录了 %d 条，超过每人 %d 条，只保留前 %d 条"
+                     % (mid, len(kept), QUOTES_PER_MEMBER, QUOTES_PER_MEMBER))
+            kept = kept[:QUOTES_PER_MEMBER]
+        out.extend(kept)
+    if len(out) > QUOTES_TOTAL:
+        rep.warn("quotes", "共 %d 条，超过上限 %d 条，后面的不进 manifest"
+                 % (len(out), QUOTES_TOTAL))
+        out = out[:QUOTES_TOTAL]
+    return out
 
 
 def fetch_remote_avatar(rep, url, mid):
@@ -635,6 +711,11 @@ def build_members(rep):
         if not apply_contract(rep, where, d, "member"):
             check_req(rep, "member", where, d)
         links = d.get("links") if isinstance(d.get("links"), dict) else {}
+        for k in links:
+            if not str(k).startswith("_") and str(k) not in KNOWN_MEMBER_LINK_KEYS:
+                rep.warn(where, "links 里的键 `%s` 不在已知键里（%s）：前端只会显示这个键名本身，"
+                         "确需新的联系方式请同步 contracts/blog.sml 的 MemberLinks "
+                         "与 site/theme/app.js 的 CONTACT_LABEL" % (k, " / ".join(sorted(KNOWN_MEMBER_LINK_KEYS))))
         av = sml.as_str(d.get("avatar", ""))
         avatar = ""
         src = None
@@ -1207,6 +1288,14 @@ def _run(args):
     print("-- 成员")
     members = build_members(rep)
     print("   %d 人" % len(members))
+    print("-- 一言")
+    quotes = build_quotes(rep, members)
+    print("   %d 条" % len(quotes))
+    raw_lines = site.get("code_collapse_lines")
+    code_lines = collapse_lines(site)
+    if raw_lines is not None and sml.as_str(raw_lines) != str(code_lines):
+        rep.warn("site.sml", "code_collapse_lines `%s` 不可用，已退回 %d 行（合法范围 1–500）"
+                 % (sml.as_str(raw_lines), code_lines))
     print("-- 主题词条")
     topics = build_topics(rep)
     print("   %d 条" % len(topics))
@@ -1385,6 +1474,8 @@ def _run(args):
                 "library", "knowledge", "topics", "projects", "resources", "members",
                 "weekly", "pages", "join"],
             "avatar": urls.safe_url(avatar),
+            # 阅读习惯参数（前端只用这两个：代码块折叠阈值、首页一言）
+            "code_collapse_lines": code_lines,
             "group": {
                 "name": sml.as_str(group.get("name", sml.as_str(site.get("title")))),
                 "qq": sml.as_str(group.get("qq", "")),
@@ -1400,6 +1491,7 @@ def _run(args):
             },
         },
         "posts": [{k: v for k, v in p.items() if not k.startswith("_")} for p in posts],
+        "quotes": quotes,
         "projects": projects,
         "members": members,
         "services": [{k: v for k, v in s.items() if not k.startswith("_")} for s in services],
@@ -1606,9 +1698,13 @@ def _run(args):
 
     site_dir = THEME
     if site_dir.exists():
-        for f in site_dir.iterdir():
-            if f.is_file():
-                shutil.copy2(f, out / f.name)
+        # 递归拷贝：主题里可以有子目录（如 vendor/prism/），以前只拷根目录文件会把它们丢掉
+        for f in sorted(site_dir.rglob("*")):
+            if not f.is_file():
+                continue
+            dst = out / f.relative_to(site_dir)
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(f, dst)
 
     inject_shell(rep, out, manifest, posts)      # 静态首屏：站名 + 站点导航 + 最近文章
 
