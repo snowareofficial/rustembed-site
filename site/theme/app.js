@@ -2297,7 +2297,17 @@
       if (c && c.id && c.id.indexOf('license-notice') === 0) keep.push(c);
     }
     clear(foot);
-    foot.appendChild(el('span', '', '构建于 ' + String(m.built_at || '').slice(0, 10)));
+    function builtAtText(v) {
+      var s = String(v || '');
+      if (!s) return '';
+      var d = new Date(s);
+      if (isNaN(d.getTime())) return s.slice(0, 16).replace('T', ' ');
+      function p2(n) { return (n < 10 ? '0' : '') + n; }
+      return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()) +
+        ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes());
+    }
+
+    foot.appendChild(el('span', '', '构建于 ' + builtAtText(m.built_at)));
     var rss = lnk('feed.xml', 'RSS'); foot.appendChild(rss);
     foot.appendChild(lnk('sitemap.xml', 'Sitemap'));
     foot.appendChild(lnk('llms.txt', 'llms.txt'));
@@ -2308,6 +2318,10 @@
     credit.appendChild(el('span', '', ' & '));
     credit.appendChild(outLink('https://sml.swebase.cn', 'SML'));
     foot.appendChild(credit);
+    var fontCredit = el('span', '', '字体：');
+    fontCredit.appendChild(outLink('https://hyperos.mi.com/font/', 'MiSans'));
+    fontCredit.appendChild(el('span', '', '（小米）'));
+    foot.appendChild(fontCredit);
     for (var kj = 0; kj < keep.length; kj++) foot.appendChild(keep[kj]);
   }
 
