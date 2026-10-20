@@ -1148,7 +1148,7 @@
     btn.setAttribute('id', 'quote-btn');
     btn.setAttribute('aria-label', '读一句');
     btn.setAttribute('title', '读一句');
-    /* 用 SVG 画开引号：不依赖系统字体里 “ 的字形，尺寸和重心可控。 */
+    /* 用 SVG 画右引号：不依赖系统字体里 ” 的字形，尺寸和重心可控。 */
     var mark = document.createElementNS
       ? document.createElementNS('http://www.w3.org/2000/svg', 'svg')
       : el('svg');
@@ -1159,12 +1159,12 @@
       ? document.createElementNS('http://www.w3.org/2000/svg', 'text')
       : el('text');
     glyph.setAttribute('x', '12');
-    glyph.setAttribute('y', '19');
+    glyph.setAttribute('y', '25');
     glyph.setAttribute('text-anchor', 'middle');
     glyph.setAttribute('font-family', 'Georgia, "Times New Roman", serif');
-    glyph.setAttribute('font-size', '28');
+    glyph.setAttribute('font-size', '34');
     glyph.setAttribute('fill', 'currentColor');
-    glyph.appendChild(document.createTextNode('“'));
+    glyph.appendChild(document.createTextNode('”'));
     mark.appendChild(glyph);
     btn.appendChild(mark);
     if (btn.addEventListener) {
