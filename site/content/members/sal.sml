@@ -4,7 +4,8 @@
 # 片段复用：@名字 { } 定义一次，&名字 以值的形式引用（SML 原生能力）
 @sal_links {
   blog: "https://sml.swebase.cn"
-  gitee: "https://gitee.com/snoware"
+  gitee: "https://gitee.com/Ironbayberry"
+  homepage: "https://gitee.com/snoware/"
   email: "sal@mail.swebase.cn"
 }
 
