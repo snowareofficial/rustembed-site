@@ -509,11 +509,31 @@ async function main() {
     eq(list.querySelectorAll('.row-series-flat').length, 1, '首页三条里系列只占一条');
     need(!list.querySelector('.series-posts'), '首页不铺开章节（保持紧凑）');
     const link = rows[0].querySelector('a');
-    eq(link && link.getAttribute('href'), '#/post/cxi-1', '系列行点进去是第一章');
+    eq(link && link.getAttribute('href'), '#/series/cxi-series', '首页紧凑系列行点进去是系列目录页');
+
+    const seriesView = await app.rec.viewSeries('cxi-series');
+    const sr = seriesView.querySelectorAll('.rows li.row');
+    eq(sr.length, 20, '系列目录页列出全部 20 章');
+    eq(sr.map((n) => n.querySelector('.row-title').textContent)[0], 'CXi 第 1 章：所有权',
+      '目录按 order 排序：第一章在最前');
+    eq(sr.map((n) => n.querySelector('.row-title').textContent)[19], 'CXi 第 20 章：生命周期',
+      '最后一章排最后');
+    eq(sr[0].querySelector('a.row-title').getAttribute('href'), '#/post/cxi-1',
+      '目录里的章节仍回 #/post/<slug>');
+    has(seriesView.textContent, '共 20 章 · 系列', '系列页写明「共 N 章 · 系列」');
+    has(seriesView.textContent, '目录', '系列页有「目录」段');
+    const chip = seriesView.querySelector('.chips a.chip');
+    eq(chip && chip.getAttribute('href'), '#/post/cxi-1', '「从第一章开始阅读」指向第一章');
+    const crumbBack = seriesView.querySelector('.crumb a');
+    eq(crumbBack && crumbBack.getAttribute('href'), '#/library', '面包屑能回文章库');
+
+    const none = await app.rec.viewSeries('一定没有这个系列');
+    has(none.textContent, '没有这个系列', '无效系列 id 显示空态（不抛、不崩）');
+    eq(none.querySelectorAll('.rows li.row').length, 0, '空态不编造章节');
     const all = app.rec.recent.list(15);
     eq(all.length, 11, '全站 30 篇 → 11 条条目（1 系列 + 10 单篇）');
     eq(all.filter((e) => e.kind === 'series').length, 1, '20 章只算 1 条');
-    console.log('  20 章 → 1 条；默认 3 条；点进去是第一章');
+    console.log('  20 章 → 1 条；默认 3 条；点进去是系列目录页（20 章按 order 列出）');
   }
   {
     /* 条目数 11 > 6：搜索框与滚动区都该出现 */
@@ -593,7 +613,15 @@ async function main() {
     const row = list.childNodes[0];
     has(row.textContent, '系列 · 20 章（本日 20 章）', '系列行写明本日章数');
     eq(row.querySelectorAll('.series-posts li.row').length, 20, '展开后 20 章都在（详情没被破坏）');
-    console.log('  20 章 → 页头 1 项；行内仍可展开看全部章节');
+    const dTitle = row.querySelector('.series-sum a.row-title');
+    eq(dTitle && dTitle.getAttribute('href'), '#/series/cxi-series', '日期页系列标题指向系列目录页');
+    const dBadge = row.querySelector('.series-sum a.series-badge');
+    eq(dBadge && dBadge.getAttribute('href'), '#/series/cxi-series', '日期页「系列 · N 章」徽章也指向目录页');
+    let stopped = false;
+    if (dTitle) dTitle.dispatch('click', { stopPropagation: () => { stopped = true; } });
+    need(stopped, '点系列链接拦住冒泡（不会顺手把 <details> 撑开）');
+    need(!!row.querySelector('details.series-box'), '原有 <details> 快速预览保留');
+    console.log('  20 章 → 页头 1 项；行内仍可展开看全部章节；标题/徽章另开目录页');
   }
   {
     const app = makeApp(bigManifest());
@@ -641,7 +669,11 @@ async function main() {
     const plain = frag.querySelectorAll('li.row').filter((n) => !n.closest('.row-series'));
     eq(plain.length, 10, '10 篇单篇照常显示');
     has(frag.textContent, 'CXi 的 Rust 学习笔记', '系列行保留系列标题');
-    console.log('  书库：20 章 1 条 + 10 单篇，章节完整');
+    const lTitle = seriesRow.querySelector('.series-sum a.row-title');
+    eq(lTitle && lTitle.getAttribute('href'), '#/series/cxi-series', '书库系列标题指向系列目录页');
+    const lBadge = seriesRow.querySelector('.series-sum a.series-badge');
+    eq(lBadge && lBadge.getAttribute('href'), '#/series/cxi-series', '书库徽章也指向系列目录页');
+    console.log('  书库：20 章 1 条 + 10 单篇，章节完整，标题/徽章可进目录页');
   }
   {
     /* 条目 > 12：书库补上滑块与滚动区，同时保留自己的搜索框与 data-filter 过滤 */
