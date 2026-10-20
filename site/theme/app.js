@@ -1284,8 +1284,14 @@
     var head = el('header', 'page-head');
     head.appendChild(el('p', 'kicker', '共建博客'));
     head.appendChild(el('h1', '', '文章库'));
-    head.appendChild(el('p', 'lede', '共 ' + m.posts.length + ' 篇，按年份分组。' +
-      (query && query.tag ? '当前筛选标签：#' + query.tag : '')));
+    var grouped = 0;
+    for (var gsi = 0; gsi < (m.series || []).length; gsi++) {
+      if (((m.series[gsi].posts || []).length) > 1) grouped++;
+    }
+    var lede = '共 ' + m.posts.length + ' 篇，按年份分组。' +
+      (grouped ? ' 多章系列折叠为 ' + grouped + ' 条。' : '') +
+      (query && query.tag ? '当前筛选标签：#' + query.tag : '');
+    head.appendChild(el('p', 'lede', lede));
     f.appendChild(head);
 
     var filters = el('div', 'filters');
@@ -1330,11 +1336,12 @@
       }
     }
 
-    /* 标签页里把“同一 series 的多章”收成一条，显示成带“系列”标记的文章行。
+    /* 书库和标签页都把“同一 series 的多章”收成一条，显示成带“系列”标记的文章行。
      *
      * 合并口径：**系列总章数 > 1** 就合并，与「这一章是否命中标签」无关 ——
      * 系列是「一份文档」，组里有一章命中就说明这组与该标签相关，整组呈现比只露一章有用；
      * 反过来单章系列没有“组”的意义，退化成普通文章行。
+     * 无标签的书库页同样合并，否则 30+ 章会把整个列表刷成一篇篇流水账。
      * 只有部分章节命中时，徽章会补一句「（命中 N）」（见 seriesRow）。
      */
     var entries = [];
@@ -1342,7 +1349,7 @@
     for (var pi = 0; pi < posts.length; pi++) {
       var post = posts[pi];
       var s = post.series ? byId(m.series || [], post.series) : null;
-      if (query && query.tag && s && (s.posts || []).length > 1) {
+      if (s && (s.posts || []).length > 1) {
         var g = seriesGroups[s.id];
         if (!g) {
           /* 日期取「系列最新一章」，与 seriesRow 摘要里的日期同源；
