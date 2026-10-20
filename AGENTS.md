@@ -247,6 +247,26 @@ Windows 默认保留 9211–9310，以前写死 `9222+pid%200` 会稳定落进�
   可加"契约分叉守卫"：用扩展包内的解析器（`src/vendor/sml.mjs`）跑 `contracts/*.sml`，
   与 `contract.describe()` 的输出逐项比对字段名/类型/required，不一致就让构建失败。
 
+## 6.2 Git 身份与推送：一律使用人类自己的 git
+
+**AI 不创建、不假设、不冒用任何 Git 身份。** 本仓库的提交作者、Gitee/GitHub 凭据、SSH key、PAT 都属于人类维护者。
+
+- 提交前先确认：
+  ```bash
+  git config user.name
+  git config user.email
+  ```
+  如果为空、是 bot/AI 名称、或不是当前人类维护者，**停下来让人类设置**；不要用 `git config --global` 覆盖。
+- 提交使用人类已有的 `user.name` / `user.email`；
+- 不写 `Co-authored-by: AI` 之类的 trailer，除非人类明确要求；
+- 不用 `--author` 伪造、不改写人类已有提交的作者；
+- 不把 token/SSH key 写进 remote URL、仓库、命令行历史或日志；
+- **AI 不执行 `git push` / 开 PR**：可以本地 commit、生成命令，由人类用自己的账号推送和开 PR；
+- 不 force push、不直接推 `master`；分支操作；
+- 人类要求“提交”时才 commit；要求“PR”时只准备分支和说明，不代替人类推送。
+
+一句话：**本地可以 commit，远端必须人类自己 push。**
+
 ## 7. 当前内容类型与默认契约（site.sml: contracts{}）
 
 | 目录 | 契约 | 必填字段（摘要） |
