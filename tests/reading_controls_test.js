@@ -47,12 +47,27 @@ function codeHtml(code, lang) {
     + '<pre><code class="language-' + lang + '">' + code + '</code></pre>\n</div>\n';
 }
 
-function post(slug, date, title) {
-  return {
-    slug: slug, title: title || slug, date: date, tags: ['rust'], words: 120, author: 'sal',
-    summary: '摘要', license: 'CC BY-NC-SA 4.0', toc: [], html: 'p/' + slug + '.html',
-    map: 'p/' + slug + '.map.svg', series: '', attachments: []
-  };
+function post(slug, a, b, c, d, e) {
+  /* 这个夹具历史上混用过两种参数顺序：
+   *   post(slug, date, title, tags, series)
+   *   post(slug, title, date, tags, series, extra)
+   * 用日期形状自动判别，避免测试数据本身写错日期。 */
+  const isDate = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || ''));
+  const date = isDate(a) ? a : b;
+  const title = isDate(a) ? b : a;
+  let tags = isDate(a) ? c : c;
+  let series = isDate(a) ? d : d;
+  let extra = isDate(a) ? e : e;
+  if (series && typeof series === 'object' && !Array.isArray(series)) {
+    extra = series;
+    series = '';
+  }
+  return Object.assign({
+    slug: slug, title: title || slug, date: date, tags: Array.isArray(tags) ? tags : ['rust'],
+    words: 120, author: 'sal', summary: '摘要', license: 'CC BY-NC-SA 4.0', toc: [],
+    html: 'p/' + slug + '.html', map: 'p/' + slug + '.map.svg',
+    series: typeof series === 'string' ? series : '', attachments: []
+  }, extra || {});
 }
 
 function manifest(over) {
@@ -89,6 +104,29 @@ function manifest(over) {
   };
   Object.keys(over || {}).forEach((k) => { m[k] = over[k]; });
   return m;
+}
+
+/* 大列表数据：一条 20 章的系列（全部同一天）+ 若干单篇，用来验「系列只占一条」 */
+const BIG_DAY = '2026-10-20';
+
+function bigManifest(over) {
+  const posts = [];
+  for (let i = 1; i <= 20; i++) {
+    posts.push(post('cxi-' + i, BIG_DAY, 'CXi 第 ' + i + ' 章：' + (i % 2 ? '所有权' : '生命周期'),
+      ['rust', 'cxi'], 'cxi-series'));
+  }
+  /* 10 篇单篇，集中在另一天：那天条目数 = 10 > 6，会出搜索框 / 滑块 / 滚动区 */
+  for (let i = 1; i <= 10; i++) {
+    posts.push(post('solo-' + i, '2026-10-15', '单篇 ' + i + '：' + (i % 2 ? '调试笔记' : '点亮 LED'),
+      ['embedded']));
+  }
+  const series = [{
+    id: 'cxi-series', title: 'CXi 的 Rust 学习笔记',
+    posts: posts.filter((p) => p.series === 'cxi-series')
+      .map((p, i) => ({ slug: p.slug, title: p.title, order: i + 1 }))
+  }];
+  const m = manifest({ posts: posts, series: series });
+  return Object.assign(m, over || {});
 }
 
 /* ---------- 沙箱：可控定时器 + localStorage + 可选 Prism / matchMedia ----------
@@ -447,6 +485,196 @@ async function main() {
       eq(refs.length, 0, 'index.html 没有任何跨站资源引用（' + refs.join(',') + '）');
       console.log('  产物无外部请求：全部本地 vendor');
     }
+  }
+  console.log('== [6] 最近更新：系列收拢 / 搜索 / 滚动区 ==');
+  async function bigHome(over) {
+    const app = makeApp(bigManifest(over));
+    await app.rec.started;
+    app.location.hash = '#/';
+    await app.rec.render();
+    return app;
+  }
+  async function goDate(app, day) {
+    app.location.hash = '#/date/' + day;
+    await app.rec.render();
+    return app.document.getElementById('view');
+  }
+  {
+    const app = await bigHome();
+    const list = app.document.querySelector('#recent-list');
+    eq(kids(list), 3, '默认 3 条（条数指条目数，不是章节数）');
+    const rows = list.childNodes;
+    has(rows[0].textContent, 'CXi 的 Rust 学习笔记', '最新一条是系列本身，不是某一章');
+    has(rows[0].textContent, '系列 · 20 章', '系列行有「系列 · N 章」徽章');
+    eq(list.querySelectorAll('.row-series-flat').length, 1, '首页三条里系列只占一条');
+    need(!list.querySelector('.series-posts'), '首页不铺开章节（保持紧凑）');
+    const link = rows[0].querySelector('a');
+    eq(link && link.getAttribute('href'), '#/post/cxi-1', '系列行点进去是第一章');
+    const all = app.rec.recent.list(15);
+    eq(all.length, 11, '全站 30 篇 → 11 条条目（1 系列 + 10 单篇）');
+    eq(all.filter((e) => e.kind === 'series').length, 1, '20 章只算 1 条');
+    console.log('  20 章 → 1 条；默认 3 条；点进去是第一章');
+  }
+  {
+    /* 条目数 11 > 6：搜索框与滚动区都该出现 */
+    const app = await bigHome();
+    const list = app.document.querySelector('#recent-list');
+    need(!!(list.parentNode && list.parentNode.classList.contains('rows-scroll')),
+      '条目数 > 6 时列表套 .rows-scroll');
+    const css = readMaybe(path.join(THEME, 'style.css')) || '';
+    has(css, '.rows-scroll', '滚动区样式在 style.css 里');
+    has(css, 'max-height', '滚动区有最大高度（不会无限拉长）');
+    const input = app.document.querySelector('#view input.filter-input');
+    need(!!input, '条目数 > 6 时出现搜索框');
+    need(!!input.getAttribute('aria-label'), '搜索框有 aria-label');
+    input.value = '所有权';
+    input.dispatch('input');
+    eq(kids(list), 1, '按章节标题搜 → 命中那条系列（章节内容也算搜索范围）');
+    input.value = 'embedded';
+    input.dispatch('input');
+    eq(kids(list), 10, '按标签搜 → 10 篇单篇（搜索时不砍条数）');
+    input.value = 'zzz-一定不存在';
+    input.dispatch('input');
+    need(!!list.querySelector('p.muted'), '没有结果时给空态');
+    input.value = '';
+    input.dispatch('input');
+    eq(kids(list), 3, '清空查询恢复全部（回到条数上限）');
+    console.log('  搜索：章节标题 / 标签 / 空态 / 清空恢复');
+  }
+  {
+    const app = await home();
+    const list = app.document.querySelector('#recent-list');
+    need(!(list.parentNode && list.parentNode.classList.contains('rows-scroll')),
+      '条目 ≤ 6 时不加滚动区（别给短列表添乱）');
+    need(!app.document.querySelector('#view input.filter-input'), '条目 ≤ 6 时不加搜索框');
+    console.log('  条目 ≤ 6：不加搜索框与滚动区');
+  }
+  console.log('== [7] 排序：不依赖 manifest 原始顺序 ==');
+  {
+    const app = makeApp(bigManifest());
+    await app.rec.started;
+    const man = bigManifest();
+    const keys = (posts) => app.rec.entries
+      .collect(posts, { series: man.series }).map(app.rec.entries.key).join(',');
+    eq(keys(man.posts), keys(man.posts.slice().reverse()),
+      '输入顺序倒过来，条目顺序不变（排序不靠 manifest 顺序）');
+
+    const tie = manifest({ posts: [
+      post('p-c', 'C 篇', '2026-10-20', []),
+      post('p-a', 'A 篇', '2026-10-20', []),
+      post('p-b', 'B 篇', '2026-10-20', [])
+    ] });
+    const app2 = makeApp(tie);
+    await app2.rec.started;
+    eq(app2.rec.entries.collect(tie.posts).map(app2.rec.entries.title).join(','),
+      'A 篇,B 篇,C 篇', '同一天并列时按标题稳定排序');
+
+    const tieUpdated = manifest({ posts: [
+      post('u1', '同名', '2026-10-20', [], null, { updated: '2026-10-01' }),
+      post('u2', '同名', '2026-10-20', [], null, { updated: '2026-10-25' })
+    ] });
+    const app3 = makeApp(tieUpdated);
+    await app3.rec.started;
+    eq(app3.rec.entries.collect(tieUpdated.posts).map(app3.rec.entries.key).join(','),
+      'p:u2,p:u1', '同标题时按 updated 倒序');
+    console.log('  同级判据：updated → 标题 → slug，结果确定');
+  }
+
+  console.log('== [8] 日期页：先按日期过滤，再收拢系列 ==');
+  {
+    const app = makeApp(bigManifest());
+    await app.rec.started;
+    const view = await goDate(app, BIG_DAY);
+    has(view.querySelector('.lede').textContent, '这一天发了 20 篇', '页头说明当天篇数');
+    has(view.querySelector('.lede').textContent, '归为 1 项', '页头说明归为几项');
+    has(view.querySelector('.lede').textContent, '1 个系列 + 0 篇单篇', '页头把系列与单篇分开说');
+    const list = app.document.querySelector('#date-list');
+    eq(kids(list), 1, '同一天 20 章只占 1 条');
+    const row = list.childNodes[0];
+    has(row.textContent, '系列 · 20 章（本日 20 章）', '系列行写明本日章数');
+    eq(row.querySelectorAll('.series-posts li.row').length, 20, '展开后 20 章都在（详情没被破坏）');
+    console.log('  20 章 → 页头 1 项；行内仍可展开看全部章节');
+  }
+  {
+    const app = makeApp(bigManifest());
+    await app.rec.started;
+    await goDate(app, '2026-10-15');
+    const list = app.document.querySelector('#date-list');
+    eq(kids(list), 6, '日期页默认 6 条（自己的默认，不看首页）');
+    need(!!app.document.querySelector('#date-btn'), '条目 > 6 时日期页有滑块');
+    need(!!(list.parentNode && list.parentNode.classList.contains('rows-scroll')),
+      '条目 > 6 时日期页有滚动区');
+    const search = app.document.querySelector('#view input.filter-input');
+    need(!!search, '条目 > 6 时日期页有搜索框');
+    search.value = '调试';
+    search.dispatch('input');
+    eq(kids(list), 5, '搜索过滤后只剩匹配项');
+    search.value = '';
+    search.dispatch('input');
+    eq(kids(list), 6, '清空查询回到条数上限');
+    const range = app.document.querySelector('#date-range');
+    eq(range.getAttribute('min'), '1', '日期页滑条下限 1');
+    eq(range.getAttribute('max'), '30', '日期页滑条上限 30');
+    range.value = '9';
+    range.dispatch('input');
+    eq(kids(list), 9, '拖到 9 → 立刻重绘成 9 条');
+    eq(app.store['rec-blog:date-limit'], '9', '日期页条数写自己的 key');
+    eq(app.store['rec-blog:recent-limit'], undefined, '日期页条数不影响首页条数');
+    console.log('  日期页：搜索 / 滑块 / 滚动区，条数独立于首页');
+  }
+  {
+    const app = makeApp(bigManifest());
+    await app.rec.started;
+    const view = await goDate(app, '1999-01-01');
+    has(view.textContent, '这一天没有文章', '无文章时空态不变');
+    need(!app.document.querySelector('#date-list'), '无文章时不渲染列表');
+    console.log('  无文章：空态不变');
+  }
+  console.log('== [9] 文章库：共用同一份收拢逻辑（不回归） ==');
+  {
+    const app = makeApp(bigManifest());
+    await app.rec.started;
+    const frag = await app.rec.VIEWS.library({ q: {} });
+    eq(frag.querySelectorAll('li.row-series').length, 1, '书库里 20 章仍是 1 条系列行');
+    const seriesRow = frag.querySelector('li.row-series');
+    eq(seriesRow.querySelectorAll('.series-posts li.row').length, 20, '章节列表完整');
+    const plain = frag.querySelectorAll('li.row').filter((n) => !n.closest('.row-series'));
+    eq(plain.length, 10, '10 篇单篇照常显示');
+    has(frag.textContent, 'CXi 的 Rust 学习笔记', '系列行保留系列标题');
+    console.log('  书库：20 章 1 条 + 10 单篇，章节完整');
+  }
+  {
+    /* 条目 > 12：书库补上滑块与滚动区，同时保留自己的搜索框与 data-filter 过滤 */
+    const posts = [];
+    for (let i = 1; i <= 20; i++) {
+      posts.push(post('lp-' + i, '第 ' + i + ' 篇', '2026-0' + ((i % 9) + 1) + '-01', ['rust']));
+    }
+    const app = makeApp(manifest({ posts: posts, series: [] }));
+    await app.rec.started;
+    const frag = await app.rec.VIEWS.library({ q: {} });
+    const list = frag.querySelector('#library-list');
+    need(!!list, '条目 > 12 时书库用共享列表容器');
+    need(!!(list.parentNode && list.parentNode.classList.contains('rows-scroll')),
+      '条目 > 12 时书库有滚动区');
+    need(!!frag.querySelector('#library-btn'), '条目 > 12 时书库有滑块');
+    eq(frag.querySelector('#library-range').getAttribute('max'), '60', '书库滑条上限 60');
+    eq(list.querySelectorAll('li.row').length, 12, '书库默认显示 12 条');
+
+    const input = frag.querySelector('input.filter-input');
+    need(!!input, '书库保留自己的搜索框（第一个 filter-input 仍是它）');
+    const rows = list.querySelectorAll('li.row');
+    need(rows.length > 0 && !!rows[0].getAttribute('data-filter'), '行上仍有 data-filter');
+    input.value = '第 3 篇';
+    input.dispatch('input');
+    const left = list.querySelectorAll('li.row').filter((n) => !n.classList.contains('hide'));
+    eq(left.length, 1, '书库过滤仍按 data-filter 整行隐藏');
+
+    const range = frag.querySelector('#library-range');
+    range.value = '20';
+    range.dispatch('input');
+    eq(app.store['rec-blog:library-limit'], '20', '书库条数写自己的 key');
+    eq(app.store['rec-blog:recent-limit'], undefined, '书库条数不影响首页条数');
+    console.log('  书库：滑块 / 滚动区 / 过滤都不回归');
   }
 }
 

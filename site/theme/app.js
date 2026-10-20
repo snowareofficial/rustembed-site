@@ -484,10 +484,10 @@
     sum.appendChild(el('span', 'row-date', seriesLatestDate(s)));
     sum.appendChild(el('span', 'row-title', s.title));
     var badge = '系列 · ' + chapters.length + ' 章';
-    /* 部分命中时补一句：书库说「命中 N」（对标签），日期页说「本日 N 章」（对当天） */
-    if (hits && hits < chapters.length) {
-      badge += (opts && opts.hitSuffix) ? opts.hitSuffix(hits) : '（命中 ' + hits + '）';
-    }
+    /* 命中数说明：日期页要「本日 N 章」——那天只发了其中几章时必须说清楚，
+       否则读者会以为整组都是这天发的；书库只在部分命中标签时补「命中 N」。 */
+    if (opts && opts.hitText) badge += opts.hitText(hits, chapters.length);
+    else if (hits && hits < chapters.length) badge += '（命中 ' + hits + '）';
     sum.appendChild(el('span', 'row-words series-badge', badge));
     box.appendChild(sum);
     var ol = el('ol', 'rows series-posts');
@@ -1487,7 +1487,7 @@
         empty: '没有匹配的条目。',
         render: function (entry) {
           return entryRow(entry, {
-            hitSuffix: function (n) { return '（本日 ' + n + ' 章）'; }
+            hitText: function (h) { return '（本日 ' + h + ' 章）'; }
           });
         }
       });

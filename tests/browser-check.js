@@ -669,12 +669,16 @@ async function main() {
     document.getElementById('recent-btn').click();
     const open = !document.getElementById('recent-panel').hasAttribute('hidden');
     const r = document.getElementById('recent-range');
+    r.value = '15';
+    r.dispatchEvent(new Event('input', { bubbles: true }));
+    const total = document.querySelectorAll('#recent-list li').length;
     r.value = '7';
     r.dispatchEvent(new Event('input', { bubbles: true }));
     return {
       open: open,
       aria: document.getElementById('recent-btn').getAttribute('aria-expanded'),
       rows: document.querySelectorAll('#recent-list li').length,
+      total: total,
       stored: localStorage.getItem('rec-blog:recent-limit'),
       noReload: window.__noReload === 1,
       hidden: document.getElementById('recent-panel').hasAttribute('hidden')
@@ -682,7 +686,7 @@ async function main() {
   })()`);
   need(recent1.open, '点按钮展开条数面板');
   eq2(recent1.aria, 'true', '展开态 aria-expanded=true');
-  eq2(recent1.rows, 7, '拖到 7 → 立刻重绘成 7 条');
+  eq2(recent1.rows, Math.min(7, recent1.total), '拖到 7 → 显示 min(7, 条目总数)');
   eq2(recent1.stored, '7', '条数写进 localStorage');
   need(recent1.noReload, '改条数只重绘列表，不刷新整页');
   need(!recent1.hidden, '面板里的操作不会误触发「点外部关闭」');
