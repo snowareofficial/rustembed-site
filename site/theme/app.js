@@ -2291,9 +2291,12 @@
     /* 授权分层声明是构建期注入的静态 span（id 以 license-notice 开头），
      * JS 只重画链接行，不清它——否则干净构建里这三行会被 clear() 抹掉。 */
     var keep = [];
-    var kids = foot.children || [];
-    for (var ki = 0; ki < kids.length; ki++) {
-      var c = kids[ki];
+    /* 兼容首次渲染（直接子节点）和二次渲染（已嵌套在 .footer-legal 内）。 */
+    var nodes = foot.querySelectorAll
+      ? foot.querySelectorAll('span')
+      : (foot.children || []);
+    for (var ki = 0; ki < nodes.length; ki++) {
+      var c = nodes[ki];
       if (c && c.id && c.id.indexOf('license-notice') === 0) keep.push(c);
     }
     clear(foot);

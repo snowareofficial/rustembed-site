@@ -296,6 +296,17 @@ async function testFooter(app) {
     eq(app.document.body.getAttribute('data-page'), want, hash + ' → body[data-page]=' + want);
   }
 
+  /* 反复渲染不能把已移入 .footer-legal 的声明清掉（回归：二次渲染清空页脚） */
+  app.location.hash = '#/services';
+  await app.rec.render();
+  await app.rec.render();
+  for (const id of LICENSE_IDS) {
+    need(!!app.document.getElementById(id), '二次渲染后仍保留 #' + id);
+  }
+  const kept = Array.from(app.document.querySelectorAll('span'))
+    .filter((s) => s.id && s.id.indexOf('license-notice') === 0);
+  eq(kept.length, 3, '二次渲染后页脚仍有 3 行授权声明');
+
   /* 构建期注入：dist/index.html 里必须有三行声明（需要先 build） */
   const distHtml = path.join(ROOT, 'dist', 'index.html');
   if (fs.existsSync(distHtml)) {
