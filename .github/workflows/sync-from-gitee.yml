@@ -61,7 +61,16 @@ jobs:
           fi
 
       - name: 同步到 GitHub
+        env:
+          SYNC_TOKEN: ${{ secrets.SYNC_TOKEN }}
         run: |
+          set -euo pipefail
+          if [ -z "${SYNC_TOKEN:-}" ]; then
+            echo "::error::缺少 SYNC_TOKEN；需要 Contents + Workflows 读写权限"
+            exit 1
+          fi
+          git remote set-url origin \
+            "https://x-access-token:${SYNC_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git checkout -B master refs/remotes/gitee/master
           git push origin master --force
           git push origin --tags --force
