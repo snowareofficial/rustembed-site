@@ -2307,22 +2307,28 @@
         ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes());
     }
 
-    foot.appendChild(el('span', '', '构建于 ' + builtAtText(m.built_at)));
-    var rss = lnk('feed.xml', 'RSS'); foot.appendChild(rss);
-    foot.appendChild(lnk('sitemap.xml', 'Sitemap'));
-    foot.appendChild(lnk('llms.txt', 'llms.txt'));
-    if (m.site.repo_url) foot.appendChild(outLink(m.site.repo_url, '仓库'));
-    if (m.site.license) foot.appendChild(el('span', '', '默认许可 ' + m.site.license));
+    var meta = el('div', 'footer-meta');
+    meta.appendChild(el('span', '', '构建于 ' + builtAtText(m.built_at)));
+    meta.appendChild(lnk('feed.xml', 'RSS'));
+    meta.appendChild(lnk('sitemap.xml', 'Sitemap'));
+    meta.appendChild(lnk('llms.txt', 'llms.txt'));
+    if (m.site.repo_url) meta.appendChild(outLink(m.site.repo_url, '仓库'));
+    if (m.site.license) meta.appendChild(el('span', '', '默认许可 ' + m.site.license));
     var credit = el('span', '', 'Powered by ');
     credit.appendChild(outLink('https://gitee.com/snoware', 'snoware'));
     credit.appendChild(el('span', '', ' & '));
     credit.appendChild(outLink('https://sml.swebase.cn', 'SML'));
-    foot.appendChild(credit);
+    meta.appendChild(credit);
     var fontCredit = el('span', '', '字体：');
     fontCredit.appendChild(outLink('https://hyperos.mi.com/font/', 'MiSans'));
     fontCredit.appendChild(el('span', '', '（小米）'));
-    foot.appendChild(fontCredit);
-    for (var kj = 0; kj < keep.length; kj++) foot.appendChild(keep[kj]);
+    meta.appendChild(fontCredit);
+    foot.appendChild(meta);
+    if (keep.length) {
+      var legal = el('div', 'footer-legal');
+      for (var kj = 0; kj < keep.length; kj++) legal.appendChild(keep[kj]);
+      foot.appendChild(legal);
+    }
   }
 
   function render() {
