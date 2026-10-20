@@ -1148,23 +1148,18 @@
     btn.setAttribute('id', 'quote-btn');
     btn.setAttribute('aria-label', '读一句');
     btn.setAttribute('title', '读一句');
-    /* 用 SVG 画右引号：不依赖系统字体里 ” 的字形，尺寸和重心可控。 */
+    /* 用给定的右引号 SVG path，不依赖字体字形。 */
     var mark = document.createElementNS
       ? document.createElementNS('http://www.w3.org/2000/svg', 'svg')
       : el('svg');
     mark.setAttribute('class', 'quote-btn-svg');
-    mark.setAttribute('viewBox', '0 0 24 24');
+    mark.setAttribute('viewBox', '0 0 1024 1024');
     mark.setAttribute('aria-hidden', 'true');
+    mark.setAttribute('fill', 'currentColor');
     var glyph = document.createElementNS
-      ? document.createElementNS('http://www.w3.org/2000/svg', 'text')
-      : el('text');
-    glyph.setAttribute('x', '12');
-    glyph.setAttribute('y', '25');
-    glyph.setAttribute('text-anchor', 'middle');
-    glyph.setAttribute('font-family', 'Georgia, "Times New Roman", serif');
-    glyph.setAttribute('font-size', '34');
-    glyph.setAttribute('fill', 'currentColor');
-    glyph.appendChild(document.createTextNode('”'));
+      ? document.createElementNS('http://www.w3.org/2000/svg', 'path')
+      : el('path');
+    glyph.setAttribute('d', 'M1022.476 0v439.434c1.869 63.227-7.249 122.599-27.345 178.114s-48.267 104.363-84.73 146.559c-36.345 42.070-79.822 77.018-130.664 104.835-50.725 27.699-105.769 45.463-165.141 53.057v-189.564c72.809-24.895 122.599-61.704 149.363-110.56 26.882-48.856 40.201-108.692 40.201-179.512h-189.557v-442.356h407.872zM410.66 0v439.434c1.987 63.227-7.131 122.599-27.228 178.115-20.104 55.515-48.385 104.363-84.73 146.559-36.345 42.070-79.938 77.018-130.664 104.835-50.725 27.699-105.887 45.463-165.258 53.057v-189.564c72.809-24.895 122.599-61.704 149.363-110.56 26.882-48.856 40.201-108.692 40.201-179.512h-189.564v-442.356h407.88z');
     mark.appendChild(glyph);
     btn.appendChild(mark);
     if (btn.addEventListener) {

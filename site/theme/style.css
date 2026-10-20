@@ -945,7 +945,7 @@ body.toc-collapsed .panel-btn { color: var(--accent); border-color: var(--accent
   border: 1px solid var(--line-strong);
 }
 .quote-btn:hover { color: var(--accent); border-color: var(--accent); }
-.quote-btn-svg { width: 28px; height: 28px; display: block; overflow: visible; }
+.quote-btn-svg { width: 30px; height: 30px; display: block; fill: currentColor; overflow: hidden; }
 .quote-veil {
   position: fixed; inset: 0; z-index: 75; display: grid; place-items: center;
   padding: 1.6rem; background: rgba(18, 15, 11, .74);
