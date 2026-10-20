@@ -3,8 +3,9 @@
 
 name: "CXi"
 role: 群主
-signature: ""
+signature: "大道所至之处天下安宁"
 skills: [ ]
 joined: ""
 links {
+  github: "https://github.com/cx693"
 }

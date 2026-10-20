@@ -138,9 +138,10 @@
 
 @contract MemberLinks loose {
   blog: url optional
-  homepage: url optional
+  homepage: url optional  # 个人主页
   github: url optional
-  gitee: url optional
+  gitee: url optional     # Gitee 个人空间
+  gitee_org: url optional # Gitee 组织/第二个空间（一个人两个号时用这个，别写两个 gitee —— 对象键会互相覆盖）
   email: str optional     # 由本人提供并授权展示；不想公开就删掉这一行
 }
 
@@ -152,7 +153,7 @@
   owner: str              # 成员 id，必须存在于 content/members/<id>.sml
   skills: [str]           # 技能标签，至少一个
   wants: [str] optional   # 想找什么（合作方向，自由列举）
-  contact: [str]          # 联系方式：只能引用成员档案 links 里本人已公开的键（blog/homepage/github/gitee/email）
+  contact: [str]          # 联系方式：只能引用成员档案 links 里本人已公开的键（blog/homepage/github/gitee/gitee_org/email）
   rate: str optional      # 费用/方式说明，自由文本；本站不经手资金，具体由双方自行约定
   status: enum [ active paused ]  # active = 可接洽；paused = 暂停
   updated: date           # 最近更新日期

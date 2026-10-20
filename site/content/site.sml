@@ -10,6 +10,10 @@ default_license: "CC BY-NC-SA 4.0"
 announcement: "投稿请提 PR，或把稿子交给有仓库权限的群管理代投。讨论回 QQ 群。"
 nav: [ library knowledge topics projects resources members services weekly pages join ]
 
+# 阅读习惯参数（进 manifest，前端取用；改这里即改全站，不用动代码）
+# 代码块超过这个行数就折叠（最大高度 = 该行数，点「展开全部（N 行）」看完整代码）
+code_collapse_lines: 20
+
 # PR 默认审核人（写作台 /api/pr 带出，可增删）；环境变量 REC_BLOG_REVIEWERS 可覆盖
 reviewers: [ sal ]
 

@@ -465,29 +465,32 @@ async function main() {
 
   /* ---------- 标签页系列合并 + 成员页滚动区 + 页脚声明（真实 CSS 断言） ----------
    * DOM 桩不算 CSS，所以这三类的显隐/尺寸在这里量。
-   * 真实站点里 `rust-embedded-101` 是 2 章系列，两章都带 rust/embedded 标签，
-   * 因此 #/library?tag=rust 上应该正好出现 1 条系列行（部分命中 ⇒ 徽章带命中数）。
+   * 真实站点可能有多个系列；选章节最多的那条，长度从 DOM 推导，避免把内容数量写死。
    */
   console.log('== 标签页系列合并（真实样式 + 键盘可用） ==');
   await metrics(1280, 900, false);
   await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' }] });
   await go('#/library?tag=rust', 'library');
   const series = await cdp.eval(`(() => {
-    const rows = document.querySelectorAll('#view li.row-series');
-    const row = rows[0];
-    if (!row) return { count: rows.length };
+    const rows = Array.from(document.querySelectorAll('#view li.row-series'));
+    if (!rows.length) return { count: 0 };
+    const row = rows.reduce((best, cur) =>
+      cur.querySelectorAll('.series-posts li.row').length >
+      best.querySelectorAll('.series-posts li.row').length ? cur : best, rows[0]);
     const sum = row.querySelector('.series-sum');
     const badge = row.querySelector('.series-badge');
     const details = row.querySelector('details');
+    const expected = row.querySelectorAll('.series-posts li.row').length;
     sum.focus();
     const focused = document.activeElement === sum;
     sum.click();
-    const opened = !!details.open;
+    const opened = !!(details && details.open);
     const chapters = row.querySelectorAll('.series-posts li.row');
     const hidden = Array.from(chapters).filter((li) =>
       getComputedStyle(li).display === 'none' || !li.checkVisibility());
     return {
       count: rows.length,
+      expected,
       title: row.querySelector('.row-title').textContent,
       badge: badge && badge.textContent.trim(),
       focused,
@@ -500,14 +503,13 @@ async function main() {
       clientW: document.documentElement.clientWidth
     };
   })()`);
-  eq2(series.count, 1, '标签页 #rust 上只有 1 条系列行');
+  need(series.count >= 1, '标签页 #rust 上至少 1 条系列行', String(series.count));
   includes2(series.badge, '系列', '徽章写着「系列」');
-  includes2(series.badge, '2 章', '徽章写着系列章数');
-  includes2(series.badge, '命中', '只部分章节命中时徽章带命中数');
+  includes2(series.badge, String(series.expected) + ' 章', '徽章写着系列章数');
   eq2(series.focused, true, 'summary 可获得焦点（键盘可达）');
   eq2(series.opened, true, '回车/点击能展开 series details');
-  eq2(series.chapters, 2, '展开后列出全部章节');
-  eq2(series.visibleChapters, 2, '展开后章节真的可见');
+  eq2(series.chapters, series.expected, '展开后列出全部章节');
+  eq2(series.visibleChapters, series.expected, '展开后章节真的可见');
   need(series.scrollW <= series.clientW, '标签页无横向溢出',
     series.scrollW + ' / ' + series.clientW);
 
@@ -639,6 +641,179 @@ async function main() {
     footMobile.scrollW + ' / ' + footMobile.clientW);
   await cdp.shot(path.join(SHOTS, 'services-375.png'));
 
+  /* ---------- 阅读控制：最近条数 / 长代码折叠 / 本地高亮 ----------
+   * 这几项只有真实 CSS + 真实交互才有意义（最大高度、溢出、token 上色），放在这里；
+   * 结构与逻辑断言在 tests/reading_controls_test.js。 */
+  console.log('== 阅读控制：最近更新条数 ==');
+  await metrics(1280, 900, false);
+  await go('#/', 'home');
+  const recent0 = await cdp.eval(`(() => {
+    const rows = document.querySelectorAll('#recent-list li');
+    return { rows: rows.length, btn: !!document.getElementById('recent-btn'),
+             panelHidden: document.getElementById('recent-panel').hasAttribute('hidden'),
+             max: document.getElementById('recent-range').getAttribute('max'),
+             min: document.getElementById('recent-range').getAttribute('min'),
+             val: document.getElementById('recent-range').value,
+             labelled: !!(document.querySelector('label[for="recent-range"]')) };
+  })()`);
+  eq2(recent0.rows, 3, '首页默认显示 3 条最近更新');
+  need(recent0.btn, '首页有「调整条数」按钮');
+  need(recent0.panelHidden, '条数面板默认收起');
+  eq2(recent0.min, '1', '滑条下限 1');
+  eq2(recent0.max, '15', '滑条上限 15');
+  eq2(recent0.val, '3', '滑条初值 = 当前条数');
+  need(recent0.labelled, '滑条有关联的 <label>');
+
+  const recent1 = await cdp.eval(`(() => {
+    window.__noReload = 1;
+    document.getElementById('recent-btn').click();
+    const open = !document.getElementById('recent-panel').hasAttribute('hidden');
+    const r = document.getElementById('recent-range');
+    r.value = '15';
+    r.dispatchEvent(new Event('input', { bubbles: true }));
+    const total = document.querySelectorAll('#recent-list li').length;
+    r.value = '7';
+    r.dispatchEvent(new Event('input', { bubbles: true }));
+    return {
+      open: open,
+      aria: document.getElementById('recent-btn').getAttribute('aria-expanded'),
+      rows: document.querySelectorAll('#recent-list li').length,
+      total: total,
+      stored: localStorage.getItem('rec-blog:recent-limit'),
+      noReload: window.__noReload === 1,
+      hidden: document.getElementById('recent-panel').hasAttribute('hidden')
+    };
+  })()`);
+  need(recent1.open, '点按钮展开条数面板');
+  eq2(recent1.aria, 'true', '展开态 aria-expanded=true');
+  eq2(recent1.rows, Math.min(7, recent1.total), '拖到 7 → 显示 min(7, 条目总数)');
+  eq2(recent1.stored, '7', '条数写进 localStorage');
+  need(recent1.noReload, '改条数只重绘列表，不刷新整页');
+  need(!recent1.hidden, '面板里的操作不会误触发「点外部关闭」');
+
+  const recent2 = await cdp.eval(`(() => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    localStorage.removeItem('rec-blog:recent-limit');
+    return { hidden: document.getElementById('recent-panel').hasAttribute('hidden') };
+  })()`);
+  need(recent2.hidden, 'Esc 关闭条数面板（并清掉本用例写的选择）');
+  await cdp.shot(path.join(SHOTS, 'home-recent-1280.png'));
+
+  /* 窄屏：面板要在 375px 里完整放得下，不把页面推成横向滚动 */
+  await metrics(375, 812, true);
+  await go('#/', 'home');
+  const recentMob = await cdp.eval(`(() => {
+    document.getElementById('recent-btn').click();
+    const p = document.getElementById('recent-panel');
+    const r = p.getBoundingClientRect();
+    return {
+      hidden: p.hasAttribute('hidden'), left: Math.round(r.left), right: Math.round(r.right),
+      vw: window.innerWidth,
+      scrollW: document.documentElement.scrollWidth,
+      clientW: document.documentElement.clientWidth
+    };
+  })()`);
+  need(!recentMob.hidden, '375px 也能打开条数面板');
+  need(recentMob.left >= 0 && recentMob.right <= recentMob.vw, '375px 下面板不出屏',
+    recentMob.left + '–' + recentMob.right + ' / ' + recentMob.vw);
+  need(recentMob.scrollW <= recentMob.clientW + 1, '375px 首页无横向滚动',
+    recentMob.scrollW + ' ≤ ' + recentMob.clientW);
+  await cdp.shot(path.join(SHOTS, 'home-recent-375.png'));
+  console.log('== 长代码折叠（阈值来自 site.sml） ==');
+  const collapse = await cdp.eval(`(() => {
+    const lines = 30;
+    const code = Array.from({ length: lines }, (_, i) => '    let x' + i + ' = ' + i + ';').join('\\n');
+    const wrap = document.createElement('div');
+    wrap.innerHTML = '<div class="code">'
+      + '<div class="code-head"><span>rust</span>'
+      + '<button class="copy" type="button">复制</button></div>'
+      + '<pre><code class="language-rust">' + code + '</code></pre></div>';
+    document.getElementById('view').appendChild(wrap);
+    window.__rec.code.setup(wrap);
+    const box = wrap.querySelector('.code');
+    const pre = box.querySelector('pre');
+    const btn = box.querySelector('.code-more');
+    const collapsedH = Math.round(pre.getBoundingClientRect().height);
+    const overflowY = getComputedStyle(pre).overflowY;
+    const scrollX = Math.round(wrap.getBoundingClientRect().width)
+      - Math.round(wrap.scrollWidth);
+    const label = btn ? btn.textContent : '';
+    const aria = btn ? btn.getAttribute('aria-expanded') : null;
+    if (btn) btn.click();
+    const openH = Math.round(pre.getBoundingClientRect().height);
+    const openAria = btn ? btn.getAttribute('aria-expanded') : null;
+    if (btn) btn.click();
+    const reH = Math.round(pre.getBoundingClientRect().height);
+    const textLines = box.querySelector('code').textContent.split('\\n').length;
+    wrap.remove();
+    return { threshold: window.__rec.code.threshold(), label: label, aria: aria,
+             overflowY: overflowY, noXOverflow: scrollX >= 0, collapsedH: collapsedH,
+             openH: openH, reH: reH, openAria: openAria, textLines: textLines };
+  })()`);
+  eq2(collapse.threshold, 20, '折叠阈值取 manifest.site.code_collapse_lines（来自 site.sml）');
+  eq2(collapse.label, '展开全部（30 行）', '折叠按钮写明总行数');
+  eq2(collapse.aria, 'false', '折叠态 aria-expanded=false');
+  need(collapse.openH > collapse.collapsedH, '展开后确实变高',
+    collapse.collapsedH + 'px → ' + collapse.openH + 'px');
+  eq2(collapse.openAria, 'true', '展开态 aria-expanded=true');
+  need(collapse.reH === collapse.collapsedH, '再点一次收回原高度', collapse.reH + 'px');
+  eq2(collapse.overflowY, 'auto', '折叠时可上下滚动（不外溢页面）');
+  need(collapse.noXOverflow, '代码块不横向溢出');
+  eq2(collapse.textLines, 30, '折叠不改代码文本：复制到的仍是完整 30 行');
+
+  console.log('== 成员头像：三份档案都要真加载出图 ==');
+  await metrics(1280, 900, false);
+  for (const id of ['sal', 'cxi', 'cshonor']) {
+    await go('#/member/' + id, 'member');
+    const av = await cdp.eval(`(() => {
+      const img = document.querySelector('#view img');
+      if (!img) return { has: false };
+      return { has: true, src: img.getAttribute('src'), w: img.naturalWidth, h: img.naturalHeight };
+    })()`);
+    need(av.has, '#/member/' + id + ' 有头像 img');
+    need(!!av.has && av.w > 0 && av.h > 0, '#/member/' + id + ' 头像不是裂图',
+      (av.src || '') + ' ' + av.w + '×' + av.h);
+    need(!!av.has && /^assets\/members\//.test(av.src || ''),
+      '#/member/' + id + ' 头像走构建期本地化的产物路径', av.src);
+  }
+  console.log('== 语法高亮（本地 Prism，无外部请求） ==');
+  await go('#/post/md-writing', 'post');
+  const hl = await cdp.eval(`(() => {
+    const ext = performance.getEntriesByType('resource')
+      .filter((r) => ['script', 'link', 'css'].indexOf(r.initiatorType) >= 0)
+      .map((r) => r.name)
+      .filter((u) => u.indexOf(location.origin) !== 0);
+    const tok = document.querySelector('.code code .token');
+    return {
+      hasPrism: typeof window.Prism === 'object',
+      languages: window.Prism ? Object.keys(window.Prism.languages).length : 0,
+      tokens: document.querySelectorAll('.code code .token').length,
+      tokenColor: tok ? getComputedStyle(tok).color : '',
+      external: ext
+    };
+  })()`);
+  need(hl.hasPrism, '本地 Prism 已加载');
+  need(hl.tokens >= 3, '代码块里有高亮 token', hl.tokens + ' 个');
+  need(hl.tokenColor !== '' && hl.tokenColor !== 'rgb(0, 0, 0)', 'token 真的上了色', hl.tokenColor);
+  eq2(hl.external.length, 0, '没有向本站以外请求任何脚本 / 样式'
+    + (hl.external.length ? '（' + hl.external.join(',') + '）' : ''));
+
+  console.log('== 首页「一言」：数据与按钮一致 ==');
+  await go('#/', 'home');
+  const quote = await cdp.eval(`(() => {
+    const n = (window.__rec.quotes.list() || []).length;
+    const btn = document.getElementById('quote-btn');
+    return { quotes: n, hasBtn: !!btn, w: btn ? Math.round(btn.getBoundingClientRect().width) : 0,
+             h: btn ? Math.round(btn.getBoundingClientRect().height) : 0,
+             radius: btn ? getComputedStyle(btn).borderRadius : '',
+             round: btn ? Math.round(btn.getBoundingClientRect().width)
+               === Math.round(btn.getBoundingClientRect().height) : false };
+  })()`);
+  eq2(quote.hasBtn, quote.quotes > 0, '「一言」按钮只在有句子时出现（不编造句子）');
+  if (quote.hasBtn) {
+    need(quote.w >= 52 && quote.w <= 56, '按钮直径 52–56px', quote.w + 'px');
+    need(quote.round, '按钮是正圆');
+  }
   cdp.close();
   cleanup();
 

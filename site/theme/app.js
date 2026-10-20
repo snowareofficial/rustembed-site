@@ -12,7 +12,8 @@
  */
 (function () {
 
-  var S = { man: null, frags: {}, toc: [], tocBase: '', tocLinks: [], mapHref: '', page: '' };
+  var S = { man: null, frags: {}, toc: [], tocBase: '', tocLinks: [], mapHref: '', page: '',
+            quote: { timer: 0, idx: 0 }, recent: null };
 
   var NAV_LABEL = {
     home: '首页',
@@ -20,7 +21,14 @@
     resources: '资源', members: '成员', services: '技术互助', weekly: '周报',
     pages: '站文档', join: '加入我们'
   };
-  var CONTACT_LABEL = { blog: '博客', homepage: '主页', github: 'GitHub', gitee: 'Gitee', email: '邮箱' };
+  /* 联系键 → 中文标签。未知键不会被丢掉（下面统一回落到键名），
+   * 所以往 contracts/blog.sml 的 MemberLinks 加字段时必须同步这张表 ——
+   * 一人两个 Gitee（个人空间 / 组织空间）就是为这种情形准备的：
+   * gitee 是个人号，gitee_org 是第二个空间，写成两个同名 gitee 会互相覆盖。 */
+  var CONTACT_LABEL = {
+    blog: '博客', homepage: '个人主页', github: 'GitHub',
+    gitee: 'Gitee', gitee_org: 'Gitee 空间', email: '邮箱'
+  };
   var STATUS_LABEL = { active: '进行中', wip: '开发中', archived: '已归档', paused: '暂停' };
   /* 技术互助条目的状态词：与项目那套（进行中/开发中…）不是一回事，单独一张表 */
   var SERVICE_STATUS_LABEL = { active: '可协作', paused: '暂缓' };
@@ -468,7 +476,7 @@
 
   /* hits：当前标签下命中了该系列的章节数（不传 = 全命中，如无标签的书库页）。
      系列的章数与命中数不是一回事，徽章要分开说，否则“3 章”会让人以为 3 章都讲这个标签。 */
-  function seriesRow(s, members, hits) {
+  function seriesRow(s, members, hits, opts) {
     var chapters = s.posts || [];
     var li = el('li', 'row-series');
     var box = el('details', 'series-box');
@@ -476,7 +484,10 @@
     sum.appendChild(el('span', 'row-date', seriesLatestDate(s)));
     sum.appendChild(el('span', 'row-title', s.title));
     var badge = '系列 · ' + chapters.length + ' 章';
-    if (hits && hits < chapters.length) badge += '（命中 ' + hits + '）';
+    /* 命中数说明：日期页要「本日 N 章」——那天只发了其中几章时必须说清楚，
+       否则读者会以为整组都是这天发的；书库只在部分命中标签时补「命中 N」。 */
+    if (opts && opts.hitText) badge += opts.hitText(hits, chapters.length);
+    else if (hits && hits < chapters.length) badge += '（命中 ' + hits + '）';
     sum.appendChild(el('span', 'row-words series-badge', badge));
     box.appendChild(sum);
     var ol = el('ol', 'rows series-posts');
@@ -655,24 +666,615 @@
     }
     f.appendChild(cards);
 
-    var latest = (m.posts || []).slice(0, 3);
-    if (latest.length) {
-      f.appendChild(el('p', 'section-h', '最近更新'));
-      var ol = el('ol', 'rows');
-      for (var j = 0; j < latest.length; j++) {
-        var p = latest[j];
-        var li = el('li', 'row');
-        li.appendChild(el('span', 'row-date', String(p.date || '').slice(0, 10)));
-        li.appendChild(lnk('#/post/' + p.slug, p.title, 'row-title'));
-        li.appendChild(el('span', 'row-words', num(p.words) + ' 字'));
-        ol.appendChild(li);
-      }
-      f.appendChild(ol);
+    /* 最近更新：**先收拢系列，再取前 N 条** —— 条数是条目数（系列算一条）。
+       20 章的系列在首页只占一行，否则「最近更新」会变成某一篇的目录。 */
+    var recentEntriesAll = collectEntries(m.posts || []);
+    if (recentEntriesAll.length) {
+      var built = entryList(recentEntriesAll, {
+        idPrefix: 'recent', title: '最近更新',
+        key: RECENT_KEY, min: RECENT_MIN, max: RECENT_MAX, def: RECENT_DEFAULT,
+        searchAfter: BROWSE_AFTER, limitAfter: 0, scrollAfter: BROWSE_AFTER,
+        placeholder: '在最近更新里搜：标题 / 章节 / 标签',
+        ariaLabel: '在最近更新里搜索',
+        limitLabel: '最近更新显示条数',
+        buttonLabel: '调整最近更新条数',
+        empty: '没有匹配的最近更新。',
+        render: function (entry) { return entryRow(entry, { compact: true }); }
+      });
+      S.recent = built.api;
+      f.appendChild(built.frag);
     }
     setToc([], '', '');
     return Promise.resolve(f);
   }
 
+
+  /* ---------- 本地存储：隐私模式 / 禁用存储时一律安静降级 ---------- */
+
+  function storeGet(key) {
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  }
+
+  function storeSet(key, val) {
+    try { localStorage.setItem(key, String(val)); } catch (e) {}
+  }
+
+  function reducedMotion() {
+    try {
+      return !!(typeof matchMedia === 'function'
+        && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    } catch (e) { return false; }
+  }
+
+  /* ---------- 条目收集：系列收拢的唯一实现 ----------
+   *
+   * 首页最近更新、日期页、文章库三处都用同一份口径。只要有一处自己再写一遍，
+   * 三处的收拢规则迟早漂移（「书库里是一条系列，首页却摊成 20 章」这种不一致最伤信任）。
+   *
+   * 规则（与文章库既有行为一致，只是搬到了这里）：
+   *  · **系列总章数 > 1** 才收拢 —— 单章系列没有「组」的意义，退化成普通文章行；
+   *  · 一个系列只出一条，日期取 seriesLatestDate()（系列最新一章）；
+   *  · 只按 series id 归组：不看标签、不看日期相邻，绝不把不相干的文章并到一起；
+   *  · 数据缺失（series 空表 / id 查不到 / 条目缺 posts）时安全退化成普通文章，不抛异常。
+   *
+   * 条目形状：
+   *  { kind: 'series', s: 系列对象, date, hits }   hits = 传入 posts 里属于该系列的章数
+   *  { kind: 'post',   post: 文章对象, date }
+   */
+  function collectEntries(posts, opts) {
+    opts = opts || {};
+    var series = opts.series || ((S.man && S.man.series) || []);
+    var groups = {};
+    var out = [];
+    for (var i = 0; i < (posts || []).length; i++) {
+      var p = posts[i];
+      if (!p) continue;
+      var s = p.series ? byId(series, p.series) : null;
+      if (s && (s.posts || []).length > 1) {
+        var g = groups[s.id];
+        if (!g) {
+          g = { kind: 'series', s: s, hits: 0,
+                date: seriesLatestDate(s) || String(p.date || '') };
+          groups[s.id] = g;
+          out.push(g);
+        }
+        g.hits++;
+      } else {
+        out.push({ kind: 'post', post: p, date: String(p.date || '') });
+      }
+    }
+    return sortEntries(out);
+  }
+
+  /* 排序：日期倒序 → updated 倒序 → 标题 → slug / 系列 id。
+   *
+   * 最后两级是「稳定排序」的关键：同一天发布的条目在 manifest 里的先后由构建期决定
+   * （build.py 按 (date, slug) 排），前端不该依赖它 —— 否则同一批内容换一次构建就可能
+   * 换一次顺序，读者以为文章被撤了。这里给出确定的次序。 */
+  function sortEntries(entries) {
+    entries.sort(function (a, b) {
+      var da = String((a && a.date) || ''), db = String((b && b.date) || '');
+      if (da !== db) return da < db ? 1 : -1;
+      var ua = String(entryUpdated(a)), ub = String(entryUpdated(b));
+      if (ua !== ub) return ua < ub ? 1 : -1;
+      var ta = entryTitle(a), tb = entryTitle(b);
+      if (ta !== tb) return ta < tb ? -1 : 1;
+      var ka = entryKey(a), kb = entryKey(b);
+      return ka < kb ? -1 : (ka > kb ? 1 : 0);
+    });
+    return entries;
+  }
+
+  function entryTitle(e) {
+    return e.kind === 'series' ? String((e.s && e.s.title) || '') : String((e.post && e.post.title) || '');
+  }
+  function entryKey(e) {
+    return e.kind === 'series' ? 's:' + String((e.s && e.s.id) || '') : 'p:' + String((e.post && e.post.slug) || '');
+  }
+  function entryUpdated(e) {
+    return (e.kind === 'post' && e.post && e.post.updated) ? String(e.post.updated) : '';
+  }
+
+  /* 一条条目能被搜到的全部文本：系列 = 系列名 + 每章标题 + 每章标签；单篇 = 标题 / 摘要 / 标签 / 作者。
+   * 过滤用的可搜索文本也走这里（data-filter），免得搜索与过滤两套口径。 */
+  function entryText(e) {
+    var names = [];
+    if (e.kind === 'series') {
+      names.push(entryTitle(e));
+      var chapters = (e.s && e.s.posts) || [];
+      for (var i = 0; i < chapters.length; i++) {
+        names.push(String(chapters[i].title || ''));
+        var sp = bySlug((S.man && S.man.posts) || [], chapters[i].slug);
+        if (sp) names.push((sp.tags || []).join(' '));
+      }
+      names.push('系列');
+      return names.join(' ');
+    }
+    var p = e.post || {};
+    var mem = byId((S.man && S.man.members) || [], p.author);
+    return [p.title, p.summary, p.date, (p.tags || []).join(' '), mem ? mem.name : p.author].join(' ');
+  }
+
+  /* 系列的入口：第一章（按 order 最小，manifest 已排好序，这里再稳一次） */
+  function seriesFirstSlug(s) {
+    var posts = (s && s.posts) || [];
+    if (!posts.length) return '';
+    var best = posts[0];
+    var bestOrder = isFinite(posts[0].order) ? posts[0].order : 999;
+    for (var i = 1; i < posts.length; i++) {
+      var o = isFinite(posts[i].order) ? posts[i].order : 999;
+      if (o < bestOrder) { best = posts[i]; bestOrder = o; }
+    }
+    return best ? String(best.slug || '') : '';
+  }
+  /* 三滑条图标：与「更多/设置」区分开 —— 它就是「调参数」的意思 */
+  function slidersIcon() {
+    var s = document.createElementNS ? document.createElementNS('http://www.w3.org/2000/svg', 'svg') : el('svg');
+    s.setAttribute('class', 'ico');
+    s.setAttribute('viewBox', '0 0 24 24');
+    s.setAttribute('aria-hidden', 'true');
+    var bars = [6, 12, 18];
+    for (var i = 0; i < bars.length; i++) {
+      var y = bars[i];
+      var line = document.createElementNS ? document.createElementNS('http://www.w3.org/2000/svg', 'line') : el('line');
+      line.setAttribute('x1', '3'); line.setAttribute('x2', '21');
+      line.setAttribute('y1', String(y)); line.setAttribute('y2', String(y));
+      line.setAttribute('stroke', 'currentColor');
+      line.setAttribute('stroke-width', '1.6');
+      line.setAttribute('stroke-linecap', 'round');
+      s.appendChild(line);
+      var knob = document.createElementNS ? document.createElementNS('http://www.w3.org/2000/svg', 'circle') : el('circle');
+      knob.setAttribute('cx', i === 1 ? '15' : '9');
+      knob.setAttribute('cy', String(y));
+      knob.setAttribute('r', '2');
+      knob.setAttribute('fill', 'currentColor');
+      s.appendChild(knob);
+    }
+    return s;
+  }
+
+  /* ---------- 大列表三件套：条数滑块 / 搜索 / 滚动区 ----------
+   *
+   * 首页最近更新、日期页、文章库共用，避免三处各写一遍。阈值决定要不要上控件 ——
+   * 条目少的时候不该凭空多出一排控件：
+   *  · 搜索框：条目数 > cfg.searchAfter（默认 6）；
+   *  · 条数滑块：条目数 > cfg.limitAfter（首页 0 = 总给，其它页按需设）；
+   *  · 滚动区：条目数 > cfg.scrollAfter（默认 6），套 .rows-scroll（max-height 24rem）。
+   *
+   * 条数说的是**条目数**（系列算一条），不是章节数 —— 否则一条 20 章的系列能把首页填满，
+   * 「最近更新」也就不再「最近」。搜索时不砍条数：搜索本来就是要跨越时间找，
+   * 按条数截断会让人以为站里根本没有那篇。改条数/搜索都只重绘列表，不重新渲染整页。 */
+  function clampLimit(n, min, max, def) {
+    n = parseInt(n, 10);
+    if (!isFinite(n)) return def;
+    if (n < min) return min;
+    if (n > max) return max;
+    return n;
+  }
+
+  function entryList(entries, cfg) {
+    var idp = cfg.idPrefix || 'list';
+    var min = cfg.min || 1, max = cfg.max || 15, def = cfg.def || 3;
+    var f = document.createDocumentFragment();
+    var state = { limit: def, q: '', shown: 0 };
+    state.limit = cfg.key ? clampLimit(storeGet(cfg.key), min, max, def) : def;
+
+    var wantSearch = cfg.searchAfter !== false && entries.length > (cfg.searchAfter || 6);
+    var wantLimit = cfg.limitAfter !== false && entries.length > (cfg.limitAfter || 0);
+    var wantScroll = cfg.scrollAfter !== false && entries.length > (cfg.scrollAfter || 6);
+
+    var bar = el('div', 'list-bar');
+    if (cfg.title) bar.appendChild(el('p', 'section-h', cfg.title));
+    var tools = el('div', 'list-tools');
+
+    var input = null;
+    if (wantSearch) {
+      input = el('input', 'filter-input list-search');
+      input.setAttribute('type', 'search');
+      input.setAttribute('placeholder', cfg.placeholder || '搜索标题 / 章节 / 标签');
+      input.setAttribute('aria-label', cfg.ariaLabel || '搜索条目');
+      tools.appendChild(input);
+    }
+
+    var btn = null, panel = null, range = null, val = null;
+    if (wantLimit) {
+      btn = el('button', 'recent-btn');
+      btn.setAttribute('type', 'button');
+      btn.id = idp + '-btn';
+      btn.setAttribute('aria-expanded', 'false');
+      btn.setAttribute('aria-controls', idp + '-panel');
+      btn.setAttribute('aria-label', cfg.buttonLabel || '调整显示条数');
+      btn.setAttribute('title', cfg.buttonLabel || '调整显示条数');
+      btn.appendChild(slidersIcon());
+
+      panel = el('div', 'recent-panel list-panel');
+      panel.id = idp + '-panel';
+      panel.setAttribute('hidden', '');
+      var lab = el('label', 'recent-label', '显示条数');
+      lab.setAttribute('for', idp + '-range');
+      val = el('span', 'recent-val', '');
+      var phead = el('div', 'recent-panel-head');
+      phead.appendChild(lab);
+      phead.appendChild(val);
+      panel.appendChild(phead);
+
+      range = el('input', 'recent-range');
+      range.setAttribute('type', 'range');
+      range.id = idp + '-range';
+      range.setAttribute('min', String(min));
+      range.setAttribute('max', String(max));
+      range.setAttribute('step', '1');
+      range.setAttribute('value', String(state.limit));
+      range.setAttribute('aria-label', cfg.limitLabel || '显示条数');
+      panel.appendChild(range);
+      panel.appendChild(el('p', 'recent-hint',
+        cfg.hint || (min + '–' + max + ' 项 · 记住的选择存在本机浏览器里')));
+      tools.appendChild(btn);
+    }
+    if (kidCount(tools)) bar.appendChild(tools);
+    if (panel) bar.appendChild(panel);
+    if (kidCount(bar)) f.appendChild(bar);
+
+    var list = el(cfg.tag || 'ol', cfg.listClass || 'rows');
+    list.id = idp + '-list';
+    if (wantScroll) {
+      var box = el('div', 'rows-scroll');
+      box.appendChild(list);
+      f.appendChild(box);
+    } else {
+      f.appendChild(list);
+    }
+
+    /* 命中判据走 entryText()：系列必须能被「章节标题 / 章节标签」搜到 ——
+       否则 20 章的系列只剩系列名可搜，等于内容搜不到。 */
+    function visible() {
+      var q = state.q.toLowerCase();
+      var out = [];
+      for (var i = 0; i < entries.length; i++) {
+        if (!q || entryText(entries[i]).toLowerCase().indexOf(q) >= 0) out.push(entries[i]);
+      }
+      if (!q) out = out.slice(0, Math.min(state.limit, out.length));
+      return out;
+    }
+
+    function draw() {
+      clear(list);
+      var shown = visible();
+      state.shown = shown.length;
+      if (!shown.length) list.appendChild(el('p', 'muted', cfg.empty || '没有匹配项。'));
+      else if (cfg.build) cfg.build(list, shown);
+      else {
+        for (var i = 0; i < shown.length; i++) list.appendChild(cfg.render(shown[i]));
+      }
+      if (val) {
+        clear(val);
+        val.appendChild(document.createTextNode(shown.length + ' 项 · 共 ' + entries.length + ' 项'));
+      }
+    }
+
+    function setPanel(open) {
+      if (open) panel.removeAttribute('hidden'); else panel.setAttribute('hidden', '');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+
+    function setLimit(n) {
+      state.limit = clampLimit(n, min, max, def);
+      if (cfg.key) storeSet(cfg.key, state.limit);
+      if (range) range.setAttribute('value', String(state.limit));
+      if (api) api.limit = state.limit;
+      draw();
+    }
+
+    if (input && input.addEventListener) {
+      input.addEventListener('input', function () {
+        state.q = String(input.value !== undefined ? input.value : (input.getAttribute('value') || '')).trim();
+        draw();
+      });
+    }
+    if (btn && range && btn.addEventListener && range.addEventListener) {
+      btn.addEventListener('click', function (ev) {
+        if (ev && ev.stopPropagation) ev.stopPropagation();
+        setPanel(panel.hasAttribute('hidden'));
+      });
+      /* input 事件：拖动过程中就重绘；Esc 由全局 keydown 收口 */
+      range.addEventListener('input', function () { setLimit(range.value); });
+    }
+    draw();
+
+    var api = {
+      limit: state.limit, entries: entries, state: state, list: list, panel: panel,
+      hasSearch: !!input, hasLimit: !!btn, hasScroll: wantScroll,
+      setLimit: setLimit, draw: draw, setPanel: setPanel,
+      close: function () { if (panel) setPanel(false); },
+      setQuery: function (q) {
+        if (!input) return;
+        input.setAttribute('value', String(q || ''));
+        state.q = String(q || '').trim();
+        draw();
+      }
+    };
+    return { frag: f, api: api };
+  }
+
+  /* 显式计数：无浏览器 DOM 的环境里 childNodes.length 会抛错（§2 硬约束） */
+  function kidCount(n) {
+    var c = 0;
+    if (n) { for (var i = 0; n.childNodes[i] !== undefined; i++) c++; }
+    return c;
+  }
+
+  /* 面板跟各自的小节走：换页时上一页的面板自己消失（节点被换掉），
+     这里只负责「点面板外 / 按 Esc」时收起当前页的面板。 */
+  function closeListPanels() {
+    if (S.recent && S.recent.close) S.recent.close();
+    if (S.dateList && S.dateList.close) S.dateList.close();
+    if (S.libraryList && S.libraryList.close) S.libraryList.close();
+  }
+  /* ---------- 首页「最近更新」 / 日期页 / 文章库：共用的条数配置 ----------
+   *
+   * 条数默认 3 **条条目**（系列算一条，不是章节）；
+   * 再多人眼也读不过来，太多了「最近更新」就稀释成「全部文章」。
+   * 每处一个 key：首页的偏好不该连带把日期页和书库也改了。 */
+  var RECENT_MIN = 1, RECENT_MAX = 15, RECENT_DEFAULT = 3;
+  var RECENT_KEY = 'rec-blog:recent-limit';
+  var DATE_MIN = 1, DATE_MAX = 30, DATE_DEFAULT = 6;
+  var DATE_KEY = 'rec-blog:date-limit';
+  var LIBRARY_MIN = 3, LIBRARY_MAX = 60, LIBRARY_DEFAULT = 12;
+  var LIBRARY_KEY = 'rec-blog:library-limit';
+  var LIBRARY_LIST_AFTER = 12;      /* 书库条目超过这么多才加滑块与滚动区 */
+  var BROWSE_AFTER = 6;             /* 首页 / 日期页：超过这么多条目才给搜索框与滚动区 */
+
+  function clampRecent(n) { return clampLimit(n, RECENT_MIN, RECENT_MAX, RECENT_DEFAULT); }
+  function readRecent() { return clampRecent(storeGet(RECENT_KEY)); }
+  function writeRecent(n) {
+    n = clampRecent(n);
+    storeSet(RECENT_KEY, n);
+    if (S.recent && typeof S.recent.setLimit === 'function' && S.recent.limit !== n) S.recent.setLimit(n);
+    return n;
+  }
+
+  /* 首页的条目：全站文章 → 收拢系列 → 取前 N 条（N 是条目数） */
+  function recentEntries(limit) {
+    var entries = collectEntries((S.man && S.man.posts) || []);
+    return entries.slice(0, Math.min(clampRecent(limit), entries.length));
+  }
+
+  /* 首页的系列行：紧凑版 —— 日期 + 系列名 + 徽章，**不铺开章节**。
+     铺开就是把 20 章从书库搬到首页，首页就不再是「最近」而是「目录」。 */
+  function compactSeriesRow(s) {
+    /* 不用 .row-series：那条规则是给「可展开的系列行」用的（display:block），
+       首页要的是一行（.row 的网格），所以单独一个 row-series-flat。 */
+    var li = el('li', 'row row-series-flat');
+    li.appendChild(el('span', 'row-date', seriesLatestDate(s)));
+    var first = seriesFirstSlug(s);
+    if (first) li.appendChild(lnk('#/post/' + first, (s && s.title) || '系列', 'row-title'));
+    else li.appendChild(el('span', 'row-title', (s && s.title) || '系列'));
+    li.appendChild(el('span', 'row-words series-badge', '系列 · ' + ((s && s.posts) || []).length + ' 章'));
+    return li;
+  }
+
+  /* 条目 → 行。书库与日期页用可展开的 seriesRow（章节完整、可逐章跳），
+     首页用紧凑行（不铺章节）。两者只在「要不要铺章节」上不同，收拢口径是同一个。 */
+  function entryRow(entry, opts) {
+    opts = opts || {};
+    if (entry.kind === 'series') {
+      if (opts.compact) return compactSeriesRow(entry.s);
+      return seriesRow(entry.s, (S.man && S.man.members) || [], entry.hits, opts);
+    }
+    return postRow(entry.post, (S.man && S.man.members) || []);
+  }
+
+
+  /* ---------- 首页「一言」 ----------
+   *
+   * 句子来自构建期写进 manifest 的 quotes（里人录：site/content/quotes/<成员>/quotes.sml）。
+   * 前端只读本地数组、不发请求；没有句子就不显示按钮（不编造、不用占位鸡汤）。
+   * 点击 → 全屏变暗 + 中间一句；8 秒自动消失，期间点页面任何位置立刻消失。
+   * 关闭一定清定时器：否则看不见的计时器会在你跳到别的页面后还把浮层拉回来。 */
+  var QUOTE_MS = 8000;
+
+  function quoteList() {
+    return (S.man && S.man.quotes) || [];
+  }
+
+  function quoteVisible() {
+    var v = quoteVeil();
+    return !!(v && !v.hasAttribute('hidden'));
+  }
+
+  /* 浮层 / 按钮是自己插到 body 上的：句柄记在 S.quote 里，不用每次 $() 再查一遍
+     （既省一次查询，也免得依赖「移除后还查得到」这种用法） */
+  function quoteBtn() {
+    if (S.quote && S.quote.btn && S.quote.btn.parentNode) return S.quote.btn;
+    return $('#quote-btn');
+  }
+
+  function quoteVeil() {
+    if (S.quote && S.quote.veil && S.quote.veil.parentNode) return S.quote.veil;
+    return $('#quote-veil');
+  }
+
+  function clearQuoteTimer() {
+    if (S.quote && S.quote.timer) {
+      if (typeof clearTimeout === 'function') clearTimeout(S.quote.timer);
+      S.quote.timer = 0;
+    }
+  }
+
+  function closeQuote() {
+    clearQuoteTimer();
+    var v = quoteVeil();
+    if (v) v.setAttribute('hidden', '');
+  }
+
+  function openQuote() {
+    var qs = quoteList();
+    var v = quoteVeil();
+    if (!qs.length || !v) return;
+    clearQuoteTimer();
+    var idx = Math.floor(Math.random() * qs.length);
+    if (idx >= qs.length) idx = qs.length - 1;
+    if (S.quote) S.quote.idx = idx;
+    var q = qs[idx] || {};
+    var t = (S.quote && S.quote.textEl) || $('#quote-text');
+    var s = (S.quote && S.quote.srcEl) || $('#quote-source');
+    if (t) { clear(t); t.appendChild(document.createTextNode(String(q.text || ''))); }
+    if (s) {
+      clear(s);
+      var src = String(q.source || '');
+      if (src) s.appendChild(document.createTextNode('— ' + src));
+    }
+    v.removeAttribute('hidden');
+    S.quote.timer = (typeof setTimeout === 'function') ? setTimeout(closeQuote, QUOTE_MS) : 0;
+  }
+
+  /* 浮层与按钮都在 body 上（不在 #view 里）：换路由时显式拆掉，避免「上一页的浮层」 */
+  function unmountQuote() {
+    closeQuote();
+    var b = quoteBtn();
+    if (b && b.parentNode) b.parentNode.removeChild(b);
+    var v = quoteVeil();
+    if (v && v.parentNode) v.parentNode.removeChild(v);
+    if (S.quote) { S.quote.btn = null; S.quote.veil = null; S.quote.textEl = null; S.quote.srcEl = null; }
+    if (document.body && document.body.classList) document.body.classList.remove('quote-anim');
+  }
+
+  function mountQuote() {
+    unmountQuote();
+    if (!quoteList().length || !document.body) return;
+    if (!reducedMotion()) document.body.classList.add('quote-anim');
+    var btn = el('button', 'quote-btn');
+    btn.setAttribute('type', 'button');
+    btn.setAttribute('id', 'quote-btn');
+    btn.setAttribute('aria-label', '读一句');
+    btn.setAttribute('title', '读一句');
+    /* 用给定的右引号 SVG path，不依赖字体字形。 */
+    var mark = document.createElementNS
+      ? document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+      : el('svg');
+    mark.setAttribute('class', 'quote-btn-svg');
+    mark.setAttribute('viewBox', '0 0 1024 1024');
+    mark.setAttribute('aria-hidden', 'true');
+    mark.setAttribute('fill', 'currentColor');
+    var glyph = document.createElementNS
+      ? document.createElementNS('http://www.w3.org/2000/svg', 'path')
+      : el('path');
+    glyph.setAttribute('d', 'M1022.476 0v439.434c1.869 63.227-7.249 122.599-27.345 178.114s-48.267 104.363-84.73 146.559c-36.345 42.070-79.822 77.018-130.664 104.835-50.725 27.699-105.769 45.463-165.141 53.057v-189.564c72.809-24.895 122.599-61.704 149.363-110.56 26.882-48.856 40.201-108.692 40.201-179.512h-189.557v-442.356h407.872zM410.66 0v439.434c1.987 63.227-7.131 122.599-27.228 178.115-20.104 55.515-48.385 104.363-84.73 146.559-36.345 42.070-79.938 77.018-130.664 104.835-50.725 27.699-105.887 45.463-165.258 53.057v-189.564c72.809-24.895 122.599-61.704 149.363-110.56 26.882-48.856 40.201-108.692 40.201-179.512h-189.564v-442.356h407.88z');
+    mark.appendChild(glyph);
+    btn.appendChild(mark);
+    if (btn.addEventListener) {
+      btn.addEventListener('click', function (ev) {
+        if (ev && ev.stopPropagation) ev.stopPropagation();
+        if (quoteVisible()) closeQuote(); else openQuote();
+      });
+    }
+    var veil = el('div', 'quote-veil');
+    veil.setAttribute('id', 'quote-veil');
+    veil.setAttribute('hidden', '');
+    veil.setAttribute('role', 'presentation');
+    var card = el('div', 'quote-card');
+    card.setAttribute('role', 'dialog');
+    card.setAttribute('aria-label', '一言');
+    var p = el('p', 'quote-text');
+    p.id = 'quote-text';
+    var s = el('p', 'quote-source');
+    s.id = 'quote-source';
+    card.appendChild(p);
+    card.appendChild(s);
+    veil.appendChild(card);
+    document.body.appendChild(btn);
+    document.body.appendChild(veil);
+    S.quote.btn = btn;
+    S.quote.veil = veil;
+    S.quote.textEl = p;
+    S.quote.srcEl = s;
+  }
+
+  /* ---------- 代码块：长代码折叠 + 语法高亮 ----------
+   *
+   * 折叠阈值来自 site.sml 的 code_collapse_lines（默认 20 行）：
+   *  · 折叠只加 CSS 类 + max-height，**不改动 DOM 里的代码文本** —— 复制按钮取的是
+   *    textContent，折叠状态下复制到的仍然是完整代码；
+   *  · 所有改动都在运行时做：禁用 JS 时代码块保持原样全展开；
+   *  · 高亮交给本地 vendor 的 Prism（MIT），失败就退回纯文本。 */
+  var CODE_COLLAPSE_DEFAULT = 20;
+
+  function codeCollapseLines() {
+    var n = parseInt((S.man && S.man.site && S.man.site.code_collapse_lines), 10);
+    return (isFinite(n) && n > 0) ? n : CODE_COLLAPSE_DEFAULT;
+  }
+
+  function countLines(text) {
+    var s = String(text || '');
+    if (!s) return 0;
+    var n = 1;
+    for (var i = 0; i < s.length; i++) { if (s.charAt(i) === '\n') n++; }
+    return s.charAt(s.length - 1) === '\n' ? n - 1 : n;
+  }
+
+  function setupCodeBlocks(viewEl) {
+    if (!viewEl || typeof viewEl.querySelectorAll !== 'function') return;
+    var boxes = viewEl.querySelectorAll('.code');
+    var limit = codeCollapseLines();
+    for (var i = 0; i < boxes.length; i++) setupOneCodeBox(boxes[i], limit);
+  }
+
+  function setupOneCodeBox(box, limit) {
+    var code = box.getElementsByTagName ? box.getElementsByTagName('code')[0] : null;
+    if (!code) return;
+    var lines = countLines(code.textContent);
+    if (lines <= limit) return;                       /* 短代码：一个按钮都不给 */
+    var head = null;
+    var kids = box.childNodes;
+    for (var k = 0; k < kids.length; k++) {
+      if (kids[k] && kids[k].className && String(kids[k].className).indexOf('code-head') >= 0) head = kids[k];
+    }
+    if (!head) return;
+    box.className = String(box.className || '') + ' code-long';
+    if (box.style && box.style.setProperty) box.style.setProperty('--code-lines', String(limit));
+
+    var pre = null;
+    for (var j = 0; j < kids.length; j++) {
+      if (kids[j] && kids[j].tagName && String(kids[j].tagName).toLowerCase() === 'pre') pre = kids[j];
+    }
+    if (pre && !pre.id) pre.id = 'code-pre-' + nextCodeId();
+
+    var btn = el('button', 'code-more');
+    btn.setAttribute('type', 'button');
+    if (pre) btn.setAttribute('aria-controls', pre.id);
+
+    var apply = function (collapsed) {
+      /* 折叠态给「展开全部（N 行）」，展开态给「收起」：按钮说的是「点了会发生什么」 */
+      clear(btn);
+      btn.appendChild(document.createTextNode(collapsed ? '展开全部（' + lines + ' 行）' : '收起'));
+      btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      btn.setAttribute('title', collapsed ? '展开全部 ' + lines + ' 行' : '收起这段代码');
+      var cls = String(box.className || '').replace(' is-collapsed', '').replace('is-collapsed', '').trim();
+      box.className = (collapsed ? cls + ' is-collapsed' : cls).trim();
+    };
+    apply(true);
+    if (btn.addEventListener) {
+      btn.addEventListener('click', function () {
+        apply(String(box.className || '').indexOf('is-collapsed') < 0);
+      });
+    }
+    head.appendChild(btn);
+  }
+
+  var CODE_SEQ = 0;
+  function nextCodeId() { CODE_SEQ++; return String(CODE_SEQ); }
+
+  function highlightCode(viewEl) {
+    if (!viewEl) return false;
+    var P = (typeof window !== 'undefined') ? window.Prism : null;
+    if (!P || typeof P.highlightAllUnder !== 'function') return false;
+    try {
+      P.highlightAllUnder(viewEl);
+      return true;
+    } catch (e) {
+      return false;                                  /* 高亮失败：正文原样是纯文本，够读 */
+    }
+  }
 
   /* ---------- 附件：统一文件图标 + 下载渠道 ---------- */
   var DL_CHANNELS = [
@@ -871,25 +1473,39 @@
   function viewByDate(day) {
     var m = S.man;
     var f = document.createDocumentFragment();
-    var list = (m.posts || []).filter(function (p) {
-      return String(p.date || '').slice(0, 10) === String(day);
-    });
-    var head = pageHead('日期', String(day), list.length
-      ? '这一天发了 ' + list.length + ' 篇。'
-      : '这一天没有文章（日期来自 front matter 的 date 字段）。');
-    f.appendChild(head);
-    if (list.length) {
-      var ol = el('ol', 'rows');
-      for (var i = 0; i < list.length; i++) {
-        var p = list[i];
-        var li = el('li', 'row');
-        li.appendChild(el('span', 'row-date', String(p.date).slice(0, 10)));
-        li.appendChild(lnk('#/post/' + p.slug, p.title, 'row-title'));
-        li.appendChild(el('span', 'row-words', num(p.words) + ' 字'));
-        li.appendChild(el('p', 'row-sum', p.summary || ''));
-        ol.appendChild(li);
-      }
-      f.appendChild(ol);
+    var dayStr = String(day || '');
+    var dayPosts = [];
+    for (var i = 0; i < (m.posts || []).length; i++) {
+      if (String(m.posts[i].date || '').slice(0, 10) === dayStr) dayPosts.push(m.posts[i]);
+    }
+    /* 先按日期过滤，再收拢系列：同一天发完 20 章也只占一条，和书库、首页一个口径 */
+    var entries = collectEntries(dayPosts);
+    var seriesCount = 0;
+    for (var j = 0; j < entries.length; j++) { if (entries[j].kind === 'series') seriesCount++; }
+    var lede = dayPosts.length
+      ? '这一天发了 ' + dayPosts.length + ' 篇，归为 ' + entries.length + ' 项（'
+        + seriesCount + ' 个系列 + ' + (entries.length - seriesCount) + ' 篇单篇）。'
+      : '这一天没有文章（日期来自 front matter 的 date 字段）。';
+    f.appendChild(pageHead('日期', dayStr, lede));
+
+    if (entries.length) {
+      var built = entryList(entries, {
+        idPrefix: 'date',
+        key: DATE_KEY, min: DATE_MIN, max: DATE_MAX, def: DATE_DEFAULT,
+        searchAfter: BROWSE_AFTER, limitAfter: BROWSE_AFTER, scrollAfter: BROWSE_AFTER,
+        placeholder: '在这一天里搜：标题 / 章节 / 标签',
+        ariaLabel: '在这一天的条目里搜索',
+        limitLabel: '本页显示条数',
+        buttonLabel: '调整本页显示条数',
+        empty: '没有匹配的条目。',
+        render: function (entry) {
+          return entryRow(entry, {
+            hitText: function (h) { return '（本日 ' + h + ' 章）'; }
+          });
+        }
+      });
+      S.dateList = built.api;
+      f.appendChild(built.frag);
     }
     setToc([], '', '');
     return Promise.resolve(f);
@@ -925,8 +1541,14 @@
     var head = el('header', 'page-head');
     head.appendChild(el('p', 'kicker', '共建博客'));
     head.appendChild(el('h1', '', '文章库'));
-    head.appendChild(el('p', 'lede', '共 ' + m.posts.length + ' 篇，按年份分组。' +
-      (query && query.tag ? '当前筛选标签：#' + query.tag : '')));
+    var grouped = 0;
+    for (var gsi = 0; gsi < (m.series || []).length; gsi++) {
+      if (((m.series[gsi].posts || []).length) > 1) grouped++;
+    }
+    var lede = '共 ' + m.posts.length + ' 篇，按年份分组。' +
+      (grouped ? ' 多章系列折叠为 ' + grouped + ' 条。' : '') +
+      (query && query.tag ? '当前筛选标签：#' + query.tag : '');
+    head.appendChild(el('p', 'lede', lede));
     f.appendChild(head);
 
     var filters = el('div', 'filters');
@@ -957,6 +1579,7 @@
         var list = chips.getElementsByTagName ? chips.getElementsByTagName('span') : [];
         for (var ci = 0; ci < list.length; ci++) list[ci].classList.remove('on');
         if (!was) t.classList.add('on');
+        libQ = was ? '' : tag;
         input.setAttribute('value', was ? '' : '#' + tag);
         applyFilter(was ? '' : tag);
       });
@@ -971,82 +1594,49 @@
       }
     }
 
-    /* 标签页里把“同一 series 的多章”收成一条，显示成带“系列”标记的文章行。
-     *
-     * 合并口径：**系列总章数 > 1** 就合并，与「这一章是否命中标签」无关 ——
-     * 系列是「一份文档」，组里有一章命中就说明这组与该标签相关，整组呈现比只露一章有用；
-     * 反过来单章系列没有“组”的意义，退化成普通文章行。
-     * 只有部分章节命中时，徽章会补一句「（命中 N）」（见 seriesRow）。
-     */
-    var entries = [];
-    var seriesGroups = {};
-    for (var pi = 0; pi < posts.length; pi++) {
-      var post = posts[pi];
-      var s = post.series ? byId(m.series || [], post.series) : null;
-      if (query && query.tag && s && (s.posts || []).length > 1) {
-        var g = seriesGroups[s.id];
-        if (!g) {
-          /* 日期取「系列最新一章」，与 seriesRow 摘要里的日期同源；
-             于是系列跨年份也落在最新一章那年，章节列表仍是完整的全组。
-             章节在 manifest 里查不到时退回本章自己的日期，别落进空年份分组。 */
-          g = { kind: 'series', s: s, hits: 0,
-                date: seriesLatestDate(s) || String(post.date || '') };
-          seriesGroups[s.id] = g;
-          entries.push(g);
-        }
-        g.hits++;
-      } else {
-        entries.push({ kind: 'post', post: post, date: String(post.date || '') });
-      }
-    }
-    entries.sort(function (a, b) { return b.date.localeCompare(a.date); });
+    /* 收拢口径与首页、日期页同源（collectEntries）：系列总章数 > 1 才合并，
+     * 单章系列退化成普通文章行。这里不再自己写一遍 —— 三处各写一遍迟早漂移成
+     * 「书库里是一条系列，首页却摊成 20 章」。 */
+    var entries = collectEntries(posts);
 
-    var years = {}, order = [];
-    for (var ej = 0; ej < entries.length; ej++) {
-      var y = String(entries[ej].date || '').slice(0, 4) || String(entries[ej].post && entries[ej].post.year || '');
-      if (!years[y]) { years[y] = []; order.push(y); }
-      years[y].push(entries[ej]);
-    }
-
-    /* 过滤用的行登记表：显式保存「节点 + 可搜索文本」，不发任何请求 */
+    /* 过滤用的行登记表：显式保存「节点 + 可搜索文本」，不发任何请求。
+     * 可搜索文本与搜索框共用 entryText()，免得过滤和搜索两套口径。 */
     var rowNodes = [];
-    var rows = 0;
-    for (var yi = 0; yi < order.length; yi++) {
-      var yr = order[yi];
-      var d = el('details');
-      if (yi === 0) d.setAttribute('open', 'open');
-      d.appendChild(el('summary', '', yr + ' 年（' + years[yr].length + ' 项）'));
-      var ol = el('ol', 'rows');
-      for (var ri = 0; ri < years[yr].length; ri++) {
-        var entry = years[yr][ri];
-        var li, filter;
-        if (entry.kind === 'series') {
-          li = seriesRow(entry.s, m.members, entry.hits);
-          var chapters = entry.s.posts || [];
-          var names = [entry.s.title];
-          for (var si = 0; si < chapters.length; si++) names.push(chapters[si].title);
-          for (var sj = 0; sj < chapters.length; sj++) {
-            var sp = bySlug(m.posts, chapters[sj].slug);
-            if (sp) names.push((sp.tags || []).join(' '));
-          }
-          filter = names.join(' ') + ' 系列';
-          li.setAttribute('data-rowclass', 'row row-series');
-        } else {
-          li = postRow(entry.post, m.members);
-          var mem = byId(m.members, entry.post.author);
-          filter = [entry.post.title, entry.post.summary, entry.post.date,
-            (entry.post.tags || []).join(' '), mem ? mem.name : entry.post.author].join(' ');
-          li.setAttribute('data-rowclass', 'row');
-        }
-        li.setAttribute('data-filter', filter);
-        ol.appendChild(li);
-        rowNodes.push(li);
-        rows++;
+    var libQ = String(query && query.tag ? query.tag : '');
+    /* 首次绘制不再叠一次过滤：标签筛选已经在 posts 那一步做过了，
+       这里再跑一遍会把系列行的类名改成「row row-series」，多出一条 li.row。
+       只有重绘（改条数）后才需要把当前过滤词重新落到新节点上。 */
+    var builtOnce = false;
+
+    function buildYears(host, shown) {
+      rowNodes.length = 0;
+      var years = {}, order = [];
+      for (var i = 0; i < shown.length; i++) {
+        var y = String(shown[i].date || '').slice(0, 4)
+          || String((shown[i].post && shown[i].post.year) || '');
+        if (!years[y]) { years[y] = []; order.push(y); }
+        years[y].push(shown[i]);
       }
-      d.appendChild(ol);
-      f.appendChild(d);
+      for (var yi = 0; yi < order.length; yi++) {
+        var yr = order[yi];
+        var d = el('details');
+        if (yi === 0) d.setAttribute('open', 'open');
+        d.appendChild(el('summary', '', yr + ' 年（' + years[yr].length + ' 项）'));
+        var ol = el('ol', 'rows');
+        for (var ri = 0; ri < years[yr].length; ri++) {
+          var entry = years[yr][ri];
+          var li = entryRow(entry);
+          li.setAttribute('data-rowclass', entry.kind === 'series' ? 'row row-series' : 'row');
+          li.setAttribute('data-filter', entryText(entry));
+          ol.appendChild(li);
+          rowNodes.push(li);
+        }
+        d.appendChild(ol);
+        host.appendChild(d);
+      }
+      if (builtOnce) applyFilter(libQ);
+      builtOnce = true;
     }
-    if (!rows) f.appendChild(el('p', 'muted', '没有匹配的文章。'));
 
     function applyFilter(q) {
       q = String(q || '').toLowerCase().replace(/^#/, '');
@@ -1060,8 +1650,28 @@
     if (input.addEventListener) {
       input.addEventListener('input', function () {
         var v = input.value !== undefined ? input.value : input.getAttribute('value');
-        applyFilter(v);
+        libQ = String(v || '');
+        applyFilter(libQ);
       });
+    }
+
+    /* 条目多到一屏读不完才有必要上滑块和滚动区；书库的条数自己存，不与首页共用。 */
+    if (entries.length > LIBRARY_LIST_AFTER) {
+      var built = entryList(entries, {
+        idPrefix: 'library', tag: 'div', listClass: 'library-groups',
+        key: LIBRARY_KEY, min: LIBRARY_MIN, max: LIBRARY_MAX, def: LIBRARY_DEFAULT,
+        searchAfter: false, limitAfter: 0, scrollAfter: LIBRARY_LIST_AFTER,
+        buttonLabel: '调整书库显示条数', limitLabel: '书库显示条数',
+        empty: '没有匹配的文章。',
+        build: buildYears
+      });
+      S.libraryList = built.api;
+      f.appendChild(built.frag);
+    } else {
+      var host = el('div', 'library-groups');
+      buildYears(host, entries);
+      if (!rowNodes.length) host.appendChild(el('p', 'muted', '没有匹配的文章。'));
+      f.appendChild(host);
     }
     return Promise.resolve(f);
   }
@@ -2291,9 +2901,12 @@
     /* 授权分层声明是构建期注入的静态 span（id 以 license-notice 开头），
      * JS 只重画链接行，不清它——否则干净构建里这三行会被 clear() 抹掉。 */
     var keep = [];
-    var kids = foot.children || [];
-    for (var ki = 0; ki < kids.length; ki++) {
-      var c = kids[ki];
+    /* 兼容首次渲染（直接子节点）和二次渲染（已嵌套在 .footer-legal 内）。 */
+    var nodes = foot.querySelectorAll
+      ? foot.querySelectorAll('span')
+      : (foot.children || []);
+    for (var ki = 0; ki < nodes.length; ki++) {
+      var c = nodes[ki];
       if (c && c.id && c.id.indexOf('license-notice') === 0) keep.push(c);
     }
     clear(foot);
@@ -2337,6 +2950,8 @@
       var r = route();
       var key = r.seg[0] || 'home';
       S.page = key;
+      /* 条数面板的句柄只属于当前页：换页先清空，别让上一页的句柄留在这儿被 Esc 摸到 */
+      S.recent = null; S.dateList = null; S.libraryList = null;
       document.title = (m.site.title || '') + ((key === 'library' || key === 'home') ? '' : ' · ' + (NAV_LABEL[key] || key));
       if (document.body && document.body.setAttribute) document.body.setAttribute('data-page', key);
       buildSiteNav(key);
@@ -2355,6 +2970,11 @@
       return view.then(function (fr) {
         var viewEl = $('#view');
         if (viewEl) { clear(viewEl); viewEl.appendChild(fr); }
+        /* 正文落地后的三步加工：长代码折叠 → 高亮 → 首页「一言」浮层。
+           顺序有意义：折叠先给 <pre> 建好 id 与类，高亮只改 <code> 内部。 */
+        setupCodeBlocks(viewEl);
+        highlightCode(viewEl);
+        if (key === 'home') mountQuote(); else unmountQuote();
         buildToc();
         buildFooter();
         var brand = $('#brand-title');
@@ -2419,13 +3039,21 @@
     if (typeof document.addEventListener === 'function') {
       document.addEventListener('click', function (ev) {
         var t = ev && ev.target;
+        /* 一言浮层：出现期间点页面任何位置都立刻消失（包括点浮层自己） */
+        if (quoteVisible()) closeQuote();
+        /* 面板外的点击收起「显示条数」面板（按钮自己会 stopPropagation） */
+        if (t && typeof t.closest === 'function' && !t.closest('.list-panel')) closeListPanels();
         if (t && typeof t.closest === 'function' && t.closest('[data-close]')) {
           if (ev.preventDefault) ev.preventDefault();
           hideModal();
         }
       });
       document.addEventListener('keydown', function (ev) {
-        if (ev && ev.key === 'Escape') hideModal();
+        if (ev && ev.key === 'Escape') {
+          hideModal();
+          closeQuote();
+          closeListPanels();
+        }
       });
     }
     /* 代码块复制：事件委托，只写这一处 */
@@ -2507,6 +3135,35 @@
       relGraph: relGraph, langBar: langBar, safeUrl: safeUrl,
       attachCard: attachCard, resourceRow: resourceRow, codeChip: codeChip,
       copyText: copyText, toast: toast,
+      /* 阅读控制三项（最近条数 / 一言 / 代码块），测试直接驱动这几个钩子 */
+      recent: {
+        key: RECENT_KEY, min: RECENT_MIN, max: RECENT_MAX, def: RECENT_DEFAULT,
+        read: readRecent, write: writeRecent, clamp: clampRecent, list: recentEntries,
+        closePanel: closeListPanels
+      },
+      date: {
+        key: DATE_KEY, min: DATE_MIN, max: DATE_MAX, def: DATE_DEFAULT
+      },
+      library: {
+        key: LIBRARY_KEY, min: LIBRARY_MIN, max: LIBRARY_MAX, def: LIBRARY_DEFAULT,
+        after: LIBRARY_LIST_AFTER
+      },
+      browseAfter: BROWSE_AFTER,
+      /* 条目收集：三处（首页 / 日期页 / 书库）共用同一份口径，测试直接打这些钩子 */
+      entries: {
+        collect: collectEntries, sort: sortEntries, text: entryText,
+        title: entryTitle, key: entryKey, updated: entryUpdated,
+        list: entryList, row: entryRow, clampLimit: clampLimit,
+        seriesFirst: seriesFirstSlug, closePanels: closeListPanels
+      },
+      quotes: {
+        autoMs: QUOTE_MS, list: quoteList, open: openQuote, close: closeQuote,
+        mount: mountQuote, unmount: unmountQuote, visible: quoteVisible
+      },
+      code: {
+        threshold: codeCollapseLines, setup: setupCodeBlocks,
+        highlight: highlightCode, countLines: countLines
+      },
       buildSiteNav: buildSiteNav, buildToc: buildToc, route: route,
       viewLibrary: viewLibrary, viewPost: viewPost, viewTopic: viewTopic,
       viewProject: viewProject, viewMember: viewMember, viewService: viewService,
