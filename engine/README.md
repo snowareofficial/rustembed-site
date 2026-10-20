@@ -16,17 +16,20 @@
 | `lib/mathml.py` | LaTeX → MathML（构建期，失败回退 `math-raw`） | 改公式渲染 |
 | `lib/summary.py` | 摘要：优先 `summaries/*.json`，否则抽取式 | 改摘要策略 |
 | `lib/urls.py` | URL 协议白名单（http/https/mailto/tel、`#`、相对路径）—— 所有拼 href/src 的用户输入都必须过 `safe_url()` | 改白名单（先读 test_render_safety [9]/[11]） |
+| `lib/imgcheck.py` | 图片引用识别与坏图判定（magic bytes / 0 字节 / HTML 错误页 / 外链）—— build 的外链门禁、check 的产物图片不变量、audit 的报告共用这一份 | 改图片格式判定、加引用写法 |
 | `lib/_swsml.py` | SML 原生绑定（vendored from swsml 0.6.4，MulanPSL-2） | 别就地改，升级 vendor 时以上游为准 |
 | `native/` | 原生后端载体：`sml.dll` / `libsml.so` / `libsml.dylib`（默认 gitignore；缺失时不含 `include` 的内容照常构建、含 `include` 的直接报错；详见 docs/NATIVE.md） | 换平台/升级 swsml |
 | `native_build.py` | 本机编译 SML native cdylib 并放到 `engine/native/`；自动找 cargo target-dir，加载验证版本 | 没有预编译库/换平台时 |
 | `build.py` | 构建主流程：校验 → manifest → 预渲染 → 索引/RSS/sitemap/llms/字体子集/_headers | 加产物、改流程顺序 |
-| `check.py` | 产物自检（不变量，CI 用） | 加你踩过的坑当断言 |
+| `check.py` | 产物自检（不变量，CI 用）：含「每个 `<img src>` 必须本地、存在、非 0 字节、格式与扩展名一致」 | 加你踩过的坑当断言 |
+| `audit_images.py` | 全站图片引用审计（只报告不改文件）：外链 / 本地缺失 / 没进产物 / 坏图 / 孤儿图，输出 `文件\|行号\|引用\|问题\|建议\|可自动修` 表；退出码 1 可当门禁 | 加检查项、改报告列 |
 | `preview.py` | 本地静态服务（后台运行 + 日志） | 改端口/日志 |
 | `cli.py` | 命令行入口：`new/list/assets/gen/contracts/build/check/test/preview` | 加子命令 |
 | `test_contracts.py` | 契约引擎自测（断言数动态计数，钉住错误码语义） | 加断言 |
 | `test_sml_include.py` | include / 命名空间 / 契约桥接回归（`[B][D]` 组需 `sml.dll`，缺则 SKIP 并在末尾列出） | 改 include 规则 / 桥接时加用例 |
 | `test_render_safety.py` | 渲染安全回归（契约页转义 / 内联角色 / 嵌套列表 / `--out` 守卫 / URL 白名单 / 双后端 SML 错误类型 / assets 改写 / 代码块外壳 / assets 生成器） | 加你踩过的坑当用例 |
 | `test_structure.py` | 产物结构断言（三栏/版心/零外链/摘要/导图，纯静态） | 加结构不变量 |
+| `test_images.py` | 图片引用自测（引用识别 / 坏图判定 / 外链门禁真的让构建失败 / 审计退出码） | 加图片相关回归 |
 | `verify_parity.py` | MD ↔ SML 渲染一致性**证据脚本**（打印「一致 N / 不一致 M」，不一致时退出码 1）；CI 门禁在 `test_render_safety.py` §5，改对照表时两处同步 | 加对照用例 |
 | `ai_summarize.py` | 构建期 AI 摘要：调 OpenAI 兼容网关（GLM-4.7-Flash），写 `site/content/summaries/<slug>.json`；失败自动退回抽取式 | 改提示词 / 换模型 |
 | `fonts_import.py` | 从字体压缩包里挑权重到 `site/fonts/src/`（不整包解压） | 改权重匹配、加许可文件识别 |
@@ -83,8 +86,10 @@ python /path/to/other-site/engine/cli.py build
 python engine/test_contracts.py         # 契约自测
 python engine/test_sml_include.py       # include / 命名空间回归
 python engine/test_render_safety.py     # 渲染安全回归
-python engine/cli.py build              # 构建（含契约校验）
-python engine/check.py                  # 产物自检
+python engine/test_images.py            # 图片引用自测（含外链门禁反证）
+python engine/audit_images.py           # 全站图片审计（只报告）
+python engine/cli.py build              # 构建（含契约校验 + 外链图片门禁）
+python engine/check.py                  # 产物自检（含图片不变量）
 python engine/test_structure.py         # 结构断言
 python engine/cli.py preview            # 本地看
 ```

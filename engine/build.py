@@ -23,6 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import urls  # noqa: E402  (依赖上一行把 engine/lib 放进 sys.path)
+import imgcheck  # noqa: E402  (图片引用识别：外链门禁与坏图检查共用一份实现)
 
 # fontTools 作为仓库组件 vendored 在 engine/vendor（不依赖 pip 安装）
 VENDOR_DIR = Path(__file__).resolve().parent / "vendor"
@@ -298,8 +299,38 @@ def _localize_assets(html_body, slug, post_dir):
     return fixed, missing
 
 
+def check_external_images(rep):
+    """外链图片一律构建失败。
+
+    站点运行时零外部请求：正文里的 `<img src="https://…">` 会让读者的浏览器直连
+    语雀 / GitHub raw 之类的 CDN —— 图床一挂文章就裂，也不受白名单保护。
+    本地图片才有版本、才有离线副本。注意本地路径缺失由 _localize_assets 报，
+    这里只拦外链，两类错误互不遮掩。
+
+    扫源码而不是产物：要给投稿者 文件:行号。Markdown 代码块里的教学示例已被
+    imgcheck 的围栏识别排除；SML 字符串里的示例只可能是本地路径，外链在任何
+    位置都不该出现，所以照报。
+    """
+    found = 0
+    for root in (CONTENT, THEME):
+        for f in sorted(root.rglob("*")):
+            if not f.is_file() or f.suffix.lower() not in (".md", ".sml", ".html", ".css", ".js"):
+                continue
+            try:
+                text = f.read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError) as e:
+                rep.err(f.relative_to(ROOT).as_posix(), "读不出内容（%s）：%s" % (type(e).__name__, e))
+                continue
+            for line, ref, _origin in imgcheck.text_refs(f.name, text):
+                if imgcheck.is_external(ref):
+                    found += 1
+                    rep.err(f.relative_to(ROOT).as_posix() + ":%d" % line,
+                            "正文图片不许外链（运行时零外部请求）：%s；"
+                            "请下载到本篇 assets/ 后用相对路径引用" % ref)
+    return found
+
+
 def resource_index():
-    """resources/ 的 id → 关键字段，给 Attachment.resource 解析用（构建期，不落 manifest）。"""
     idx = {}
     for f in docs_in(CONTENT / "resources"):
         try:
@@ -1277,6 +1308,10 @@ def _run(args):
         _, cs = load2(f)
         register_contracts(rep, f.relative_to(ROOT).as_posix(), cs)
     print("   %d 个契约，默认映射 %d 项" % (len(GLOBAL_CONTRACTS), len(CONTRACT_DEFAULTS)))
+
+    print("-- 图片引用")
+    ext_imgs = check_external_images(rep)
+    print("   外链图片 %d 处（必须为 0：运行时零外部请求）" % ext_imgs)
 
     cache = repo_meta.Cache(CACHE)
     print("-- 文章")
