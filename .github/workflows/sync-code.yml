@@ -1,6 +1,10 @@
-name: 从 Gitee 同步 engine/theme
+name: 从 Gitee 同步 engine/theme（已暂时废弃）
 
-# 目的：GitHub 不一定连得上时，仍可只推 Gitee 更新站点代码。
+# 2026-10-20：暂时废弃 code 分支模型。
+# Gitee master 现在是全量源（engine + site + docs），由 sync-from-gitee 整树被动镜像；
+# 本工作流仅保留手动应急入口，不再定时运行。
+#
+# 目的（历史）：GitHub 不一定连得上时，仍可只推 Gitee 更新站点代码。
 # 代码放 Gitee 的 `code` 分支（受保护），内容放 `master`；本工作流只取 code 分支的
 # engine/ 与 site/theme/，不同步 .github/、docs/、site/content（内容由发布工作流单独取）。
 #
@@ -12,8 +16,6 @@ name: 从 Gitee 同步 engine/theme
 env:
   GITEE_CODE_BRANCH: code
 on:
-  schedule:
-    - cron: "*/30 * * * *"
   workflow_dispatch:
 
 permissions:

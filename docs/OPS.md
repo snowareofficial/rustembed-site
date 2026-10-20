@@ -28,7 +28,7 @@ Cloudflare 不直接跑构建，只托管 GitHub 上的 `preview` / `pages` 产�
 |---|---|
 | `.github/workflows/publish-pages.yml` | 矩阵：Gitee `staging` → `preview`；Gitee `master` → `pages` |
 | `.github/workflows/build.yml` | 构建/自检/字体解密；PR 门禁 |
-| `.github/workflows/sync-code.yml` | 从 Gitee `code` 同步 `engine/`、`site/theme/`；GitHub 代码更新时跳过，防止回退 |
+| `.github/workflows/sync-code.yml` | **已暂时废弃**；`code` 分支模型停用，只保留手动应急入口 |
 | `.github/workflows/sync-from-gitee.yml` | Gitee → GitHub 被动镜像，每 15 分钟；GitHub 不接受日常直接 push |
 
 ## 日常发布
@@ -54,10 +54,10 @@ Gitee staging --merge--> Gitee master
 ### 代码
 
 ```text
-Gitee code → sync-code.yml → GitHub master → 构建
+Gitee master（全量源）→ sync-from-gitee → GitHub master → 构建
 ```
 
-`sync-code` 有保护：GitHub 的 `engine/`、`site/theme/` 比 Gitee `code` 新时跳过覆盖，避免把本地修复冲掉。要强制同步时，先把 Gitee `code` 更新到最新。
+`code` 分支与 `sync-code` 已暂时废弃；不要把代码改动拆到单独分支，统一推 Gitee `master`。
 
 ## 密钥
 
@@ -141,7 +141,7 @@ git revert <bad-commit>
 ### 代码回滚
 
 - GitHub master 回退后，重新触发发布；
-- 如果 Gitee `code` 还是旧版，先确认 `sync-code` 不会把代码覆盖回去。
+- `code` 分支已废弃，不要再从它同步；代码回滚统一走 Gitee master。
 
 ## 已知边界
 

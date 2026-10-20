@@ -214,34 +214,33 @@ python engine/test_render_safety.py
 
 ---
 
-## 6. 代码从 Gitee 自动同步（GitHub 连不上时）
+## 6. `code` 分支（暂时废弃）
 
-代码放 Gitee 的 **`code` 分支**（受保护），内容放 `master`。
-`.github/workflows/sync-code.yml` 每 30 分钟（或手动）从 `code` 取
-`engine/` 与 `site/theme/`，有变化就提交到 GitHub master，并触发 `publish-pages.yml`。
+**2026-10-20 起暂时废弃 `code` 分支模型。**
 
-第一次启用：
+现在的模型是：
 
-```bash
-cd rec-blog
-git branch code
-git push origin code          # Gitee：code 分支，之后只允许维护者推
+- **Gitee `master` = 全量源**（`engine/` + `site/` + `docs/` + workflows）；
+- `sync-from-gitee` 每 15 分钟整树被动镜像到 GitHub；
+- GitHub 不再接受日常直接 push；
+- `.github/workflows/sync-code.yml` 只保留手动应急入口，不再定时运行。
+
+历史模型（仅供理解旧文档）：
+
+```text
+Gitee code → sync-code → GitHub engine/theme
+Gitee master → 内容
 ```
 
-之后：
+这个模型的缺点是代码与内容两条同步链会互相覆盖；暂时统一到 `master` 全量源。
 
 | 改什么 | 推哪里 | 多久到 Pages |
 |---|---|---|
-| 文章/成员/资源等 `site/content/**` | Gitee `master` | 下个 30 分钟窗口，或手动触发 publish |
-| `engine/**`、`site/theme/**` | Gitee `code` | 下个 30 分钟窗口，sync-code 提交后自动触发 publish |
-| `.github/workflows/**`、文档 | Gitee `master` | 每 15 分钟由 sync-from-gitee 被动镜像；GitHub 不直接 push |
+| 文章/成员/资源等 `site/content/**` | Gitee `master` | 下个 15 分钟窗口，或手动触发 publish |
+| `engine/**`、`site/theme/**` | Gitee `master` | 下个 15 分钟窗口 |
+| `.github/workflows/**`、文档 | Gitee `master` | 下个 15 分钟窗口 |
 
-安全边界：**`code` 分支只给维护者推送权限**；内容投稿者只有 `master` 的 PR 权限，
-不能通过改 `engine/`、`site/theme/` 在 CI 里执行代码。`code` 分支必须开保护。
-
-Gitee 本身没有 CI，校验仍在 GitHub Actions 里做：`sync-code.yml` 在提交前会跑
-`compileall`、`engine/test_contracts.py`、`engine/test_render_safety.py`，不过就不会提交，
-也不会触发发布。真正的 `build + check` 由发布工作流在合并后的内容上跑。
+安全边界：Gitee `master` 的 PR 仍要经过 review；内容投稿者不应直接改 `engine/`、`site/theme/`，由维护者审查。
 
 ---
 
@@ -261,8 +260,7 @@ Gitee master 内容  → pages 分支（生产）
 | 分支 | 内容 | 谁写 |
 |---|---|---|
 | Gitee `staging` | 内容预览源 | 作者 PR / 维护者 |
-| Gitee `master` | 生产内容源 | 只接受 staging 合并 |
-| Gitee `code` | engine/theme（代码同步源） | 维护者 |
+| Gitee `master` | 生产内容 + 代码全量源 | 只接受 staging 合并 + 维护者 commit |
 | GitHub `preview` | staging 构建产物 | CI 强推 |
 | GitHub `pages` | 生产构建产物 | CI 强推（master） |
 
