@@ -217,6 +217,7 @@
     markToc(S.tocLinks[0].getAttribute('data-anchor'));
     if (typeof window.addEventListener !== 'function') return;
     window.addEventListener('scroll', function () {
+      if (!S.tocLinks.length) return;
       var cur = S.tocLinks[0].getAttribute('data-anchor');
       for (var i = 0; i < S.tocLinks.length; i++) {
         var id = S.tocLinks[i].getAttribute('data-anchor');
