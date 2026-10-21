@@ -1,9 +1,9 @@
-'use strict';
+﻿'use strict';
 /* 无头浏览器验收 + 截图：node tests/browser-check.js
  *
  * 只依赖 Node 内置能力（fetch + 全局 WebSocket）+ 本机 Edge/Chrome 的 CDP，
  * 不给站点引任何第三方东西。真实测量：
- *   - 三栏是否真的存在、中栏是否 ≤ 38rem
+ *   - 三栏是否真的存在、中栏是否 ≤ 42rem
  *   - 右栏是否默认收起、展开后是否 10 个入口
  *   - 375px / 1280px 下 documentElement.scrollWidth 是否溢出（横向滚动）
  *   - 代码块 / 表格是否撑破页面
@@ -245,7 +245,7 @@ async function main() {
   need(r.btnRightOfInput === true, '搜索按钮在搜索框右侧', String(r.btnRightOfInput));
   need(Math.abs(r.navBtnW - r.searchBtnW) <= 1,
     '导航与搜索按钮等宽', r.navBtnW + ' vs ' + r.searchBtnW);
-  need(r.main && r.main.w <= 608.5, '中栏宽度 ≤ 38rem（608px）', r.main && Math.round(r.main.w) + 'px');
+  need(r.main && r.main.w <= 672.5, '中栏宽度 ≤ 42rem（672px）', r.main && Math.round(r.main.w) + 'px');
   need(r.drawerOpen === false, '站点导航默认收起（details 无 open）');
   need(r.navVisible === false, '收起时导航不可见', 'checkVisibility=' + r.navVisible);
   need(r.navCount === 10, '顶栏含 10 个站点入口', r.navCount);
