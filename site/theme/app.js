@@ -19,7 +19,9 @@
     home: '首页',
     library: '文章库', knowledge: '文章知识', topics: '主题词条', projects: '项目',
     resources: '资源', members: '成员', services: '技术互助', weekly: '周报',
-    pages: '站文档', join: '加入我们'
+    pages: '站文档', join: '加入我们',
+    /* 系列目录页不是导航入口，只用来给标签页兜个中文名（真实标题在 viewSeries 里覆盖） */
+    series: '系列'
   };
   /* 联系键 → 中文标签。未知键不会被丢掉（下面统一回落到键名），
    * 所以往 contracts/blog.sml 的 MemberLinks 加字段时必须同步这张表 ——
@@ -165,8 +167,11 @@
         if (!t || !t.id) continue;
         var a = lnk('#/' + S.tocBase + '/' + t.id, t.text, 'lv' + (t.level || 2));
         a.setAttribute('data-anchor', t.id);
+        a.setAttribute('data-level', String(t.level || 2));
         nav.appendChild(a);
-        if (k === 0) S.tocLinks.push(a);
+        /* 桌面左栏与窄屏抽屉是同一份目录的两份 DOM：两份都要跟着滚动标当前项，
+           否则抽屉里永远看不到「读到哪儿」。 */
+        S.tocLinks.push(a);
         count++;
       }
       if (count === 0) nav.appendChild(el('p', 'muted', '本页没有分节标题。'));
@@ -194,7 +199,8 @@
     for (var i = 0; i < S.tocLinks.length; i++) {
       var a = S.tocLinks[i];
       var on = a.getAttribute('data-anchor') === id;
-      a.className = 'lv' + ((S.toc[i] && S.toc[i].level) || 2) + (on ? ' cur' : '');
+      /* 层级从节点自带属性取：S.tocLinks 现在装了左栏 + 抽屉两份，不能再用下标对 S.toc */
+      a.className = 'lv' + (a.getAttribute('data-level') || 2) + (on ? ' cur' : '');
     }
   }
 
@@ -474,6 +480,24 @@
     return dates.length ? dates[dates.length - 1] : '';
   }
 
+  /* 系列目录页：#/series/<id>。书库 / 标签页 / 日期页 / 首页的系列行都指向它 ——
+     要看全部章节就进这一页，索引页本身不被 20 章铺满。 */
+  function seriesHref(s) {
+    return '#/series/' + encodeURIComponent(String((s && s.id) || ''));
+  }
+
+  /* 链接长在 <summary> 里：点它要跳页，不能顺带把 <details> 撑开 ——
+     summary 的默认行为是切换展开，所以这里拦掉冒泡。展开本身保留，仍是就地快速预览。 */
+  function seriesLink(s, text, cls) {
+    var a = lnk(seriesHref(s), text, cls);
+    if (a && a.addEventListener) {
+      a.addEventListener('click', function (ev) {
+        if (ev && ev.stopPropagation) ev.stopPropagation();
+      });
+    }
+    return a;
+  }
+
   /* hits：当前标签下命中了该系列的章节数（不传 = 全命中，如无标签的书库页）。
      系列的章数与命中数不是一回事，徽章要分开说，否则“3 章”会让人以为 3 章都讲这个标签。 */
   function seriesRow(s, members, hits, opts) {
@@ -482,13 +506,13 @@
     var box = el('details', 'series-box');
     var sum = el('summary', 'row series-sum');
     sum.appendChild(el('span', 'row-date', seriesLatestDate(s)));
-    sum.appendChild(el('span', 'row-title', s.title));
+    sum.appendChild(seriesLink(s, s.title, 'row-title'));
     var badge = '系列 · ' + chapters.length + ' 章';
     /* 命中数说明：日期页要「本日 N 章」——那天只发了其中几章时必须说清楚，
        否则读者会以为整组都是这天发的；书库只在部分命中标签时补「命中 N」。 */
     if (opts && opts.hitText) badge += opts.hitText(hits, chapters.length);
     else if (hits && hits < chapters.length) badge += '（命中 ' + hits + '）';
-    sum.appendChild(el('span', 'row-words series-badge', badge));
+    sum.appendChild(seriesLink(s, badge, 'row-words series-badge'));
     box.appendChild(sum);
     var ol = el('ol', 'rows series-posts');
     for (var j = 0; j < chapters.length; j++) {
@@ -1046,8 +1070,8 @@
        首页要的是一行（.row 的网格），所以单独一个 row-series-flat。 */
     var li = el('li', 'row row-series-flat');
     li.appendChild(el('span', 'row-date', seriesLatestDate(s)));
-    var first = seriesFirstSlug(s);
-    if (first) li.appendChild(lnk('#/post/' + first, (s && s.title) || '系列', 'row-title'));
+    /* 首页的系列行 = 一条「组」，点进去是系列目录页，不是直接跳第一章 */
+    if (s && s.id) li.appendChild(seriesLink(s, s.title || '系列', 'row-title'));
     else li.appendChild(el('span', 'row-title', (s && s.title) || '系列'));
     li.appendChild(el('span', 'row-words series-badge', '系列 · ' + ((s && s.posts) || []).length + ' 章'));
     return li;
@@ -1533,6 +1557,55 @@
       box.appendChild(tg);
     }
     return box;
+  }
+
+  /* 文章合集：一个系列一个目录页（#/series/<id>），按 order 列出全部章节。
+     索引页只给「组」（一行 + 可展开的章节预览），完整目录集中在这一页 ——
+     否则一条 20 章的系列能把书库和首页同时铺满。 */
+  function viewSeries(id) {
+    var m = S.man;
+    var s = byId(m.series || [], id);
+    var f = document.createDocumentFragment();
+    if (!s) {
+      f.appendChild(el('h1', '', '没有这个系列'));
+      f.appendChild(el('p', 'muted', '系列 id：' + String(id === undefined || id === null ? '' : id)));
+      setToc([], '', '');
+      return Promise.resolve(f);
+    }
+    f.appendChild(crumb([['文章库', '#/library'], [s.title, '']]));
+    f.appendChild(el('h1', '', s.title));
+    /* 标签页写系列名，而不是通用的「系列」 */
+    if (document && document.title !== undefined) {
+      document.title = (m.site.title || '') + ' · ' + s.title;
+    }
+    /* order 缺失或相同的章排在后面而不是乱序：999 兜底只为不抛，不为编造次序 */
+    var chapters = (s.posts || []).slice().sort(function (a, b) {
+      var oa = isFinite(a.order) ? a.order : 999;
+      var ob = isFinite(b.order) ? b.order : 999;
+      return oa - ob;
+    });
+    f.appendChild(el('p', 'lede', '共 ' + chapters.length + ' 章 · 系列'));
+
+    var first = seriesFirstSlug(s);
+    if (first) {
+      var start = el('p', 'chips');
+      start.appendChild(lnk('#/post/' + first, '从第一章开始阅读 →', 'chip'));
+      f.appendChild(start);
+    }
+
+    f.appendChild(el('p', 'section-h', '目录'));
+    var ol = el('ol', 'rows');
+    var n = 0;
+    for (var i = 0; i < chapters.length; i++) {
+      var p = bySlug(m.posts, chapters[i].slug);
+      if (!p) continue;                 /* 章节在 manifest 里查不到就跳过，绝不编一行 */
+      ol.appendChild(postRow(p, m.members));
+      n++;
+    }
+    f.appendChild(ol);
+    if (!n) f.appendChild(el('p', 'muted', '这个系列还没有可显示的章节。'));
+    setToc([], '', '');
+    return Promise.resolve(f);
   }
 
   function viewLibrary(query) {
@@ -2875,6 +2948,7 @@
     home: function () { return viewHome(); },
     date: function (r) { return viewByDate(r.seg[1] || ''); },
     library: function (r) { return viewLibrary(r.q); },
+    series: function (r) { return viewSeries(r.seg[1]); },
     posts: function () { return viewLibrary({}); },
     knowledge: function () { return viewKnowledge(); },
     topics: function () { return viewTopics(); },
@@ -3165,7 +3239,7 @@
         highlight: highlightCode, countLines: countLines
       },
       buildSiteNav: buildSiteNav, buildToc: buildToc, route: route,
-      viewLibrary: viewLibrary, viewPost: viewPost, viewTopic: viewTopic,
+      viewLibrary: viewLibrary, viewSeries: viewSeries, viewPost: viewPost, viewTopic: viewTopic,
       viewProject: viewProject, viewMember: viewMember, viewService: viewService,
       viewWeeklyItem: viewWeeklyItem, viewPage: viewPage, viewJoin: viewJoin,
       viewSearch: viewSearch, viewMembers: viewMembers, viewServices: viewServices,

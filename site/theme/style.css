@@ -122,16 +122,28 @@ body[data-toc="none"] .col-left { display: none; }
 }
 .col-sub { margin: .8rem 0 0; }
 .map-link { font-size: 12.5px; color: var(--ink-mute); }
+/* 左槽位恒定预留给「当前位置」三角：不管是不是 .cur，文字起始位置都一样，
+   高亮切换时标题不会左右跳动。 */
 .toc a {
-  display: block; padding: .16rem 0 .16rem .6rem;
+  display: block; position: relative;
+  padding: .16rem .2rem .16rem 1.15rem;
   color: var(--ink-soft); border-left: 2px solid transparent;
 }
 .toc a:hover { color: var(--accent); text-decoration: none; }
 .toc a.cur { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
-.toc .lv2 { padding-left: .6rem; }
-.toc .lv3 { padding-left: 1.5rem; font-size: 12px; }
-.toc .lv4 { padding-left: 2.4rem; font-size: 12px; color: var(--ink-mute); }
-.toc .lv5, .toc .lv6 { padding-left: 3.2rem; font-size: 12px; color: var(--ink-mute); }
+/* 三角画在预留槽里（--toc-mark 随层级缩进走）：
+   inline 的 content:"▸ " 会把标题往右挤；负 left 会被 .col-left / .mobile-toc 的
+   overflow 裁掉并带出横向滚动条 —— 两条都不许。 */
+.toc a.cur::before {
+  content: "▸";
+  position: absolute; top: 50%; left: var(--toc-mark, .2rem);
+  transform: translateY(-50%);
+  font-size: 10px; line-height: 1; color: var(--accent);
+}
+.toc .lv2 { padding-left: 1.15rem; --toc-mark: .2rem; }
+.toc .lv3 { padding-left: 2.05rem; --toc-mark: 1.1rem; font-size: 12px; }
+.toc .lv4 { padding-left: 2.95rem; --toc-mark: 2rem; font-size: 12px; color: var(--ink-mute); }
+.toc .lv5, .toc .lv6 { padding-left: 3.75rem; --toc-mark: 2.8rem; font-size: 12px; color: var(--ink-mute); }
 
 /* ---------- 6. 右栏：站点导航（默认收起） ---------- */
 .nav-drawer {
