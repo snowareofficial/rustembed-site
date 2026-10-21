@@ -19,7 +19,7 @@
   --ok: #2f6b4f;
   --warn: #8a5a12;
   /* 版心：--measure 一处定义，网格中栏与正文宽度共用它 */
-  --measure: 42rem;
+  --measure: 38rem;
   /* 正文字号：只作用于 .col-main（默认 100% = body 的 17px）。
      设置面板写的是 documentElement 上的同名属性，这里给默认值；
      代码块字号固定（.code pre / .col-main code），不随它变化。 */
@@ -83,7 +83,6 @@ body {
   font-family: "Times New Roman", "Liberation Serif", "Nimbus Roman", "MiSans",
                system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", serif;
   overflow-wrap: anywhere;
-  line-height: var(--reading-line);
 }
 
 a { color: var(--accent); text-decoration: none; }
@@ -131,7 +130,7 @@ input, textarea, select { font-family: inherit; color: var(--ink); }
   font-size: 12.5px;
   line-height: 1.7;
 }
-.col-main { min-width: 0; max-width: var(--measure); width: 100%; margin: 0 auto; font-size: var(--reading-size); line-height: var(--reading-line); }
+.col-main { min-width: 0; max-width: var(--measure); width: 100%; margin: 0 auto; }
 
 /* 没有分节标题的页面：左栏不占位，但仍保留等宽空列，避免正文偏左 */
 body[data-toc="none"] .layout { grid-template-columns: 13rem minmax(0, 1fr) 13rem; }
@@ -195,11 +194,11 @@ body[data-toc="none"] .col-right { grid-column: 3; }
 
 /* ---------- 7. 中栏：正文排版 ---------- */
 .col-main > *:first-child { margin-top: 0; }
-.col-main h1 { font-size: clamp(1.53em, 4vw, 2em); line-height: 1.35; margin: 0 0 .55rem; }
-.col-main h2 { font-size: 1.32em; line-height: 1.45; margin: 2.2rem 0 .6rem; }
-.col-main h3 { font-size: 1.08em; line-height: 1.5; margin: 1.8rem 0 .5rem; }
-.col-main h4 { font-size: .94em; margin: 1.4rem 0 .4rem; }
-.col-main h5, .col-main h6 { font-size: .88em; margin: 1.2rem 0 .3rem; color: var(--ink-soft); }
+.col-main h1 { font-size: clamp(26px, 4vw, 34px); line-height: 1.35; margin: 0 0 .55rem; }
+.col-main h2 { font-size: 22.4px; line-height: 1.45; margin: 2.2rem 0 .6rem; }
+.col-main h3 { font-size: 18.4px; line-height: 1.5; margin: 1.8rem 0 .5rem; }
+.col-main h4 { font-size: 16px; margin: 1.4rem 0 .4rem; }
+.col-main h5, .col-main h6 { font-size: 15px; margin: 1.2rem 0 .3rem; color: var(--ink-soft); }
 .col-main p { margin: 0 0 .75em; }
 .col-main ul, .col-main ol { margin: 0 0 1.1em; padding-left: 1.4rem; }
 .col-main li { margin-bottom: .25rem; }
@@ -221,7 +220,7 @@ body[data-toc="none"] .col-right { grid-column: 3; }
 .lede {
   margin: 0 0 1.6rem; padding-left: .85rem;
   border-left: 2px solid var(--line-strong);
-  color: var(--ink-soft); font-size: 1em; line-height: var(--reading-line);
+  color: var(--ink-soft); font-size: 17px;
 }
 .crumb { font-size: 12.5px; color: var(--ink-mute); margin: 0 0 .5rem; }
 .crumb a { color: var(--ink-mute); }
@@ -546,6 +545,16 @@ li.when::before {
 body[data-page="projects"], body[data-page="project"],
 body[data-page="members"], body[data-page="member"],
 body[data-page="services"], body[data-page="service"] { --measure: 50rem; }
+/* 文章正文单独放宽；首页/索引页保持原来的 38rem 版心与行距 */
+body[data-page="post"] { --measure: 42rem; }
+body[data-page="post"] .col-main { font-size: var(--reading-size); }
+body[data-page="post"] .col-main h1 { font-size: clamp(1.53em, 4vw, 2em); }
+body[data-page="post"] .col-main h2 { font-size: 1.32em; }
+body[data-page="post"] .col-main h3 { font-size: 1.08em; }
+body[data-page="post"] .col-main h4 { font-size: .94em; }
+body[data-page="post"] .col-main h5, body[data-page="post"] .col-main h6 { font-size: .88em; }
+body[data-page="post"] .lede { font-size: 1em; line-height: var(--reading-line); }
+body[data-page="post"] .prose { line-height: var(--reading-line); }
 body[data-form="code"], body[data-form="tutorial"] { --measure: 44rem; }
 body[data-form="photo"] { --measure: 42rem; }
 body[data-form="code"] .col-main, body[data-form="tutorial"] .col-main { font-size: 16.5px; }
@@ -749,11 +758,14 @@ body[data-toc="none"] .mobile-toc { display: none; }
 .layout { grid-template-columns: 13rem minmax(0, 1fr) 13rem; }
 @media (min-width: 1040px) and (max-width: 1439px) {
   .layout { grid-template-columns: 10rem minmax(0, 1fr) 10rem; }
+  body[data-toc="none"] .layout { grid-template-columns: minmax(0, 1fr); }
 }
 @media (min-width: 1040px) {
   .layout > .col-main { grid-column: 2; }
 }
-body[data-toc="none"] .layout { grid-template-columns: 13rem minmax(0, 1fr) 13rem; }
+/* 首页/索引页没有本文目录：恢复单列居中，不保留两侧空列 */
+body[data-toc="none"] .layout { grid-template-columns: minmax(0, 1fr); }
+body[data-toc="none"] .col-main { grid-column: auto; }
 body[data-page="home"] .layout { grid-template-columns: minmax(0, 1fr); }
 body[data-page="home"] .col-main { grid-column: auto; }
 
