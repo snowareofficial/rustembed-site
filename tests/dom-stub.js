@@ -100,7 +100,13 @@ class StubElement extends StubNode {
     this.namespaceURI = namespaceURI || null;
     this.attributes = {};
     this._classes = new Set();
-    this.style = {};
+    /* style 带 setProperty/getPropertyValue/removeProperty：CSS 自定义属性
+       （--reading-size 等）在桩里也要真的存取，不只是空对象 */
+    this.style = {
+      setProperty: (k, v) => { this.style[k] = String(v); },
+      getPropertyValue: (k) => (Object.prototype.hasOwnProperty.call(this.style, k) ? this.style[k] : ''),
+      removeProperty: (k) => { delete this.style[k]; }
+    };
     this.listeners = {};
     this.value = '';
   }
