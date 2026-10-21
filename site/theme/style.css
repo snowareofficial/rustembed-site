@@ -20,12 +20,33 @@
   --warn: #8a5a12;
   /* 版心：--measure 一处定义，网格中栏与正文宽度共用它 */
   --measure: 38rem;
+  /* 正文字号：只作用于 .col-main（默认 100% = body 的 17px）。
+     设置面板写的是 documentElement 上的同名属性，这里给默认值；
+     代码块字号固定（.code pre / .col-main code），不随它变化。 */
+  --reading-size: 100%;
   --radius: 6px;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
+/* 手动主题：data-theme 由设置面板写入（localStorage 持久化）。
+   与下面 prefers-color-scheme 那份令牌是同一套 —— 改一处必须同步另一处。 */
+:root[data-theme="dark"] {
+  --paper: #16140f;
+  --surface: #1e1b16;
+  --surface-2: #262219;
+  --surface-3: #2b261d;
+  --ink: #ece7dd;
+  --ink-soft: #c3bbae;
+  --ink-mute: #9c9385;
+  --line: #322c23;
+  --line-strong: #463e32;
+  --accent: #e08a5f;
+  --ok: #7fc4a0;
+  --warn: #d8a860;
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --paper: #16140f;
     --surface: #1e1b16;
     --surface-2: #262219;
@@ -108,7 +129,7 @@ input, textarea, select { font-family: inherit; color: var(--ink); }
   font-size: 12.5px;
   line-height: 1.7;
 }
-.col-main { min-width: 0; max-width: var(--measure); width: 100%; margin: 0 auto; }
+.col-main { min-width: 0; max-width: var(--measure); width: 100%; margin: 0 auto; font-size: var(--reading-size); }
 
 /* 没有分节标题的页面：左栏不占位（否则只剩一句「本页没有分节标题」） */
 body[data-toc="none"] .layout { grid-template-columns: minmax(0, 1fr) 13rem; }
@@ -347,6 +368,21 @@ li.when::before {
 .series-sum .series-badge { color: var(--accent); }
 .series-posts { margin: .15rem 0 .55rem 4.9rem; }
 .series-posts .row { padding-top: .35rem; padding-bottom: .35rem; }
+/* 章节 > 8 的系列展开后套滚动框（JS 加 series-posts-scroll）：只纵向滚动，
+   不横向溢出；短系列不加（不给 5 章的系列添滚动条）。 */
+.series-posts-scroll {
+  max-height: 26rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: .35rem;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+.series-posts-scroll::-webkit-scrollbar { width: 6px; height: 0; }
+.series-posts-scroll::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+.series-posts-scroll::-webkit-scrollbar-track { background: transparent; }
 /* 行内子元素只作用于 .row 里，避免 grid-column 泄漏到其它网格容器 */
 .row .row-date { grid-row: 1 / 4; grid-column: 1; padding-top: .22rem; font-size: 12.5px; color: var(--ink-mute); white-space: nowrap; }
 .row .row-title { grid-column: 2; font-size: 17px; line-height: 1.6; color: var(--ink); }
@@ -909,6 +945,8 @@ body.toc-collapsed .panel-btn { color: var(--accent); border-color: var(--accent
 @media (min-width: 1040px) {
   body.toc-collapsed .layout { grid-template-columns: minmax(0, 1fr) 13rem; }
   body.toc-collapsed .col-left { display: none; }
+  /* 左栏收起后版心放宽：正文真的变宽（38rem → 46rem），而不是只多出空白 */
+  body.toc-collapsed { --measure: 46rem; }
 }
 @media (max-width: 1039px) {
   .panel-btn { display: none; }
@@ -1008,4 +1046,89 @@ body.quote-anim .quote-veil { animation: quote-in .18s ease-out both; }
   .list-bar { gap: .35rem .5rem; }
   .list-tools { margin-top: 0; }
   .quote-btn { right: .8rem; bottom: .8rem; width: 52px; height: 52px; }
+}
+
+/* ---------- 16. 设置面板（右侧三角入口 / 右侧固定面板 / 首页扳手） ---------- */
+
+/* 入口：右边缘垂直居中的细长等腰三角形，低对比、不遮挡正文。
+   首页不显示（首页用扳手），由 body[data-page="home"] 规则隐藏。 */
+.settings-fab {
+  position: fixed; right: 0; top: 50%; transform: translateY(-50%); z-index: 79;
+  display: grid; place-items: center; width: 18px; height: 44px; padding: 0;
+  border: 0; border-radius: 6px 0 0 6px; cursor: pointer;
+  background: transparent; color: var(--line-strong);
+}
+.settings-fab:hover { color: var(--accent); background: var(--surface); }
+.settings-fab svg { width: 8px; height: 22px; display: block; fill: currentColor; }
+body[data-page="home"] .settings-fab { display: none; }
+
+/* 面板：固定右侧，宽 20rem（18–22rem 区间），全高抽屉，不遮整页 */
+.settings-panel {
+  position: fixed; right: 0; top: 0; bottom: 0; z-index: 80;
+  width: 20rem; max-width: 100vw; overflow-y: auto;
+  display: flex; flex-direction: column; gap: .8rem;
+  padding: .9rem 1rem 1.2rem;
+  background: var(--surface); border-left: 1px solid var(--line-strong);
+  font-size: 12.5px; line-height: 1.7; color: var(--ink-soft);
+}
+.settings-panel[hidden] { display: none; }
+.sp-head { display: flex; align-items: center; justify-content: space-between; }
+.sp-head b { font-size: 14px; color: var(--ink); }
+.sp-close {
+  display: grid; place-items: center; width: 1.8rem; height: 1.8rem; padding: 0;
+  font-size: 16px; line-height: 1; cursor: pointer;
+  background: transparent; color: var(--ink-mute);
+  border: 1px solid var(--line); border-radius: var(--radius);
+}
+.sp-close:hover { color: var(--ink); border-color: var(--line-strong); }
+.sp-tabs { display: flex; gap: .4rem; border-bottom: 1px solid var(--line); }
+.sp-tab {
+  padding: .25rem .7rem; cursor: pointer; font-size: 12.5px;
+  background: transparent; color: var(--ink-mute);
+  border: 0; border-bottom: 2px solid transparent;
+}
+.sp-tab:hover { color: var(--ink); }
+.sp-tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+.sp-pane { display: flex; flex-direction: column; gap: .55rem; }
+.sp-pane[hidden] { display: none; }
+.sp-row { display: flex; align-items: center; justify-content: space-between; gap: .6rem; }
+.sp-label { color: var(--ink-soft); }
+.sp-val { color: var(--accent); font-variant-numeric: tabular-nums; }
+.sp-range { display: block; width: 100%; margin: 0; }
+.sp-hint { margin: 0; font-size: 11px; color: var(--ink-mute); }
+.sp-btn {
+  padding: .1rem .6rem; cursor: pointer; font-size: 11.5px;
+  background: var(--surface); color: var(--ink-soft);
+  border: 1px solid var(--line-strong); border-radius: 4px;
+}
+.sp-btn:hover { color: var(--accent); border-color: var(--accent); }
+.sp-switch { width: 1rem; height: 1rem; margin: 0; cursor: pointer; accent-color: var(--accent); }
+.sp-select {
+  padding: .12rem .4rem; font-size: 12px;
+  background: var(--surface); color: var(--ink-soft);
+  border: 1px solid var(--line); border-radius: 4px;
+}
+.sp-links { display: flex; flex-direction: column; gap: .25rem; padding-top: .4rem; border-top: 1px solid var(--line); }
+.sp-links a { color: var(--ink-mute); }
+.sp-links a:hover { color: var(--accent); }
+
+/* 首页扳手：只在首页挂载，位于「一言」按钮上方，不重叠 */
+.settings-wrench {
+  position: fixed; right: 1.1rem; bottom: 4.7rem; z-index: 70;
+  display: grid; place-items: center; width: 34px; height: 34px; padding: 0;
+  border-radius: 50%; cursor: pointer;
+  background: var(--surface); color: var(--ink-mute);
+  border: 1px solid var(--line-strong);
+}
+.settings-wrench:hover { color: var(--accent); border-color: var(--accent); }
+.settings-wrench svg { width: 17px; height: 17px; display: block; }
+
+/* 窄屏：面板变底部抽屉（不遮整页），扳手随一言按钮一起缩进 */
+@media (max-width: 640px) {
+  .settings-panel {
+    left: 0; right: 0; bottom: 0; top: auto; width: auto;
+    max-height: 72vh; border-left: 0; border-top: 1px solid var(--line-strong);
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .settings-wrench { right: .8rem; bottom: 4.4rem; width: 32px; height: 32px; }
 }
