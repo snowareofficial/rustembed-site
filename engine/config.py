@@ -5,7 +5,7 @@
 
 站点根目录（默认 <repo>/site，可用 --site 或环境变量 REC_BLOG_SITE 覆盖）下：
     content/{site.sml, posts/, pages/, members/, projects/, resources/, weekly/, topics/, contracts/}
-    theme/{index.html, app.js, style.css}
+    theme/{index.html, css/, js/}     （多文件；加载顺序以 index.html 的 link/script 序为准）
     meta/repos.json          仓库元数据缓存（入库）
     *.jpg                    群头像（group.jpg 优先，否则取第一个）
 产物固定输出到 <repo>/dist/（站点源码保持干净，便于整体复制）。

@@ -6,7 +6,13 @@
 <meta name="color-scheme" content="light dark">
 <!--BUILD:HEAD-->
 <title>Rust嵌入式探讨</title>
-<link rel="stylesheet" href="style.css">
+<!-- 样式按职责拆到 css/（2026-10-21）；顺序即原 style.css 的级联顺序，增删文件必须保持相对次序 -->
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/content.css">
+<link rel="stylesheet" href="css/pages.css">
+<link rel="stylesheet" href="css/reading.css">
+<link rel="stylesheet" href="css/settings.css">
 <link rel="stylesheet" href="vendor/prism/prism.css">
 <link rel="alternate" type="application/rss+xml" title="RSS" href="feed.xml">
 </head>
@@ -161,6 +167,15 @@
      DOMContentLoaded 自己扫一遍全页；本站要等每次路由渲染完由 app.js 主动高亮。 -->
 <script>window.Prism = window.Prism || {}; window.Prism.manual = true;</script>
 <script src="vendor/prism/prism.js"></script>
-<script src="app.js"></script>
+<!-- 主题 JS 按职责拆到 js/（2026-10-21）：core 建命名空间 → 各模块挂导出 → app.js 装配并启动。
+     顺序即依赖顺序，增删文件必须保持相对次序（测试也按这个顺序加载）。 -->
+<script src="js/core.js"></script>
+<script src="js/entries.js"></script>
+<script src="js/quote.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/code.js"></script>
+<script src="js/views.js"></script>
+<script src="js/detail.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>
