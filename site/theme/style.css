@@ -83,7 +83,6 @@ body {
   font-family: "Times New Roman", "Liberation Serif", "Nimbus Roman", "MiSans",
                system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", serif;
   overflow-wrap: anywhere;
-  line-height: var(--reading-line);
 }
 
 a { color: var(--accent); text-decoration: none; }
@@ -195,11 +194,11 @@ body[data-toc="none"] .col-right { grid-column: 3; }
 
 /* ---------- 7. 中栏：正文排版 ---------- */
 .col-main > *:first-child { margin-top: 0; }
-.col-main h1 { font-size: clamp(1.53em, 4vw, 2em); line-height: 1.35; margin: 0 0 .55rem; }
-.col-main h2 { font-size: 1.32em; line-height: 1.45; margin: 2.2rem 0 .6rem; }
-.col-main h3 { font-size: 1.08em; line-height: 1.5; margin: 1.8rem 0 .5rem; }
-.col-main h4 { font-size: .94em; margin: 1.4rem 0 .4rem; }
-.col-main h5, .col-main h6 { font-size: .88em; margin: 1.2rem 0 .3rem; color: var(--ink-soft); }
+.col-main h1 { font-size: clamp(26px, 4vw, 34px); line-height: 1.35; margin: 0 0 .55rem; }
+.col-main h2 { font-size: 22.4px; line-height: 1.45; margin: 2.2rem 0 .6rem; }
+.col-main h3 { font-size: 18.4px; line-height: 1.5; margin: 1.8rem 0 .5rem; }
+.col-main h4 { font-size: 16px; margin: 1.4rem 0 .4rem; }
+.col-main h5, .col-main h6 { font-size: 15px; margin: 1.2rem 0 .3rem; color: var(--ink-soft); }
 .col-main p { margin: 0 0 .75em; }
 .col-main ul, .col-main ol { margin: 0 0 1.1em; padding-left: 1.4rem; }
 .col-main li { margin-bottom: .25rem; }
@@ -221,7 +220,7 @@ body[data-toc="none"] .col-right { grid-column: 3; }
 .lede {
   margin: 0 0 1.6rem; padding-left: .85rem;
   border-left: 2px solid var(--line-strong);
-  color: var(--ink-soft); font-size: 1em; line-height: var(--reading-line);
+  color: var(--ink-soft); font-size: 17px;
 }
 .crumb { font-size: 12.5px; color: var(--ink-mute); margin: 0 0 .5rem; }
 .crumb a { color: var(--ink-mute); }
@@ -548,6 +547,13 @@ body[data-page="members"], body[data-page="member"],
 body[data-page="services"], body[data-page="service"] { --measure: 50rem; }
 /* 文章正文单独放宽；首页/索引页保持原来的 38rem 版心与行距 */
 body[data-page="post"] { --measure: 42rem; }
+body[data-page="post"] .col-main h1 { font-size: clamp(1.53em, 4vw, 2em); }
+body[data-page="post"] .col-main h2 { font-size: 1.32em; }
+body[data-page="post"] .col-main h3 { font-size: 1.08em; }
+body[data-page="post"] .col-main h4 { font-size: .94em; }
+body[data-page="post"] .col-main h5, body[data-page="post"] .col-main h6 { font-size: .88em; }
+body[data-page="post"] .lede { font-size: 1em; line-height: var(--reading-line); }
+body[data-page="post"] .prose { line-height: var(--reading-line); }
 body[data-form="code"], body[data-form="tutorial"] { --measure: 44rem; }
 body[data-form="photo"] { --measure: 42rem; }
 body[data-form="code"] .col-main, body[data-form="tutorial"] .col-main { font-size: 16.5px; }
