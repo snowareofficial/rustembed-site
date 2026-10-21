@@ -96,7 +96,6 @@
 <aside class="settings-panel" id="settings-panel" role="dialog" aria-label="阅读与站点设置" hidden>
   <div class="sp-head">
     <b>设置</b>
-    <button class="sp-close" id="settings-close" type="button" aria-label="关闭设置">×</button>
   </div>
   <div class="sp-tabs" role="tablist" aria-label="设置分类">
     <button class="sp-tab" id="settings-tab-reading" type="button" role="tab"
@@ -113,6 +112,12 @@
     <input class="sp-range" id="settings-size" type="range" min="90" max="120" step="5" value="100"
            aria-label="正文字号，90% 到 120%">
     <p class="sp-hint">只作用于正文；代码块字号固定，不随正文变化。</p>
+    <div class="sp-row">
+      <label class="sp-label" for="settings-line">行间距</label>
+      <span class="sp-val" id="settings-line-val">1.8</span>
+    </div>
+    <input class="sp-range" id="settings-line" type="range" min="1.5" max="2.1" step="0.1" value="1.8"
+           aria-label="正文行间距，1.5 到 2.1">
     <div class="sp-row">
       <span class="sp-label">恢复默认字号</span>
       <button class="sp-btn" id="settings-size-reset" type="button">重置</button>

@@ -1089,6 +1089,28 @@
     return n;
   }
 
+  var READING_LINE_MIN = 1.5, READING_LINE_MAX = 2.1, READING_LINE_DEFAULT = 1.8;
+  var READING_LINE_KEY = 'rec-blog:reading-line';
+
+  function clampReadingLine(n) {
+    n = parseFloat(n);
+    if (!isFinite(n)) return READING_LINE_DEFAULT;
+    n = Math.round(n * 10) / 10;
+    if (n < READING_LINE_MIN) return READING_LINE_MIN;
+    if (n > READING_LINE_MAX) return READING_LINE_MAX;
+    return n;
+  }
+  function readReadingLine() { return clampReadingLine(storeGet(READING_LINE_KEY)); }
+  function applyReadingLine(line) {
+    var n = clampReadingLine(line);
+    storeSet(READING_LINE_KEY, n);
+    if (document.documentElement && document.documentElement.style &&
+        typeof document.documentElement.style.setProperty === 'function') {
+      document.documentElement.style.setProperty('--reading-line', String(n));
+    }
+    return n;
+  }
+
   function readSummaryCollapsed() { return storeGet(SUMMARY_KEY) === '1'; }
   function writeSummaryCollapsed(on) {
     storeSet(SUMMARY_KEY, on ? '1' : '0');
@@ -1307,8 +1329,8 @@
     p.removeAttribute('hidden');
     var fab = $('#settings-fab');
     if (fab) fab.setAttribute('aria-expanded', 'true');
-    var c = $('#settings-close');
-    if (c && c.focus) c.focus();
+    var tab = $('#settings-tab-reading');
+    if (tab && tab.focus) tab.focus();
   }
 
   function closeSettings() {
@@ -1355,6 +1377,14 @@
     if (range) range.value = String(n);
     var val = $('#settings-size-val');
     if (val) { clear(val); val.appendChild(document.createTextNode(n + '%')); }
+  }
+
+  function syncLineUI() {
+    var n = readReadingLine();
+    var range = $('#settings-line');
+    if (range) range.value = String(n);
+    var val = $('#settings-line-val');
+    if (val) { clear(val); val.appendChild(document.createTextNode(n.toFixed(1))); }
   }
 
   function syncRecentUI() {
@@ -1454,13 +1484,6 @@
         toggleSettings();
       });
     }
-    var close = $('#settings-close');
-    if (close && close.addEventListener) {
-      close.addEventListener('click', function (ev) {
-        if (ev && ev.stopPropagation) ev.stopPropagation();
-        closeSettings();
-      });
-    }
     var tRead = $('#settings-tab-reading');
     var tSite = $('#settings-tab-site');
     if (tRead && tRead.addEventListener) tRead.addEventListener('click', function () { selectSettingsTab('reading'); });
@@ -1481,6 +1504,13 @@
         syncSizeUI();
       });
     }
+    var line = $('#settings-line');
+    if (line && line.addEventListener) {
+      line.addEventListener('input', function () {
+        applyReadingLine(line.value);
+        syncLineUI();
+      });
+    }
     var sumSw = $('#settings-summary');
     if (sumSw && sumSw.addEventListener) {
       sumSw.addEventListener('change', function () {
@@ -1499,9 +1529,10 @@
     if (resetAll && resetAll.addEventListener) {
       resetAll.addEventListener('click', function () {
         applyReadingSize(READING_SIZE_DEFAULT);
+        applyReadingLine(READING_LINE_DEFAULT);
         writeSummaryCollapsed(false);
         applyTocCollapsed(false);
-        syncSizeUI(); syncSummarySwitch();
+        syncSizeUI(); syncLineUI(); syncSummarySwitch();
         if (typeof render === 'function') render();
       });
     }
@@ -1518,10 +1549,10 @@
         syncRecentUI();
       });
     }
-
     /* 初值：面板控件的显示状态与存储一致 */
     applyReadingSize(readReadingSize());
-    syncSizeUI(); syncSummarySwitch(); syncTocSwitch(); syncRecentUI(); syncThemeUI();
+    applyReadingLine(readReadingLine());
+    syncSizeUI(); syncLineUI(); syncSummarySwitch(); syncTocSwitch(); syncRecentUI(); syncThemeUI();
     S.settings.done = true;
   }
 
@@ -3580,12 +3611,18 @@
       /* 设置面板与阅读设置（字号 / 摘要折叠 / 目录收起 / 主题） */
       settings: {
         key: {
-          size: READING_SIZE_KEY, summary: SUMMARY_KEY, toc: TOC_KEY, theme: THEME_KEY
+          size: READING_SIZE_KEY, line: READING_LINE_KEY,
+          summary: SUMMARY_KEY, toc: TOC_KEY, theme: THEME_KEY
         },
         size: {
           min: READING_SIZE_MIN, max: READING_SIZE_MAX, step: READING_SIZE_STEP, def: READING_SIZE_DEFAULT,
           read: readReadingSize, write: applyReadingSize, clamp: clampReadingSize
         },
+        line: {
+          min: READING_LINE_MIN, max: READING_LINE_MAX, def: READING_LINE_DEFAULT,
+          read: readReadingLine, write: applyReadingLine, clamp: clampReadingLine
+        },
+
         summary: { read: readSummaryCollapsed, write: writeSummaryCollapsed },
         toc: { read: readTocCollapsed, write: writeTocCollapsed, apply: applyTocCollapsed },
         theme: { read: readTheme, write: applyTheme },

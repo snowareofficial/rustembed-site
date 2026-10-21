@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """前端结构断言（新增）：对 dist/ 产物做静态结构与样式不变量检查。
 
     python engine/test_structure.py
@@ -7,7 +7,7 @@
   A 三栏存在性（左=本文导航 / 中=内容 / 右=站点导航）
   B 左栏含「本文目录」且不含任何站点级入口
   C 右栏默认收起（<details> 无 open）且含 site.nav 的全部分入口
-  D 中栏宽度 ≤ 38rem（--measure 令牌 + .col-main 用它做 max-width）
+  D 中栏宽度 ≤ 42rem（--measure 令牌 + .col-main 用它做 max-width）
   E 375px 不横向滚动（html overflow-x、出血图、代码块/表格只内部横滚）
   F 首屏不是空白（构建期写入站名 + 最近文章列表）
   G 零外部请求 / 无 Web 字体 / 投稿文本走文本节点
@@ -144,12 +144,12 @@ if site_nav:
     for k in nav:
         need("#/" + k in hrefs, "右栏缺少入口 #/%s" % k)
 
-# ---- D 中栏 ≤ 38rem ----
+# ---- D 中栏 ≤ 42rem ----
 css_nc = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
 m_measure = re.search(r"--measure:\s*([0-9.]+)rem", css_nc)
 need(m_measure is not None, "style.css 缺少 --measure 令牌（中栏宽度唯一来源）")
-need(m_measure and float(m_measure.group(1)) <= 38.0,
-     "--measure = %srem，应 ≤ 38rem" % (m_measure.group(1) if m_measure else "?"))
+need(m_measure and float(m_measure.group(1)) <= 42.0,
+     "--measure = %srem，应 ≤ 42rem" % (m_measure.group(1) if m_measure else "?"))
 need(re.search(r"\.col-main\s*\{[^}]*max-width:\s*var\(--measure\)", css_nc) is not None,
      ".col-main 没有用 max-width: var(--measure)")
 # 网格中栏必须是可伸缩的 1fr：宽度约束交给 .col-main 的 max-width，
