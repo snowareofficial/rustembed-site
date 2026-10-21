@@ -51,7 +51,7 @@ content/projects/*.sml           项目（构建期抓仓库元数据）
 content/resources/*.sml          资源条目
 content/weekly/*.sml             周报
 content/contracts/*.sml          内容契约（字段即文档）
-theme/{index.html,app.js,style.css}
+theme/{index.html,css/*.css,js/*.js}   （拆成多文件；加载顺序以 index.html 的 link/script 序为准）
 meta/repos.json                  元数据缓存（入库）
 *.jpg                            群 logo（同时作为 favicon）
 ```
@@ -61,14 +61,14 @@ meta/repos.json                  元数据缓存（入库）
 ## 常见改动怎么做
 
 - **加一个块类型**：`lib/render.py` 的 `render()` 里加一个 `if t == "你的块"` 分支；再在 `site/content/contracts/blog.sml` 里加对应契约字段（若它是字段）。
-- **加一个内容类型**（例如「活动」）：`build.py` 里仿 `build_topics()` 写一个 `build_xxx()` → 在 `main()` 里调用 → 写文件与 manifest 键 → `lib/contract.py` 或契约文件补字段 → `site/theme/app.js` 加路由与视图。
+- **加一个内容类型**（例如「活动」）：`lib/build_pages.py` 里仿 `build_topics()` 写一个 `build_xxx()` → 在 `build.py` 的 `_run()` 里调用 → 写文件与 manifest 键 → `lib/contract.py` 或契约文件补字段 → `site/theme/js/` 加路由与视图（挂到 `window.REC`，顺序写进 `index.html`）。
 - **改错误码/校验**：只改 `lib/contract.py`；契约语法在 `lib/sml.py` 的 `_parse_contract_body()`。
 - **跨文件复用契约/数据**：内容里写 `include "_shared.sml" as blog` 或
   `include "../contracts/blog.sml" as blog`（路径相对本文件；允许根 = site/content，
   跨兄弟目录可以，逃出内容目录一律 `E-INCLUDE-003`）。只有文件入口 `load_doc()` 会展开，
   **需要 native**（靠临时扁平副本绕开 native 的「包含者目录」沙箱），缺失时构建直接失败。
   契约仍由 `lib/contract.py` 校验；机制与已知限制见 `docs/ARCHITECTURE.md` §14 / §15。
-- **改样式**：`site/theme/style.css`（页面结构在 `app.js`，右侧正文由 `render.py` 产出）。
+- **改样式**：`site/theme/css/`（按职责分文件，顺序 = 原 style.css 的级联顺序；页面结构在 `site/theme/js/`，右侧正文由 `render.py` 产出）。
 
 ## 复用到别的站点
 

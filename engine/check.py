@@ -52,9 +52,19 @@ if not DIST.exists():
     print("\n".join(fails))
     sys.exit(1)
 
-for f in ("index.html", "app.js", "style.css", "manifest.json", "search-index.json",
+for f in ("index.html", "manifest.json", "search-index.json",
           "sitemap.xml", "feed.xml", "map.svg", "llms.txt", "llms-full.txt"):
     need((DIST / f).exists(), "缺少产物 %s" % f)
+
+# 主题壳引用的每个本地文件都必须落盘：样式/脚本按职责拆成 css/、js/ 多文件后
+# （2026-10-21 起，见 AGENTS.md），逐一核对 index.html 的 link/script 引用。
+_idx_html = (DIST / "index.html").read_text(encoding="utf-8")
+for _m in re.finditer(r"<(?:link|script)\b[^>]*>", _idx_html):
+    _attrs = dict(re.findall(r'([a-zA-Z-]+)="([^"]*)"', _m.group(0)))
+    _u = _attrs.get("href") or _attrs.get("src") or ""
+    if not _u or _u.startswith(("http://", "https://", "//", "#", "mailto:", "data:")):
+        continue
+    need((DIST / _u).exists(), "index.html 引用的 %s 没有落盘" % _u)
 
 man = (DIST / "manifest.json").read_text(encoding="utf-8")
 m = json.loads(man)

@@ -1,5 +1,6 @@
 'use strict';
-/* 最小 DOM 桩：给 node 环境跑 site/theme/app.js 用（node tests/smoke.js）。
+/* 最小 DOM 桩：给 node 环境跑 site/theme/js/ 多文件用（node tests/smoke.js；
+ * 按 index.html 的 script 顺序加载，见 tests/theme-files.js）。
  *
  * 语义是真的，不是空壳：
  *  - textContent = '' 真的清空子节点；读时真的递归拼接后代文本；

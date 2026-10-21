@@ -425,7 +425,7 @@ def video_embed(ref):
 
     不直接嵌 iframe —— 站点约定「零第三方请求」，iframe 会在每次打开页面时
     连 B 站并暴露访问者 IP。这里输出一个门面卡（poster + 播放按钮），
-    用户点击后才由 app.js 注入 iframe。
+    用户点击后才由主题 JS（js/core.js 的委派点击）注入 iframe。
     """
     ref = str(ref).strip()
     bvid = ""
