@@ -2698,9 +2698,11 @@
     if (p.updated && p.updated !== p.date) by.appendChild(el('span', '', '更新于 ' + p.updated));
     f.appendChild(by);
 
-    /* lede 摘要与摘要卡共用同一折叠状态：折叠后只剩一行「文章摘要」。
-       默认展开；没有摘要时保持原来的空 p.lede（不套 details，不添空行）。 */
-    if (shownSummary) {
+    /* 有构建期摘要卡时，不再渲染一份同样的 lede，避免两段摘要重复。
+       没有摘要卡时，lede 仍可单独折叠；两者共用同一折叠状态。 */
+    if (p.ai_summary) {
+      f.appendChild(summaryCard(p.ai_summary));
+    } else if (shownSummary) {
       var ledeBox = el('details', 'lede-box');
       ledeBox.appendChild(el('summary', 'lede-sum', '文章摘要'));
       ledeBox.appendChild(el('p', 'lede', shownSummary));
@@ -2710,7 +2712,6 @@
     } else {
       f.appendChild(el('p', 'lede', ''));
     }
-    if (p.ai_summary) f.appendChild(summaryCard(p.ai_summary));
 
     /* 文章形态：只由真实内容决定（标签 / 是否有图集块） */
     var form = 'reading';

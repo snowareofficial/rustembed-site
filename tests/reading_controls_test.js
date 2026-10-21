@@ -880,9 +880,8 @@ async function main() {
     has(card.textContent, '一句话摘要', '卡内一句话摘要在');
     has(card.textContent, '要点一', '卡内要点在');
     const lede = app.document.querySelector('.lede-box');
-    need(!!lede, 'lede 摘要也在（一并支持）');
-    need(lede.hasAttribute('open'), 'lede 摘要默认展开');
-    has(app.document.querySelector('p.lede').textContent, 'lede 摘要', 'lede 文本在');
+    need(!lede, '有摘要卡时不再重复渲染 lede 摘要');
+    need(!app.document.querySelector('p.lede'), '页面里不再出现第二份摘要文本');
 
     /* 折叠：浏览器原生 details 去掉 open 并派发 toggle */
     card.removeAttribute('open');
@@ -896,7 +895,7 @@ async function main() {
     await app2.rec.started;
     await renderPost(app2, 'sum');
     need(!app2.document.querySelector('.ai-summary').hasAttribute('open'), '刷新后摘要卡保持折叠');
-    need(!app2.document.querySelector('.lede-box').hasAttribute('open'), '刷新后 lede 摘要保持折叠');
+    need(!app2.document.querySelector('.lede-box'), '刷新后也没有重复的 lede 摘要');
     need(!!app2.document.querySelector('#settings-summary'), '设置面板有摘要折叠开关');
     /* 预填的 store 在 boot 之后生效：写一次（幂等）让面板控件与存储对齐 */
     app2.rec.settings.summary.write(true);
@@ -904,6 +903,22 @@ async function main() {
     app2.rec.settings.summary.write(false);
     eq(app2.document.querySelector('#settings-summary').checked, false, '写 false 后开关同步');
     console.log('  摘要卡 + lede：默认展开 / 折叠保持 / 文本不丢');
+  }
+  console.log('== [12b] 无摘要卡时 lede 仍可独立折叠 ==');
+  {
+    const plain = manifest({
+      posts: [post('lede-only', '2026-08-08', '只有 lede', null, null, {
+        summary: '这是没有摘要卡的 lede。'
+      })]
+    });
+    const app = makeApp(plain, { bodies: { 'p/lede-only.html': '<p>正文。</p>' } });
+    await app.rec.started;
+    app.location.hash = '#/post/lede-only';
+    await app.rec.render();
+    const box = app.document.querySelector('.lede-box');
+    need(!!box, '没有摘要卡时仍渲染 lede-box');
+    need(box.hasAttribute('open'), 'lede 默认展开');
+    has(app.document.querySelector('p.lede').textContent, '没有摘要卡', 'lede 文本在');
   }
   console.log('== [13] 目录收起：按钮与设置开关双向同步 ==');
   {

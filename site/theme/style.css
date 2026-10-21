@@ -897,7 +897,12 @@ body[data-page="home"] .layout { grid-template-columns: minmax(0, 1fr); }
   background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent);
   border-radius: var(--radius);
 }
-.ai-head { display: flex; align-items: center; gap: .4rem; margin: 0 0 .3rem; font-size: 12px; color: var(--ink-mute); }
+.ai-head { display: flex; align-items: center; gap: .4rem; margin: 0 0 .3rem; font-size: 12px; color: var(--ink-mute); cursor: pointer; }
+.ai-head::after {
+  content: "▸"; margin-left: auto; font-size: 11px; line-height: 1;
+  color: var(--ink-mute); transition: transform .15s ease;
+}
+.ai-summary[open] > .ai-head::after { transform: rotate(90deg); }
 .ai-src { font-size: 11px; border: 1px solid var(--line); border-radius: 3px; padding: 0 .25rem; }
 .ai-line { margin: 0 0 .4rem; font-size: 14px; color: var(--ink); }
 .ai-points { margin: 0 0 .4rem; padding-left: 1.1rem; font-size: 13px; color: var(--ink-soft); }
