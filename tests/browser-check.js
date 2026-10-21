@@ -1255,7 +1255,7 @@ async function main() {
   need(wrench.has, '首页有扳手按钮');
   eq2(wrench.label, '打开设置', '扳手有 aria-label');
   need(wrench.radius === '50%', '扳手是正圆', wrench.radius);
-  need(wrench.w >= 30 && wrench.w <= 38, '扳手小而协调', wrench.w + 'px');
+  need(wrench.w >= 52 && wrench.w <= 56, '扳手与一言按钮同尺寸', wrench.w + 'px');
   need(wrench.noOverlap, '扳手与「一言」按钮不重叠');
   need(wrench.opens, '扳手打开同一个设置面板');
   eq2(wrench.fabDisplay, 'none', '首页不显示三角入口');
