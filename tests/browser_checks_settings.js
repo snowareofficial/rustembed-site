@@ -179,6 +179,16 @@ module.exports = async function check(H) {
   need(fab0.w <= 20 && fab0.h <= 48, '三角形细长、不遮挡正文', fab0.w + '×' + fab0.h);
   need(fab0.rightGap >= 8 && fab0.rightGap <= 20,
     '三角与滚动条留出间距，不贴边', fab0.rightGap + 'px');
+  /* 三个宽度下都不能压住正文：桌面的右侧空白列、单列时停进顶栏。
+     正文右缘并排着代码块的「复制 / 展开」两个按钮，压上去既挡字也吃点击。 */
+  const fabGutter = await cdp.eval(`(() => {
+    const fab = document.getElementById('settings-fab').getBoundingClientRect();
+    const main = document.getElementById('main').getBoundingClientRect();
+    return { fabLeft: Math.round(fab.left), mainRight: Math.round(main.right) };
+  })()`);
+  need(fabGutter.fabLeft > fabGutter.mainRight,
+    '桌面端三角落在正文右侧的空白列里（不压正文 / 代码块按钮）',
+    fabGutter.fabLeft + ' > ' + fabGutter.mainRight);
   const fab1 = await cdp.eval(`(() => {
     document.getElementById('settings-fab').click();
     const panel = document.getElementById('settings-panel');
@@ -222,6 +232,21 @@ module.exports = async function check(H) {
 
   await metrics(375, 812, true);
   await go('#/post/md-writing', 'post');
+  /* 单列布局下正文铺满宽度、右缘就是代码块头的「复制 / 展开」两个按钮：
+     三角必须停进顶栏，否则滚到视口中线时会正好压在这两个按钮上（z-index 81 还会吃掉点击）。 */
+  const fabDock = await cdp.eval(`(() => {
+    const fab = document.getElementById('settings-fab');
+    const fr = fab.getBoundingClientRect();
+    const br = document.querySelector('.topbar').getBoundingClientRect();
+    const hit = document.elementFromPoint(Math.round((fr.left + fr.right) / 2),
+                                          Math.round((fr.top + fr.bottom) / 2));
+    return { docked: fr.top >= br.top - 1 && fr.bottom <= br.bottom + 1,
+             fabBottom: Math.round(fr.bottom), barBottom: Math.round(br.bottom),
+             hitFab: !!(hit && hit.closest && hit.closest('#settings-fab')) };
+  })()`);
+  need(fabDock.docked, '375px：三角停进顶栏，不垂直居中压正文',
+    fabDock.fabBottom + ' ≤ ' + fabDock.barBottom);
+  need(fabDock.hitFab, '375px：三角自身可点到（没有元素盖住）');
   const fabMob = await cdp.eval(`(() => {
     document.getElementById('settings-fab').click();
     const p = document.getElementById('settings-panel');
