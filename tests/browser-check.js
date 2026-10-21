@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 /* 无头浏览器验收 + 截图：node tests/browser-check.js
  *
  * 只依赖 Node 内置能力（fetch + 全局 WebSocket）+ 本机 Edge/Chrome 的 CDP，
@@ -1174,7 +1174,8 @@ async function main() {
   need(fab0.icon, '三角是内联 SVG');
   need(fab0.hidden, '面板默认隐藏');
   need(fab0.w <= 20 && fab0.h <= 48, '三角形细长、不遮挡正文', fab0.w + '×' + fab0.h);
-  eq2(fab0.rightGap, 0, '贴在屏幕右缘');
+  need(fab0.rightGap >= 8 && fab0.rightGap <= 20,
+    '三角与滚动条留出间距，不贴边', fab0.rightGap + 'px');
   const fab1 = await cdp.eval(`(() => {
     document.getElementById('settings-fab').click();
     const panel = document.getElementById('settings-panel');
