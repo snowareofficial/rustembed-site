@@ -4,8 +4,9 @@
  *
  *   node tests/series_tag_test.js
  *
- * 用 tests/dom-stub.js 把**主题源码** site/theme/app.js 真跑一遍（不是语法检查，
- * 也不依赖 dist），fetch 只喂 manifest.json 假数据：不联网、无 npm 依赖。
+ * 用 tests/dom-stub.js 把**主题源码** site/theme/js/ 多文件真跑一遍（按 index.html 的
+ * script 顺序加载，见 tests/theme-files.js；不是语法检查，也不依赖 dist），
+ * fetch 只喂 manifest.json 假数据：不联网、无 npm 依赖。
  *
  * 覆盖：
  *   [1] 标签页系列合并：多章合并 / 单章退化 / 徽章章数与命中数 / 章节列表完整 /
@@ -21,6 +22,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { createStub } = require('./dom-stub.js');
+const { loadScripts, readCss } = require('./theme-files.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const THEME = path.join(ROOT, 'site', 'theme');
@@ -122,8 +124,7 @@ function makeApp(man) {
   };
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
-  vm.runInContext(fs.readFileSync(path.join(THEME, 'app.js'), 'utf8'),
-    sandbox, { filename: 'site/theme/app.js' });
+  loadScripts(sandbox, THEME);      // js/ 下全部文件，按 index.html 的顺序
   return { rec: window.__rec, document, window, location };
 }
 
@@ -280,8 +281,9 @@ async function testFooter(app) {
   for (const id of LICENSE_IDS) {
     need(!!app.document.getElementById(id), '页脚保留 #' + id + '（buildFooter 没抹掉）');
   }
-  /* 桩不算 CSS：断言「规则存在 + 路由打 data-page」，真实显隐交给 browser-check */
-  const css = fs.readFileSync(path.join(THEME, 'style.css'), 'utf8');
+  /* 桩不算 CSS：断言「规则存在 + 路由打 data-page」，真实显隐交给 browser-check。
+     css/ 拆分后按 index.html 的 link 顺序拼接，等价于原 style.css。 */
+  const css = readCss(THEME);
   includes(css, '#license-notice-site { display: none; }', '默认隐藏互助免责声明的规则存在');
   includes(css, 'body[data-page="services"] #license-notice-site',
     'services 页显示该声明的规则存在');

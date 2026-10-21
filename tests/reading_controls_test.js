@@ -1,7 +1,8 @@
 'use strict';
 /* 阅读控制回归：node tests/reading_controls_test.js
  *
- * 覆盖四项阅读体验改动，全部用「DOM 桩 + 假 manifest」驱动 site/theme/app.js：
+ * 覆盖四项阅读体验改动，全部用「DOM 桩 + 假 manifest」驱动 site/theme/js/ 多文件
+ * （tests/theme-files.js 按 index.html 的 script 顺序加载）：
  *   [1] 成员头像与联系链接（两个 Gitee 都得露出来）
  *   [2] 最近更新条数：默认 3、上限 15、持久化、按 date 倒序、超出显示全部
  *   [3] 首页一言：只在首页、8 秒自动消失、任意点击 / Esc 关闭、空数据隐藏
@@ -16,6 +17,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { createStub } = require('./dom-stub.js');
+const { loadScripts, readCss, cssFiles, jsFiles } = require('./theme-files.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const THEME = path.join(ROOT, 'site', 'theme');
@@ -174,7 +176,7 @@ function makeApp(man, opts) {
   if (opts.prism) window.Prism = opts.prism;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
-  vm.runInContext(fs.readFileSync(path.join(THEME, 'app.js'), 'utf8'), sandbox, { filename: 'site/theme/app.js' });
+  loadScripts(sandbox, THEME);      // js/ 下全部文件，按 index.html 的顺序
   return { rec: window.__rec, document, window, location, store, timers, requested };
 }
 
@@ -476,9 +478,11 @@ async function main() {
       need(fs.existsSync(path.join(DIST, 'vendor', 'prism', 'prism.css')), '产物里有 prism.css');
       need(fs.existsSync(path.join(DIST, 'vendor', 'prism', 'LICENSE')), '产物里带了 LICENSE');
       /* 外链约束只针对我们自己写的产物：vendor/prism.js 头注释里出现 unpkg 是
-         记录下载来源（溯源），不是加载 —— 那不会发请求。 */
+         记录下载来源（溯源），不是加载 —— 那不会发请求。
+         css/、js/ 拆分后：index.html + 全部本站 CSS/JS 都要过这道检查。 */
       const cdn = /(cdn\.jsdelivr|unpkg\.com|cdnjs\.|ajax\.googleapis)/i;
-      for (const f of ['index.html', 'app.js', 'style.css']) {
+      const own = ['index.html'].concat(cssFiles(DIST), jsFiles(DIST));
+      for (const f of own) {
         const t = readMaybe(path.join(DIST, f));
         if (t === null) continue;
         need(!cdn.test(t), f + ' 里出现了 CDN 链接（运行时禁止外部请求）');
@@ -543,8 +547,8 @@ async function main() {
     const list = app.document.querySelector('#recent-list');
     need(!!(list.parentNode && list.parentNode.classList.contains('rows-scroll')),
       '条目数 > 6 时列表套 .rows-scroll');
-    const css = readMaybe(path.join(THEME, 'style.css')) || '';
-    has(css, '.rows-scroll', '滚动区样式在 style.css 里');
+    const css = readCss(THEME);
+    has(css, '.rows-scroll', '滚动区样式在主题 CSS 里');
     has(css, 'max-height', '滚动区有最大高度（不会无限拉长）');
     const input = app.document.querySelector('#view input.filter-input');
     need(!!input, '条目数 > 6 时出现搜索框');
@@ -756,10 +760,21 @@ async function main() {
     has(cur3 ? cur3.className : '', 'lv3', '当前项仍带层级类（lv3）');
     has(cur3 ? cur3.className : '', 'cur', '当前项仍带 cur 类');
 
+    /* 回归：从有目录文章切到无目录页后，旧的 scroll 监听不能再访问空 tocLinks[0] */
+    app.location.hash = '#/library';
+    await app.rec.render();
+    let scrollThrew = false;
+    try {
+      app.window.dispatch('scroll');
+    } catch (e) {
+      scrollThrew = true;
+    }
+    need(!scrollThrew, '切到无目录页后滚动不再因空 tocLinks 抛错');
+
     /* 三角的画法：DOM 桩不算 CSS，这里断言规则本身（真实尺寸交给 browser-check） */
-    const css = readMaybe(path.join(THEME, 'style.css')) || '';
+    const css = readCss(THEME);
     const mark = (css.match(/\.toc a\.cur::before\s*\{[^}]*\}/) || [''])[0];
-    need(mark.length > 0, 'style.css 里有 .toc a.cur::before 规则（不只靠左边框区分）');
+    need(mark.length > 0, '主题 CSS 里有 .toc a.cur::before 规则（不只靠左边框区分）');
     has(mark, 'content: "▸"', '标记是 ▸ 字符（不引图标字体 / 外部资源）');
     has(mark, 'var(--accent)', '三角用 accent 色');
     has(mark, 'position: absolute', '三角定位在预留槽里（不把标题文字挤右移）');
@@ -814,8 +829,8 @@ async function main() {
   }
   {
     /* 滚动框的样式落在真实 CSS 里（DOM 桩不算布局） */
-    const css = readMaybe(path.join(THEME, 'style.css')) || '';
-    has(css, '.series-posts-scroll', '滚动框样式在 style.css');
+    const css = readCss(THEME);
+    has(css, '.series-posts-scroll', '滚动框样式在主题 CSS');
     has(css, 'max-height: 26rem', '最大高度 26rem（24–28rem 区间）');
     has(css, 'overflow-y: auto', '只纵向滚动');
     has(css, 'overflow-x: hidden', '不横向溢出');

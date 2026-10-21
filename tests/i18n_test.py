@@ -10,7 +10,7 @@
 - 非法 lang 文件名（index.fr.md）→ 构建失败；
 - manifest 顶层字段保持 zh 兼容（防回归）。
 
-注意：?lang= 的运行时回退（fr / ../x / javascript: → 回落 zh、不越界）属于 app.js 行为，
+注意：?lang= 的运行时回退（fr / ../x / javascript: → 回落 zh、不越界）属于 site/theme/js/ 行为，
 无法用纯 Python 单测，见 docs/I18N.md 的「人工验收」。本测试只覆盖构建期不变量。
 """
 

@@ -5,8 +5,8 @@
 - dist/index.html 注入三行授权声明（license-notice / -members / -site 三个 span）；
 - manifest.json 的 services 条目含 rate（协作方式）与 wants（无商业词）；
 - services/pcb-emc-review.html 含新文案、不含商业措辞；
-- 渲染类产物（app.js / manifest.json / services/*.html）无「黄页」；
-  dist/style.css 与 dist/pages/yellow-pages.* 是已知残留白名单（对齐移交文档 §3，
+- 渲染类产物（主题 JS / manifest.json / services/*.html）无「黄页」；
+  dist/css/*.css 与 dist/pages/yellow-pages.* 是已知残留白名单（对齐移交文档 §3，
   其落地后把白名单删掉即可全文断言）；
 - 字体子集不漏字：LICENSE_NOTICE 每个非 ASCII 字符都在 dist/fonts/*.woff 的 cmap 里
   （无子集文件时 SKIP）。
@@ -17,6 +17,7 @@
 """
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -49,12 +50,12 @@ def read(p):
 
 # 已知残留白名单（相对 dist 的 glob）：这些文件仍允许出现「黄页」，
 # 来源不在本任务授权清单内（见 docs/archive/p0/P0-TECH-MUTUAL-AID-HANDOFF.md §3）：
-# - style.css：theme 注释「黄页：三段式」（原样拷贝）；
+# - css/*.css：theme 注释「黄页：三段式」（原样拷贝；style.css 按职责拆分后落在 css/ 下）；
 # - pages/yellow-pages*：整页《能力与合作黄页制度》源文件；
 # - llms.txt / map.svg / search-index.json / manifest.json：都由上面那页衍生的条目文本。
 # §3 落地（页面改写 + 注释清理）后把白名单删掉即可全文断言。
 YELLOW_PAGES_WHITELIST = [
-    "style.css",
+    "css/*.css",
     "pages/yellow-pages*",
     "llms.txt",
     "map.svg",
@@ -138,7 +139,11 @@ def main():
                 ok("pcb-emc-review 不含「%s」" % phrase)
 
     # ---- 4. 渲染类产物无「黄页」（白名单外） ----
-    render_targets = [DIST / "app.js"] + sorted((DIST / "services").glob("*.html"))
+    # 主题 JS 按职责拆成 js/ 多文件（2026-10-21）：按 index.html 的引用顺序全量断言
+    _idx = (DIST / "index.html").read_text(encoding="utf-8")
+    _js = [DIST / u for u in re.findall(r'<script\b[^>]*src="([^"]+)"', _idx)
+           if not u.startswith(("http://", "https://", "//", "vendor/"))]
+    render_targets = _js + sorted((DIST / "services").glob("*.html"))
     # manifest.json 在白名单内（页条目来自 yellow-pages.md），但 services 条目必须严格无「黄页」
     if man_path.exists():
         man_txt = read(man_path)

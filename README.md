@@ -64,7 +64,7 @@ site/                     本站点本身
 │  ├─ weekly/<期>.sml     周报 / 月刊
 │  ├─ summaries/<slug>.json  可选：AI 摘要产物（没有则用构建期抽取式摘要）
 │  └─ contracts/*.sml     内容契约（字段即文档）
-├─ theme/                 前端壳（index.html / app.js / style.css）
+├─ theme/                 前端壳（index.html + css/ + js/；顺序见 index.html，禁 CDN）
 │  └─ fonts/             自托管字体（src/ 与 subset/ 均不入库；CI 用加密包 + FONT_PASSWORD
 │                          解密，见 docs/FONTS.md）
 ├─ meta/repos.json        仓库元数据缓存

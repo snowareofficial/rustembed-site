@@ -6,7 +6,7 @@
 rec-blog/
 ├─ site/                  站点本身（换站点只换这个目录）
 │  ├─ content/            内容：文章、成员、项目、资源、互助、页面、契约
-│  ├─ theme/              前端壳：index.html / app.js / style.css
+│  ├─ theme/              前端壳：index.html + css/ + js/（加载顺序以 index.html 为准）
 │  ├─ fonts/              字体加密包、许可、子集输出（src/、subset/ 不入库）
 │  └─ meta/               仓库元数据缓存
 ├─ engine/                构建引擎（与具体内容无关，可复用）

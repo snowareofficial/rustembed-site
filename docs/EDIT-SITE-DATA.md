@@ -63,7 +63,7 @@ links: { github: "https://github.com/…" }
 - `links` 里的联系方式要本人同意才公开；不想公开就删掉。
 
 `links` 的键（改 / 加键要同时改三处：`contracts/blog.sml` 的 `MemberLinks`、
-`site/theme/app.js` 的 `CONTACT_LABEL`、这里的说明）：
+`site/theme/js/core.js` 的 `CONTACT_LABEL`、这里的说明）：
 
 | 键 | 显示标签 | 用途 |
 |---|---|---|

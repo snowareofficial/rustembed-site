@@ -19,7 +19,8 @@ rec-blog/
 │  └─ assets/              index / login / settings + app.js + style.css（由 docs/gui-mock 改造）
 ├─ engine/                 可复用工具体系（不认识任何具体内容，只认目录约定）
 │  ├─ config.py            站点定位：SITE/CONTENT/THEME/OUT/CACHE 路径约定；--site 参数
-│  ├─ build.py             构建主流程：校验 → manifest → 预渲染 → 索引/RSS/sitemap/llms/字体子集
+│  ├─ build.py             构建入口：argparse/CLI、公共名再导出、主流程 _run（2026-10-21 拆出
+│  │                        lib/build_*.py 后只留这些；`import build` 的对外形状不变）
 │  ├─ check.py             产物自检不变量（CI 用）；只读 dist/、不比对源码时间戳，dist/ 缺失直接退出
 │  ├─ cli.py               命令行入口：new / list / contracts / build / check / test / preview
 │  ├─ test_contracts.py    契约引擎自测（错误码语义，对齐 SML 上游 sml-codes）
@@ -50,7 +51,13 @@ rec-blog/
 │     ├─ mathml.py         LaTeX → MathML（构建期；失败回退 math-raw）
 │     ├─ summary.py        摘要：优先 summaries/*.json，否则抽取式
 │     ├─ urls.py           URL 协议白名单（http/https/mailto/tel、#、相对路径）
-│     └─ repo_meta.py      仓库元数据抓取（GitHub/Gitee/Codeberg/Gitea）+ 缓存
+│     ├─ repo_meta.py      仓库元数据抓取（GitHub/Gitee/Codeberg/Gitea）+ 缓存
+│     ├─ build_common.py   构建公共件：esc / Report / now_iso / 分阶段计时（2026-10-21 拆出）
+│     ├─ build_paths.py    路径与硬编码表：ROOT/CONTENT/…、REQ、guard_out、clean_out
+│     ├─ build_assets.py   产物收集 Out / 图片资源入口 / resource_index / inject_head / inject_shell
+│     ├─ build_pages.py    内容层：load / load2 / 契约校验 / render_body / 全部 build_*
+│     ├─ build_manifest.py 数据出口：manifest / search-index / llms / feed / sitemap / map.svg
+│     └─ build_fonts.py    字体子集：site_text / font_family_weight / build_fonts
 ├─ site/                   站点本身（换站点只换这个目录）
 │  ├─ content/
 │  │  ├─ site.sml          站点配置：title/tagline/url/nav/contracts 默认映射/group 群信息
@@ -64,14 +71,16 @@ rec-blog/
 │  │  ├─ weekly/<期>.sml   周报 / 月刊
 │  │  ├─ quotes/<成员 id>/quotes.sml  首页「一言」（每人 ≤3 条、全站 ≤60 条）
 │  │  └─ contracts/*.sml   内容契约（字段即文档；自动生成契约文档页）
-│  ├─ theme/               前端壳：index.html + app.js（路由/视图）+ style.css
+│  ├─ theme/               前端壳：index.html + css/（6 文件，按原 style.css 级联顺序）
+│  │  │                    + js/（core→entries→quote→settings→code→views→detail→app 入口）
 │  │  ├─ vendor/prism/     Prism 1.29.0（MIT）本地副本 + 本站自写的 SML 语法与配色（禁 CDN）
 │  ├─ fonts/               自托管 MiSans + XITS Math（+ STIX 兜底）：src/ 与 subset/ 均 gitignore；
 │  │                       加密包 misans-fonts.tar.gz.enc 入库（含三者），CI 用 FONT_PASSWORD 解密
 │  │                       （deploy/fonts-crypt.sh）；许可随产物发布到 dist/fonts/
 │  └─ meta/repos.json      仓库元数据缓存（入库）
-├─ tests/                  smoke.js / browser-check.js / series_tag_test.js / gui_dom_test.js
-│                          / gui_api_test.py / dom-stub.js
+├─ tests/                  smoke.js / series_tag_test.js / reading_controls_test.js / gui_dom_test.js
+│                          / gui_api_test.py / dom-stub.js / theme-files.js（多文件加载唯一事实源）
+│                          / browser-check.js（runner）+ browser_lib.js + browser_checks_*.js
 ├─ deploy/                 自托管：entrypoint / build / rebuild / gitee-webhook / fonts-crypt
 ├─ docs/                   索引 docs/README.md；参与者 ROLES/CONTRIBUTING/EDIT-SITE-DATA/
 │                          REVIEW/OPS；维护 ARCHITECTURE/WORKFLOW/FONTS/GOVERNANCE/
@@ -89,11 +98,13 @@ rec-blog/
 
 ```
 site/content/**/*.(md|sml)
-  → engine/build.py: load2() 解析 → apply_contract() 校验（文件里 @is 优先，否则按 site.sml
-    的 contracts{} 默认映射；两者都没有时退回 build.py 顶部 REQ 硬编码必填表）
+  → engine/build.py（入口；实现在 lib/build_pages.py）: load2() 解析 → apply_contract() 校验
+    （文件里 @is 优先，否则按 site.sml 的 contracts{} 默认映射；两者都没有时退回
+     lib/build_paths.py 的 REQ 硬编码必填表）
   → render.render()/md.render() 预渲染 HTML 片段 → dist/{p,topics,services,w,pages}/<id>.html
   → dist/manifest.json（站前端唯一数据源；_ 前缀字段被过滤，不进 manifest）
-  → site/theme/app.js: fetch manifest.json → hash 路由（#/library、#/post/<slug>、#/service/<id>…）
+  → site/theme/js/（core.js 建 window.REC 命名空间 → 各模块挂导出 → app.js 装配并启动）:
+    fetch manifest.json → hash 路由（#/library、#/post/<slug>、#/service/<id>…）
   → 视图用 DOM API（el/link）拼卡片，正文走 fragment() 取预渲染 HTML 赋 innerHTML
 ```
 
@@ -101,18 +112,18 @@ site/content/**/*.(md|sml)
 - **构建期对全部用户内容做 HTML 转义**（render/markdown 出口统一 esc），前端仍不信任任何投稿文本。
 - **第三方前端库只许本地 vendor**：语法高亮用 `site/theme/vendor/prism/`（Prism 1.29.0 MIT +
   本站自写的 SML 语法与配色），`site/theme/index.html` 加载前先设 `Prism.manual = true`，
-  每次路由渲染完由 `app.js` 调 `Prism.highlightAllUnder(view)`。**不许改成 CDN**：
+  每次路由渲染完由 `js/app.js`（入口）调 `Prism.highlightAllUnder(view)`。**不许改成 CDN**：
   本站运行时零外部请求，加载失败必须退回纯文本（`check.py` 与两个测试脚本都盯着这条）。
 - **成员 links 的两个键不能重名**：一人两个 Gitee 要写 `gitee` + `gitee_org`
   （同名 `gitee` 会被对象覆盖，构建不报错但页面只显示一条）。加键要同步三处：
-  `contracts/blog.sml` 的 `MemberLinks`、`app.js` 的 `CONTACT_LABEL`、`docs/EDIT-SITE-DATA.md`。
+  `contracts/blog.sml` 的 `MemberLinks`、`js/core.js` 的 `CONTACT_LABEL`、`docs/EDIT-SITE-DATA.md`。
 - **URL 协议白名单已落地**（`engine/lib/urls.py`）：只放行 http / https / mailto / tel、
   页内 `#` 锚点与相对路径；`javascript:` / `data:` / `vbscript:` / `file:` / 协议相对 `//host` 一律拒绝。
   已覆盖五处出口：`{link:}`、SML `a`/`img`（含 shot/gallery）、Markdown 链接与图片；
   构建期还会清洗 projects（repo/homepage）、members.links、resources.url、pages.group_link、
   site.avatar/repo_url 与 group.join_url。新增任何拼 href/src 的代码必须调用 `urls.safe_url()`；
   回归在 `engine/test_render_safety.py` 第 [9] 组（含 `//evil`、控制字符、大小写混淆）。
-- manifest 是前端唯一数据源；新增内容类型 = 新增 manifest 键 + app.js 路由/视图。
+- manifest 是前端唯一数据源；新增内容类型 = 新增 manifest 键 + `site/theme/js/` 里的路由与视图。
 - 站点默认许可 CC BY-NC-SA 4.0（`site.sml: default_license`），llms.txt/页脚都会引用。
 - `search-index.json` 的正文在构建期就被截断：每篇取 `p["_text"][:4000]`（`build.py:1034`），
   超长文章的后半部分**搜不到**（当前最长文章 959 字，尚未触发）。
@@ -166,7 +177,8 @@ Windows 默认保留 9211–9310，以前写死 `9222+pid%200` 会稳定落进�
 2. 在 `main()` 里调用，写产物文件与 manifest 新键；
 3. `lib/contract.py` 或 `site/content/contracts/blog.sml` 补契约字段；
 4. `site/content/site.sml` 的 `contracts{}` 加默认映射、`nav` 加一项；
-5. `site/theme/app.js` 加路由与视图（复用现有 `.card`/`.badge`/`.tags`/`.meta`/`.admonition`，不造新设计语言）；
+5. `site/theme/js/` 加路由与视图（复用现有 `.card`/`.badge`/`.tags`/`.meta`/`.admonition`，不造新设计语言；
+   新函数挂到 `window.REC`，跨模块调用走 `R.xxx()`，加载顺序写进 `index.html` 的 script 序）；
 6. `engine/check.py` 加该类型的不变量；
 7. 需要脚手架时在 `cli.py` 的 `new` 子命令加模板。
 
@@ -266,6 +278,28 @@ Windows 默认保留 9211–9310，以前写死 `9222+pid%200` 会稳定落进�
 - 人类要求“提交”时才 commit；要求“PR”时只准备分支和说明，不代替人类推送。
 
 一句话：**本地可以 commit，远端必须人类自己 push。**
+
+## 6.3 大文件按职责拆分（2026-10-21 立，已完成一轮：app.js/style.css/build.py/browser-check.js）
+
+- **职责优先，行数不是硬指标**：一个文件只回答一个问题。单文件逼近 ~1000 行且职责开始混杂
+  （既管状态又管视图、既解析又落盘）时就该评估拆分；拆完每个文件能一句话说清「它负责什么」。
+- **行为与产物不变是红线**：拆分 = 搬代码，不是重写。每拆一块跑一遍构建 + 全测试矩阵；
+  Python 侧用 `BUILT_AT` 固定的 dist 全量 diff 自证字节一致，前端用截图对比 + 断言条数不减少。
+- **模块加载顺序写在 `index.html`**：主题 CSS/JS 拆成 `css/`、`js/` 多文件后，`index.html` 的
+  `<link>` / `<script>` 顺序就是唯一事实源（= 原单文件的级联/依赖顺序）。增删文件必须保持相对次序，
+  并在注释里写明依赖方向（如 js/：core 建 `window.REC` 命名空间 → 各模块挂导出 → app.js 装配并启动）。
+- **测试不硬编码文件清单**：`tests/theme-files.js` 解析 `index.html` 的引用顺序提供
+  `cssFiles / jsFiles / readCss / loadScripts`，源码侧与产物侧同一套逻辑；Python 侧
+  `test_structure.py` 的 `_own_files()`、`check.py` / `tech_aid_test.py` 的内联正则是等价实现。
+- **跨模块引用要显式**：JS 侧跨模块一律 `R.xxx()`（模块末尾显式导出表），Python 侧
+  `import X` + 调用期取属性（`X.foo()`），不用 from-import 传递**会被重新绑定的**状态
+  （`CONTRACT_LOOSE` 这类开关用 setter；测试会重绑的 `GLOBAL_CONTRACTS` 走模块属性读取）。
+- **循环导入用「模块级 import、调用期取属性」解**，别用延迟 from-import（导入顺序敏感）。
+- **拆 `engine/build.py` 的约定**：入口（argparse/CLI/`_run` 主流程）与公共名再导出留在 `build.py`，
+  实现按职责进 `lib/build_{common,paths,assets,pages,manifest,fonts}.py`；外部（gui_api /
+  test_render_safety / tech_aid_test / i18n_test）仍从 `import build` 拿名字，一个都不能少。
+- **拆测试的约定**：基础设施（起浏览器/CDP/断言工具/报告）进 `*_lib.js`，用例按职责分模块
+  各导出一个 `check(H)`，原文件变 runner；断言条数不得减少（拆分前先记基线）。
 
 ## 7. 当前内容类型与默认契约（site.sml: contracts{}）
 

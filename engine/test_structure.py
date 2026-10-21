@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """前端结构断言（新增）：对 dist/ 产物做静态结构与样式不变量检查。
 
     python engine/test_structure.py
@@ -31,6 +31,30 @@ except (AttributeError, ValueError):
 DIST = config.OUT
 fails = []
 checks = 0
+
+
+def _own_files(html, kind):
+    """index.html 引用的本站 CSS/JS（按出现顺序）。
+
+    主题按职责拆成 css/、js/ 多文件（2026-10-21），断言按引用顺序拼接，
+    等价于拆分前的 style.css / app.js。vendor/（Prism）是第三方、fonts.css 由
+    构建生成（按设计就含 @font-face），都不算本站代码。
+    """
+    out = []
+    for tag in re.findall(r"<(?:link|script)\b[^>]*>", html):
+        attrs = dict(re.findall(r'([a-zA-Z-]+)="([^"]*)"', tag))
+        if kind == "css":
+            if attrs.get("rel") != "stylesheet" or "href" not in attrs:
+                continue
+            u = attrs["href"]
+        else:
+            if not tag.startswith("<script") or "src" not in attrs:
+                continue
+            u = attrs["src"]
+        if u.startswith(("http://", "https://", "//", "#", "vendor/")) or u == "fonts.css":
+            continue
+        out.append(u)
+    return out
 
 
 def need(cond, msg):
@@ -92,8 +116,8 @@ if not DIST.exists():
     sys.exit(1)
 
 html = (DIST / "index.html").read_text(encoding="utf-8")
-css = (DIST / "style.css").read_text(encoding="utf-8")
-js = (DIST / "app.js").read_text(encoding="utf-8")
+css = "\n".join((DIST / f).read_text(encoding="utf-8") for f in _own_files(html, "css"))
+js = "\n".join((DIST / f).read_text(encoding="utf-8") for f in _own_files(html, "js"))
 man = json.loads((DIST / "manifest.json").read_text(encoding="utf-8"))
 nav = man["site"]["nav"]
 
@@ -147,7 +171,7 @@ if site_nav:
 # ---- D 中栏 ≤ 42rem ----
 css_nc = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
 m_measure = re.search(r"--measure:\s*([0-9.]+)rem", css_nc)
-need(m_measure is not None, "style.css 缺少 --measure 令牌（中栏宽度唯一来源）")
+need(m_measure is not None, "主题 CSS 缺少 --measure 令牌（中栏宽度唯一来源）")
 need(m_measure and float(m_measure.group(1)) <= 42.0,
      "--measure = %srem，应 ≤ 42rem" % (m_measure.group(1) if m_measure else "?"))
 need(re.search(r"\.col-main\s*\{[^}]*max-width:\s*var\(--measure\)", css_nc) is not None,
@@ -181,7 +205,7 @@ need(not re.search(r"table[^{]*\{[^}]*width:\s*max-content", css_nc),
      "表格用了 width: max-content（桌面端会被撑出屏幕）")
 need(re.search(r"@media\s*\(max-width:\s*1039px\)", css_nc) is not None,
      "缺少 ≤1039px 的窄屏断点")
-# 顶栏并入导航后，style.css 里有多个 ≤1039px 块；直接对全文件断言
+# 顶栏并入导航后，主题 CSS 里有多个 ≤1039px 块；直接对拼接后的全量断言
 narrow = css_nc
 need(re.search(r"\.col-left\s*\{\s*display:\s*none", narrow) is not None, "窄屏没有隐藏左栏")
 need(re.search(r"\.mobile-toc\s*\{[^}]*display:\s*block", narrow) is not None,
@@ -200,8 +224,8 @@ need('id="view"' in html, "index.html 缺少 #view（JS 接管容器）")
 # ---- G 自托管字体（MiSans 子集）/ 零外部请求 / 文本节点 ----
 need(not re.search(r'src\s*=\s*["\']https?://', html), "index.html 里有外部 src（零外部请求要求）")
 need(not re.search(r'href\s*=\s*["\']https?://', html), "index.html 里有外部 href（零外部请求要求）")
-# 字体必须是「本地子集」：@font-face 只在 dist/fonts.css 里，style.css 不写 face、也不引外部字体
-need("@font-face" not in css_nc, "style.css 里出现 @font-face（字体声明应集中在 fonts.css）")
+# 字体必须是「本地子集」：@font-face 只在 dist/fonts.css 里，本站 CSS 不写 face、也不引外部字体
+need("@font-face" not in css_nc, "主题 CSS 里出现 @font-face（字体声明应集中在 fonts.css）")
 src_fonts = sorted((config.SITE / "fonts" / "src").glob("*.ttf"))
 need(re.search(r"font-family:\s*[\"']MiSans[\"']", css_nc) is not None,
      "正文字体栈没有把 MiSans 放在首位（不同系统会显示不同字体）")
@@ -222,12 +246,12 @@ if src_fonts:
     need((DIST / "fonts" / "LICENSE-MiSans.txt").exists(), "字体许可文件没有随产物发布")
 
 need("cdn." not in js and "http://" not in js.replace("https?://", "").replace("http://www.w3.org", ""),
-     "app.js 里出现外部地址")
+     "主题 JS 里出现外部地址")
 js_code = re.sub(r"/\*.*?\*/", "", js, flags=re.S)
 js_code = re.sub(r"(^|[^:\\])//[^\n]*", r"\1", js_code)
-need("childNodes.length" not in js_code, "app.js 代码里出现 childNodes.length")
+need("childNodes.length" not in js_code, "主题 JS 代码里出现 childNodes.length")
 need(len(re.findall(r"\.innerHTML\s*=", js_code)) == 1,
-     "app.js 里 innerHTML 赋值不止一处（只允许预渲染片段那一处）")
+     "主题 JS 里 innerHTML 赋值不止一处（只允许预渲染片段那一处）")
 
 # ---- G0 内容文件不允许 BOM（native 容忍、builtin 不容忍，会导致 CI 挂）----
 _bom = []
@@ -269,7 +293,7 @@ need(re.search(r"\.person\s*>\s*\.chips\s*\{[^}]*grid-column:\s*2", css_nc) is n
 need(re.search(r"\.person\s*\{[^}]*align-content:\s*start", css_nc) is not None,
      ".person 缺少 align-content: start（卡片会被拉开成空洞）")
 # H3 没有分节标题的页面，左栏不占位
-need('data-toc' in js_code, "app.js 没有设置 body[data-toc]（无目录页面的左栏不会收起）")
+need('data-toc' in js_code, "主题 JS 没有设置 body[data-toc]（无目录页面的左栏不会收起）")
 need(re.search(r'body\[data-toc="none"\]\s+\.col-left\s*\{\s*display:\s*none', css_nc) is not None,
      "CSS 缺少 body[data-toc=\"none\"] .col-left 的收起规则")
 # H4 页脚署名
@@ -299,7 +323,7 @@ need(isinstance(man.get("quotes"), list), "manifest.quotes 应为数组（空数
 need(len(man.get("quotes") or []) <= 60, "manifest.quotes 超过 60 条上限")
 
 # 折叠阈值取自站点配置，不是写死在前端里
-need("code_collapse_lines" in js_code, "app.js 要读 manifest.site.code_collapse_lines（阈值可配）")
+need("code_collapse_lines" in js_code, "主题 JS 要读 manifest.site.code_collapse_lines（阈值可配）")
 need("code-long" in css_nc and "is-collapsed" in css_nc, "CSS 缺少长代码折叠样式（.code-long / .is-collapsed）")
 need(re.search(r"\.code-long\.is-collapsed\s+pre\s*\{[^}]*max-height", css_nc) is not None,
      "折叠态没有限制 <pre> 高度（应 max-height = 阈值行数）")
@@ -321,7 +345,7 @@ need('src="vendor/prism/prism.js"' in html, "index.html 没引用本地 prism.js
 need('href="vendor/prism/prism.css"' in html, "index.html 没引用本地 prism.css")
 _ext_res = re.findall(r'(?:src|href)="(?:https?:)?//[^"]+"', html)
 need(not _ext_res, "index.html 引入了外部资源（运行时零外部请求）：%s" % " ".join(_ext_res))
-need("Prism" in js_code and "highlightAllUnder" in js_code, "app.js 没有接 Prism.highlightAllUnder")
+need("Prism" in js_code and "highlightAllUnder" in js_code, "主题 JS 没有接 Prism.highlightAllUnder")
 need((_theme / "vendor" / "prism" / "prism.js").exists(), "site/theme/vendor/prism/prism.js 不在源码里（没入库？）")
 
 print("结构断言 %d 条（三栏 / 左栏纯净 / 右栏收起 / 版心 / 溢出 / 首屏 / 零外链 / 阅读控制 / 回归钉）" % checks)

@@ -1,13 +1,14 @@
 'use strict';
 /* 真实 DOM 冒烟：node tests/smoke.js
  *
- * 不是语法检查 —— 用 tests/dom-stub.js 提供的 DOM 桩把 dist/app.js 真正跑一遍：
+ * 不是语法检查 —— 用 tests/dom-stub.js 提供的 DOM 桩把 dist/js/ 下的脚本按 index.html 顺序真正跑一遍：
  * 每个视图函数都执行、结构都打印，并断言三栏、左栏无站点链接、右栏默认收起等硬约束。
  */
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { createStub } = require('./dom-stub.js');
+const { jsFiles } = require('./theme-files.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
@@ -26,7 +27,9 @@ function readMaybe(p) {
 }
 
 const html = read('index.html');
-const appSrc = read('app.js');
+/* 主题 JS 按职责拆成 js/ 多文件（2026-10-21）：按 index.html 的引用顺序拼接，
+   等价于拆分前的 app.js —— 工程纪律断言对全量 JS 生效。 */
+const appSrc = jsFiles(DIST).map((f) => read(f)).join('\n');
 const manifest = JSON.parse(read('manifest.json'));
 const NAV = manifest.site.nav || [];
 
@@ -61,10 +64,13 @@ const sandbox = {
   IntersectionObserver: undefined
 };
 vm.createContext(sandbox);
-vm.runInContext(appSrc, sandbox, { filename: 'dist/app.js' });
+const loaded = jsFiles(DIST);
+for (const f of loaded) {
+  vm.runInContext(read(f), sandbox, { filename: 'dist/' + f });
+}
 
 const rec = window.__rec;
-need(!!rec, 'app.js 没有导出 window.__rec（无法驱动视图）');
+need(!!rec, '主题 JS 没有导出 window.__rec（无法驱动视图）');
 if (!rec) { report(); }
 
 async function main() {
@@ -183,15 +189,15 @@ async function main() {
     need((noCode.innerHTML || '').indexOf('提取码') < 0, '没有提取码时不该出现提取码按钮');
     console.log('  附件卡：有码出按钮 / 无码不出；点击复制并 toast');
   } else {
-    need(false, 'app.js 没有导出 attachCard');
+    need(false, '主题 JS 没有导出 attachCard');
   }
 
   console.log('== 工程纪律 ==');
   // 只统计代码里的用法：先剥掉块注释与行注释（保留 https:// 之类字符串里的 //）
   const code = appSrc.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\\])\/\/[^\n]*/g, '$1');
-  need(code.indexOf('childNodes.length') < 0, 'app.js 代码里出现了 childNodes.length');
+  need(code.indexOf('childNodes.length') < 0, '主题 JS 代码里出现了 childNodes.length');
   const inner = (code.match(/\.innerHTML\s*=/g) || []).length;
-  need(inner === 1, 'app.js 里 innerHTML 赋值 ' + inner + ' 处（只允许 frag() 一处）');
+  need(inner === 1, '主题 JS 里 innerHTML 赋值 ' + inner + ' 处（只允许 frag() 一处）');
   console.log('  无 childNodes.length；innerHTML 赋值仅 %d 处（frag()）', inner);
   need(requested.indexOf('manifest.json') >= 0, '没有请求 manifest.json');
   const others = requested.filter((u) => u !== 'manifest.json' && u !== 'search-index.json' && !/\.html$/.test(u));
