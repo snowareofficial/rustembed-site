@@ -749,11 +749,14 @@ body[data-toc="none"] .mobile-toc { display: none; }
 .layout { grid-template-columns: 13rem minmax(0, 1fr) 13rem; }
 @media (min-width: 1040px) and (max-width: 1439px) {
   .layout { grid-template-columns: 10rem minmax(0, 1fr) 10rem; }
+  body[data-toc="none"] .layout { grid-template-columns: minmax(0, 1fr); }
 }
 @media (min-width: 1040px) {
   .layout > .col-main { grid-column: 2; }
 }
-body[data-toc="none"] .layout { grid-template-columns: 13rem minmax(0, 1fr) 13rem; }
+/* 首页/索引页没有本文目录：恢复单列居中，不保留两侧空列 */
+body[data-toc="none"] .layout { grid-template-columns: minmax(0, 1fr); }
+body[data-toc="none"] .col-main { grid-column: auto; }
 body[data-page="home"] .layout { grid-template-columns: minmax(0, 1fr); }
 body[data-page="home"] .col-main { grid-column: auto; }
 
