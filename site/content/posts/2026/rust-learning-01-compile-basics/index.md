@@ -15,7 +15,7 @@ series:
 cargo new helloworld --bin
 ```
 
-![项目工程文件结构](https://cdn.nlark.com/yuque/0/2026/png/67055297/1783744552701-322adf71-1a47-49fa-9a8f-c949ee9a8bfb.png)
+![项目工程文件结构](assets/project-layout.png)
 
 
 
@@ -42,7 +42,7 @@ caixian@CXi-Mac src %
 
 
 ## 编译为静态库
-![静态库项目结构](https://cdn.nlark.com/yuque/0/2026/png/67055297/1783745512243-2c27ee0d-d199-4198-9e5b-265b4338efe9.png)
+![静态库项目结构](assets/static-lib.png)
 
 ```rust
 pub fn print_hello()

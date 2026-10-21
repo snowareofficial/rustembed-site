@@ -86,6 +86,72 @@
   </div>
 </div>
 
+<!-- 设置面板入口：右侧边缘细长三角形（首页隐藏，首页用扳手）。
+     面板本体是静态节点，由 app.js 在启动时接线；不引外部图标库，内联 SVG。 -->
+<button class="settings-fab" id="settings-fab" type="button"
+        aria-label="打开设置" aria-expanded="false" aria-controls="settings-panel" title="设置">
+  <svg viewBox="0 0 8 22" aria-hidden="true"><path d="M0.5 1 L7.5 11 L0.5 21 Z"/></svg>
+</button>
+
+<aside class="settings-panel" id="settings-panel" role="dialog" aria-label="阅读与站点设置" hidden>
+  <div class="sp-head">
+    <b>设置</b>
+    <button class="sp-close" id="settings-close" type="button" aria-label="关闭设置">×</button>
+  </div>
+  <div class="sp-tabs" role="tablist" aria-label="设置分类">
+    <button class="sp-tab" id="settings-tab-reading" type="button" role="tab"
+            aria-selected="true" aria-controls="settings-pane-reading">阅读</button>
+    <button class="sp-tab" id="settings-tab-site" type="button" role="tab"
+            aria-selected="false" aria-controls="settings-pane-site">站点</button>
+  </div>
+
+  <div class="sp-pane" id="settings-pane-reading" role="tabpanel" aria-labelledby="settings-tab-reading">
+    <div class="sp-row">
+      <label class="sp-label" for="settings-size">正文字号</label>
+      <span class="sp-val" id="settings-size-val">100%</span>
+    </div>
+    <input class="sp-range" id="settings-size" type="range" min="90" max="120" step="5" value="100"
+           aria-label="正文字号，90% 到 120%">
+    <p class="sp-hint">只作用于正文；代码块字号固定，不随正文变化。</p>
+    <div class="sp-row">
+      <span class="sp-label">恢复默认字号</span>
+      <button class="sp-btn" id="settings-size-reset" type="button">重置</button>
+    </div>
+    <div class="sp-row">
+      <label class="sp-label" for="settings-summary">折叠文章摘要</label>
+      <input class="sp-switch" id="settings-summary" type="checkbox" aria-label="折叠文章摘要">
+    </div>
+    <div class="sp-row">
+      <label class="sp-label" for="settings-toc">收起本文目录</label>
+      <input class="sp-switch" id="settings-toc" type="checkbox" aria-label="收起本文目录">
+    </div>
+    <div class="sp-row">
+      <span class="sp-label">阅读项全部恢复默认</span>
+      <button class="sp-btn" id="settings-reset-all" type="button">恢复默认</button>
+    </div>
+  </div>
+
+  <div class="sp-pane" id="settings-pane-site" role="tabpanel" aria-labelledby="settings-tab-site" hidden>
+    <div class="sp-row">
+      <label class="sp-label" for="settings-theme">主题</label>
+      <select class="sp-select" id="settings-theme" aria-label="主题：跟随系统、浅色或深色">
+        <option value="">跟随系统</option>
+        <option value="light">浅色</option>
+        <option value="dark">深色</option>
+      </select>
+    </div>
+    <p class="sp-hint">默认跟随系统明暗；手动选择后只记在本机浏览器。</p>
+    <div class="sp-row">
+      <label class="sp-label" for="settings-recent">最近更新条数</label>
+      <span class="sp-val" id="settings-recent-val">3</span>
+    </div>
+    <input class="sp-range" id="settings-recent" type="range" min="1" max="15" step="1" value="3"
+           aria-label="最近更新显示条数，1 到 15">
+    <p class="sp-hint">与首页「调整条数」面板共用同一设置。</p>
+    <div class="sp-links" id="settings-links"></div>
+  </div>
+</aside>
+
 <!-- 语法高亮：本地 vendor（MIT），不引 CDN。manual=true 是关键 —— 不设它 core 会在
      DOMContentLoaded 自己扫一遍全页；本站要等每次路由渲染完由 app.js 主动高亮。 -->
 <script>window.Prism = window.Prism || {}; window.Prism.manual = true;</script>

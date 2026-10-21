@@ -19,7 +19,9 @@
     home: '首页',
     library: '文章库', knowledge: '文章知识', topics: '主题词条', projects: '项目',
     resources: '资源', members: '成员', services: '技术互助', weekly: '周报',
-    pages: '站文档', join: '加入我们'
+    pages: '站文档', join: '加入我们',
+    /* 系列目录页不是导航入口，只用来给标签页兜个中文名（真实标题在 viewSeries 里覆盖） */
+    series: '系列'
   };
   /* 联系键 → 中文标签。未知键不会被丢掉（下面统一回落到键名），
    * 所以往 contracts/blog.sml 的 MemberLinks 加字段时必须同步这张表 ——
@@ -165,8 +167,11 @@
         if (!t || !t.id) continue;
         var a = lnk('#/' + S.tocBase + '/' + t.id, t.text, 'lv' + (t.level || 2));
         a.setAttribute('data-anchor', t.id);
+        a.setAttribute('data-level', String(t.level || 2));
         nav.appendChild(a);
-        if (k === 0) S.tocLinks.push(a);
+        /* 桌面左栏与窄屏抽屉是同一份目录的两份 DOM：两份都要跟着滚动标当前项，
+           否则抽屉里永远看不到「读到哪儿」。 */
+        S.tocLinks.push(a);
         count++;
       }
       if (count === 0) nav.appendChild(el('p', 'muted', '本页没有分节标题。'));
@@ -194,7 +199,8 @@
     for (var i = 0; i < S.tocLinks.length; i++) {
       var a = S.tocLinks[i];
       var on = a.getAttribute('data-anchor') === id;
-      a.className = 'lv' + ((S.toc[i] && S.toc[i].level) || 2) + (on ? ' cur' : '');
+      /* 层级从节点自带属性取：S.tocLinks 现在装了左栏 + 抽屉两份，不能再用下标对 S.toc */
+      a.className = 'lv' + (a.getAttribute('data-level') || 2) + (on ? ' cur' : '');
     }
   }
 
@@ -474,6 +480,24 @@
     return dates.length ? dates[dates.length - 1] : '';
   }
 
+  /* 系列目录页：#/series/<id>。书库 / 标签页 / 日期页 / 首页的系列行都指向它 ——
+     要看全部章节就进这一页，索引页本身不被 20 章铺满。 */
+  function seriesHref(s) {
+    return '#/series/' + encodeURIComponent(String((s && s.id) || ''));
+  }
+
+  /* 链接长在 <summary> 里：点它要跳页，不能顺带把 <details> 撑开 ——
+     summary 的默认行为是切换展开，所以这里拦掉冒泡。展开本身保留，仍是就地快速预览。 */
+  function seriesLink(s, text, cls) {
+    var a = lnk(seriesHref(s), text, cls);
+    if (a && a.addEventListener) {
+      a.addEventListener('click', function (ev) {
+        if (ev && ev.stopPropagation) ev.stopPropagation();
+      });
+    }
+    return a;
+  }
+
   /* hits：当前标签下命中了该系列的章节数（不传 = 全命中，如无标签的书库页）。
      系列的章数与命中数不是一回事，徽章要分开说，否则“3 章”会让人以为 3 章都讲这个标签。 */
   function seriesRow(s, members, hits, opts) {
@@ -482,15 +506,18 @@
     var box = el('details', 'series-box');
     var sum = el('summary', 'row series-sum');
     sum.appendChild(el('span', 'row-date', seriesLatestDate(s)));
-    sum.appendChild(el('span', 'row-title', s.title));
+    sum.appendChild(seriesLink(s, s.title, 'row-title'));
     var badge = '系列 · ' + chapters.length + ' 章';
     /* 命中数说明：日期页要「本日 N 章」——那天只发了其中几章时必须说清楚，
        否则读者会以为整组都是这天发的；书库只在部分命中标签时补「命中 N」。 */
     if (opts && opts.hitText) badge += opts.hitText(hits, chapters.length);
     else if (hits && hits < chapters.length) badge += '（命中 ' + hits + '）';
-    sum.appendChild(el('span', 'row-words series-badge', badge));
+    sum.appendChild(seriesLink(s, badge, 'row-words series-badge'));
     box.appendChild(sum);
-    var ol = el('ol', 'rows series-posts');
+    /* 章节 > 8 才套滚动框（.series-posts-scroll，CSS max-height 26rem）：
+       20 章展开不再把整页拉长；≤ 8 章的短系列不限制高度，不添滚动条。
+       只加类、不改 DOM 顺序，章节跳转与每章的日期/标题/字数/摘要/标签不变。 */
+    var ol = el('ol', 'rows series-posts' + (chapters.length > SERIES_SCROLL_AFTER ? ' series-posts-scroll' : ''));
     for (var j = 0; j < chapters.length; j++) {
       var p = bySlug(S.man.posts, chapters[j].slug);
       if (p) ol.appendChild(postRow(p, members));
@@ -1024,6 +1051,74 @@
   var LIBRARY_LIST_AFTER = 12;      /* 书库条目超过这么多才加滑块与滚动区 */
   var BROWSE_AFTER = 6;             /* 首页 / 日期页：超过这么多条目才给搜索框与滚动区 */
 
+  /* ---------- 阅读设置（右侧设置面板；全部 localStorage，不发请求） ----------
+   *
+   *  · 正文字号：90–120%，只作用于 .col-main（CSS 变量 --reading-size）；
+   *    代码块字号固定（.code pre），不随正文变化 —— 长代码折叠高度按行数算，
+   *    跟着变会出现「显示 20 行」其实不止 20 行；
+   *  · 摘要折叠：文章页摘要卡与 lede 摘要共用同一状态（默认展开）；
+   *  · 目录收起：与顶栏 #toc-toggle 共用同一 key，双向同步；
+   *  · 主题：空 = 跟随系统，light / dark 为手动覆盖。 */
+  var READING_SIZE_MIN = 90, READING_SIZE_MAX = 120, READING_SIZE_STEP = 5, READING_SIZE_DEFAULT = 100;
+  var READING_SIZE_KEY = 'rec-blog:reading-size';
+  var SUMMARY_KEY = 'rec-blog:summary-collapsed';
+  var TOC_KEY = 'recblog-toc-collapsed';
+  var THEME_KEY = 'rec-blog:theme';
+  /* 系列展开后章节超过这么多才套滚动框：短列表不添滚动条 */
+  var SERIES_SCROLL_AFTER = 8;
+
+  function clampReadingSize(n) {
+    n = parseInt(n, 10);
+    if (!isFinite(n)) return READING_SIZE_DEFAULT;
+    if (n < READING_SIZE_MIN) return READING_SIZE_MIN;
+    if (n > READING_SIZE_MAX) return READING_SIZE_MAX;
+    /* 只认步进的整数：手滑条之外没有别的入口，非法值一律回默认 */
+    return n;
+  }
+  function readReadingSize() { return clampReadingSize(storeGet(READING_SIZE_KEY)); }
+
+  /* 字号写在 documentElement 上（:root 的 --reading-size 有 CSS 默认值，
+     这里覆盖它）；没有 DOM 的环境（测试桩）安静跳过。 */
+  function applyReadingSize(pct) {
+    var n = clampReadingSize(pct);
+    storeSet(READING_SIZE_KEY, n);
+    if (document.documentElement && document.documentElement.style &&
+        typeof document.documentElement.style.setProperty === 'function') {
+      document.documentElement.style.setProperty('--reading-size', n + '%');
+    }
+    return n;
+  }
+
+  function readSummaryCollapsed() { return storeGet(SUMMARY_KEY) === '1'; }
+  function writeSummaryCollapsed(on) {
+    storeSet(SUMMARY_KEY, on ? '1' : '0');
+    syncSummarySwitch();   /* 面板开关与存储始终一致（渲染期调用也无害） */
+  }
+
+  function readTocCollapsed() { return storeGet(TOC_KEY) === '1'; }
+  function writeTocCollapsed(on) { storeSet(TOC_KEY, on ? '1' : '0'); }
+
+  /* 主题：空值 = 跟随系统（移除 data-theme，交给 prefers-color-scheme） */
+  function readTheme() {
+    var t = storeGet(THEME_KEY);
+    return (t === 'light' || t === 'dark') ? t : '';
+  }
+  function applyTheme(t) {
+    var v = (t === 'light' || t === 'dark') ? t : '';
+    storeSet(THEME_KEY, v);
+    if (document.documentElement && document.documentElement.setAttribute) {
+      if (v) document.documentElement.setAttribute('data-theme', v);
+      else document.documentElement.removeAttribute('data-theme');
+    }
+    syncThemeUI();
+    return v;
+  }
+
+  function syncThemeUI() {
+    var th = $('#settings-theme');
+    if (th) th.value = readTheme();
+  }
+
   function clampRecent(n) { return clampLimit(n, RECENT_MIN, RECENT_MAX, RECENT_DEFAULT); }
   function readRecent() { return clampRecent(storeGet(RECENT_KEY)); }
   function writeRecent(n) {
@@ -1046,8 +1141,8 @@
        首页要的是一行（.row 的网格），所以单独一个 row-series-flat。 */
     var li = el('li', 'row row-series-flat');
     li.appendChild(el('span', 'row-date', seriesLatestDate(s)));
-    var first = seriesFirstSlug(s);
-    if (first) li.appendChild(lnk('#/post/' + first, (s && s.title) || '系列', 'row-title'));
+    /* 首页的系列行 = 一条「组」，点进去是系列目录页，不是直接跳第一章 */
+    if (s && s.id) li.appendChild(seriesLink(s, s.title || '系列', 'row-title'));
     else li.appendChild(el('span', 'row-title', (s && s.title) || '系列'));
     li.appendChild(el('span', 'row-words series-badge', '系列 · ' + ((s && s.posts) || []).length + ' 章'));
     return li;
@@ -1153,13 +1248,17 @@
       ? document.createElementNS('http://www.w3.org/2000/svg', 'svg')
       : el('svg');
     mark.setAttribute('class', 'quote-btn-svg');
-    mark.setAttribute('viewBox', '0 0 1024 1024');
+    mark.setAttribute('viewBox', '0 0 1300 1300');
     mark.setAttribute('aria-hidden', 'true');
     mark.setAttribute('fill', 'currentColor');
     var glyph = document.createElementNS
       ? document.createElementNS('http://www.w3.org/2000/svg', 'path')
       : el('path');
     glyph.setAttribute('d', 'M1022.476 0v439.434c1.869 63.227-7.249 122.599-27.345 178.114s-48.267 104.363-84.73 146.559c-36.345 42.070-79.822 77.018-130.664 104.835-50.725 27.699-105.769 45.463-165.141 53.057v-189.564c72.809-24.895 122.599-61.704 149.363-110.56 26.882-48.856 40.201-108.692 40.201-179.512h-189.557v-442.356h407.872zM410.66 0v439.434c1.987 63.227-7.131 122.599-27.228 178.115-20.104 55.515-48.385 104.363-84.73 146.559-36.345 42.070-79.938 77.018-130.664 104.835-50.725 27.699-105.887 45.463-165.258 53.057v-189.564c72.809-24.895 122.599-61.704 149.363-110.56 26.882-48.856 40.201-108.692 40.201-179.512h-189.564v-442.356h407.88z');
+    /* path bbox 约 x:2.78–1022.7（中心 512.7），y:0–922（中心 461）；
+       viewBox 1300 的中心是 650，故平移 (137.25, 189) 让引号视觉居中。
+       同时 1300 的视框让引号在 30px 图标里比 1024 时略小，和扳手观感一致。 */
+    glyph.setAttribute('transform', 'translate(137.25 189)');
     mark.appendChild(glyph);
     btn.appendChild(mark);
     if (btn.addEventListener) {
@@ -1188,6 +1287,242 @@
     S.quote.veil = veil;
     S.quote.textEl = p;
     S.quote.srcEl = s;
+  }
+
+  /* ---------- 右侧设置面板（静态节点在 index.html，这里只接线） ---------- */
+
+  function settingsPanel() {
+    if (S.settings && S.settings.panel && S.settings.panel.parentNode) return S.settings.panel;
+    return $('#settings-panel');
+  }
+
+  function settingsOpen() {
+    var p = settingsPanel();
+    return !!(p && !p.hasAttribute('hidden'));
+  }
+
+  function openSettings() {
+    var p = settingsPanel();
+    if (!p) return;
+    p.removeAttribute('hidden');
+    var fab = $('#settings-fab');
+    if (fab) fab.setAttribute('aria-expanded', 'true');
+    var c = $('#settings-close');
+    if (c && c.focus) c.focus();
+  }
+
+  function closeSettings() {
+    var p = settingsPanel();
+    if (!p) return;
+    p.setAttribute('hidden', '');
+    var fab = $('#settings-fab');
+    if (fab) fab.setAttribute('aria-expanded', 'false');
+  }
+
+  function toggleSettings() {
+    if (settingsOpen()) closeSettings(); else openSettings();
+  }
+
+  /* 目录收起：顶栏按钮与设置面板开关的唯一实现，两边都调它 */
+  function applyTocCollapsed(on) {
+    if (document.body && document.body.classList) {
+      if (on) document.body.classList.add('toc-collapsed');
+      else document.body.classList.remove('toc-collapsed');
+    }
+    writeTocCollapsed(on);
+    var tt = $('#toc-toggle');
+    if (tt) {
+      tt.setAttribute('aria-pressed', on ? 'true' : 'false');
+      tt.setAttribute('aria-label', on ? '展开目录' : '收起目录');
+      tt.setAttribute('title', on ? '展开目录' : '收起目录');
+    }
+    syncTocSwitch();
+  }
+
+  function syncTocSwitch() {
+    var sw = $('#settings-toc');
+    if (sw) sw.checked = readTocCollapsed();
+  }
+
+  function syncSummarySwitch() {
+    var sw = $('#settings-summary');
+    if (sw) sw.checked = readSummaryCollapsed();
+  }
+
+  function syncSizeUI() {
+    var n = readReadingSize();
+    var range = $('#settings-size');
+    if (range) range.value = String(n);
+    var val = $('#settings-size-val');
+    if (val) { clear(val); val.appendChild(document.createTextNode(n + '%')); }
+  }
+
+  function syncRecentUI() {
+    var n = readRecent();
+    var range = $('#settings-recent');
+    if (range) range.value = String(n);
+    var val = $('#settings-recent-val');
+    if (val) { clear(val); val.appendChild(document.createTextNode(String(n))); }
+  }
+
+  /* tab 切换：segmented 两个按钮，aria-selected 与面板 hidden 联动 */
+  function selectSettingsTab(which) {
+    var panes = { reading: $('#settings-pane-reading'), site: $('#settings-pane-site') };
+    var tabs = { reading: $('#settings-tab-reading'), site: $('#settings-tab-site') };
+    var keys = ['reading', 'site'];
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i];
+      var on = k === which;
+      var tab = tabs[k];
+      if (tab) tab.setAttribute('aria-selected', on ? 'true' : 'false');
+      var pane = panes[k];
+      if (pane) {
+        if (on) pane.removeAttribute('hidden'); else pane.setAttribute('hidden', '');
+      }
+    }
+  }
+
+  /* 站点 tab 的链接区：仓库 + 许可，只读展示（不造第二套设置） */
+  function buildSettingsLinks() {
+    var box = $('#settings-links');
+    if (!box || !S.man) return;
+    clear(box);
+    var m = S.man;
+    if (m.site && m.site.repo_url) {
+      var row = el('p');
+      row.appendChild(el('span', '', '仓库：'));
+      row.appendChild(outLink(m.site.repo_url, m.site.repo_url));
+      box.appendChild(row);
+    }
+    if (m.site && m.site.license) box.appendChild(el('p', '', '默认许可：' + m.site.license));
+    box.appendChild(el('p', '', '许可细节见页脚声明。'));
+  }
+
+  /* 首页扳手：只在首页挂载，位置在「一言」按钮上方（CSS bottom 4.7rem，不重叠）。
+     换页卸载，避免别的页面冒出不该有的入口。 */
+  function unmountWrench() {
+    if (S.settings && S.settings.wrench && S.settings.wrench.parentNode) {
+      S.settings.wrench.parentNode.removeChild(S.settings.wrench);
+    }
+    if (S.settings) S.settings.wrench = null;
+  }
+
+  function mountWrench() {
+    unmountWrench();
+    if (!document.body) return;
+    var b = el('button', 'settings-wrench');
+    b.setAttribute('type', 'button');
+    b.setAttribute('id', 'settings-wrench');
+    b.setAttribute('aria-label', '打开设置');
+    b.setAttribute('aria-expanded', 'false');
+    b.setAttribute('aria-controls', 'settings-panel');
+    b.setAttribute('title', '设置');
+    var svg = document.createElementNS
+      ? document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+      : el('svg');
+    svg.setAttribute('viewBox', '0 0 1024 1024');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('fill', 'currentColor');
+    var path = document.createElementNS
+      ? document.createElementNS('http://www.w3.org/2000/svg', 'path')
+      : el('path');
+    path.setAttribute('d', 'M 737.099 331.708 c 10.6803 10.6906 28.0228 10.6906 38.7236 0 l 151.646 -119.387 C 966.755 332.021 901.57 460.912 781.86 500.197 c -42.4714 13.9489 -88.106 15.104 -131.243 3.32083 l -147.098 147.098 c 33.2165 121.542 -38.4 246.956 -159.922 280.162 c -43.1473 11.8047 -88.8033 10.6394 -131.295 -3.30957 l 119.387 -151.646 c 10.6906 -10.7008 10.6906 -28.0443 0 -38.7236 l -44.7713 -44.7816 c -10.6906 -10.7008 -28.0433 -10.7223 -38.7441 -0.02048 c 0 0 -0.01024 0 -0.01024 0.02048 l -151.646 119.398 C 57.2518 692.004 122.456 563.134 242.156 523.848 c 42.5021 -13.9377 88.1695 -15.0835 131.317 -3.27885 l 147.098 -147.097 C 487.311 251.961 558.867 126.495 680.388 93.2362 c 43.137 -11.8149 88.8136 -10.6691 131.327 3.27885 L 692.338 248.161 c -10.7008 10.6803 -10.7008 28.0115 -0.021504 38.7133 c 0 0 0.021504 0.01024 0.021504 0.021504 L 737.099 331.708 Z');
+    svg.appendChild(path);
+    b.appendChild(svg);
+    if (b.addEventListener) {
+      b.addEventListener('click', function (ev) {
+        if (ev && ev.stopPropagation) ev.stopPropagation();
+        toggleSettings();
+        b.setAttribute('aria-expanded', settingsOpen() ? 'true' : 'false');
+      });
+    }
+    document.body.appendChild(b);
+    if (S.settings) S.settings.wrench = b;
+  }
+
+  /* 启动时接线一次：静态面板 + 右缘三角 + 全局 Esc / 点外部关闭 */
+  function mountSettings() {
+    if (S.settings && S.settings.done) return;
+    S.settings = S.settings || {};
+    var panel = $('#settings-panel');
+    if (panel) S.settings.panel = panel;
+
+    var fab = $('#settings-fab');
+    if (fab && fab.addEventListener) {
+      fab.addEventListener('click', function (ev) {
+        if (ev && ev.stopPropagation) ev.stopPropagation();
+        toggleSettings();
+      });
+    }
+    var close = $('#settings-close');
+    if (close && close.addEventListener) {
+      close.addEventListener('click', function (ev) {
+        if (ev && ev.stopPropagation) ev.stopPropagation();
+        closeSettings();
+      });
+    }
+    var tRead = $('#settings-tab-reading');
+    var tSite = $('#settings-tab-site');
+    if (tRead && tRead.addEventListener) tRead.addEventListener('click', function () { selectSettingsTab('reading'); });
+    if (tSite && tSite.addEventListener) tSite.addEventListener('click', function () { selectSettingsTab('site'); });
+
+    /* 阅读 tab */
+    var size = $('#settings-size');
+    if (size && size.addEventListener) {
+      size.addEventListener('input', function () {
+        var n = applyReadingSize(size.value);
+        syncSizeUI();
+      });
+    }
+    var sizeReset = $('#settings-size-reset');
+    if (sizeReset && sizeReset.addEventListener) {
+      sizeReset.addEventListener('click', function () {
+        applyReadingSize(READING_SIZE_DEFAULT);
+        syncSizeUI();
+      });
+    }
+    var sumSw = $('#settings-summary');
+    if (sumSw && sumSw.addEventListener) {
+      sumSw.addEventListener('change', function () {
+        writeSummaryCollapsed(!!sumSw.checked);
+        /* 当前页已渲染的摘要卡不会自动跟进：重画一次路由即可 */
+        if (typeof render === 'function') render();
+      });
+    }
+    var tocSw = $('#settings-toc');
+    if (tocSw && tocSw.addEventListener) {
+      tocSw.addEventListener('change', function () {
+        applyTocCollapsed(!!tocSw.checked);
+      });
+    }
+    var resetAll = $('#settings-reset-all');
+    if (resetAll && resetAll.addEventListener) {
+      resetAll.addEventListener('click', function () {
+        applyReadingSize(READING_SIZE_DEFAULT);
+        writeSummaryCollapsed(false);
+        applyTocCollapsed(false);
+        syncSizeUI(); syncSummarySwitch();
+        if (typeof render === 'function') render();
+      });
+    }
+
+    /* 站点 tab */
+    var theme = $('#settings-theme');
+    if (theme && theme.addEventListener) {
+      theme.addEventListener('change', function () { applyTheme(theme.value); });
+    }
+    var recent = $('#settings-recent');
+    if (recent && recent.addEventListener) {
+      recent.addEventListener('input', function () {
+        var n = writeRecent(recent.value);
+        syncRecentUI();
+      });
+    }
+
+    /* 初值：面板控件的显示状态与存储一致 */
+    applyReadingSize(readReadingSize());
+    syncSizeUI(); syncSummarySwitch(); syncTocSwitch(); syncRecentUI(); syncThemeUI();
+    S.settings.done = true;
   }
 
   /* ---------- 代码块：长代码折叠 + 语法高亮 ----------
@@ -1512,9 +1847,12 @@
   }
 
 
+  /* 摘要卡：<details>/<summary> 可折叠结构，默认展开；折叠状态与文章 lede
+     摘要共用 SUMMARY_KEY（设置面板「折叠文章摘要」一个开关管两者）。
+     折叠只改 open 属性，卡内文本始终在 DOM 里（不误删正文）。 */
   function summaryCard(s) {
-    var box = el('aside', 'ai-summary');
-    var h = el('p', 'ai-head');
+    var box = el('details', 'ai-summary');
+    var h = el('summary', 'ai-head');
     h.appendChild(el('b', '', '摘要'));
     h.appendChild(el('span', 'ai-src', s.source === 'ai' ? 'AI · 构建期' : '构建期抽取'));
     box.appendChild(h);
@@ -1532,7 +1870,76 @@
       }
       box.appendChild(tg);
     }
+    if (!readSummaryCollapsed()) box.setAttribute('open', 'open');
+    rememberFold(box);
     return box;
+  }
+
+  /* 文章合集：一个系列一个目录页（#/series/<id>），按 order 列出全部章节。
+     索引页只给「组」（一行 + 可展开的章节预览），完整目录集中在这一页 ——
+     否则一条 20 章的系列能把书库和首页同时铺满。 */
+  function viewSeries(id) {
+    var m = S.man;
+    var s = byId(m.series || [], id);
+    var f = document.createDocumentFragment();
+    if (!s) {
+      f.appendChild(el('h1', '', '没有这个系列'));
+      f.appendChild(el('p', 'muted', '系列 id：' + String(id === undefined || id === null ? '' : id)));
+      setToc([], '', '');
+      return Promise.resolve(f);
+    }
+    f.appendChild(crumb([['文章库', '#/library'], [s.title, '']]));
+    f.appendChild(el('h1', '', s.title));
+    /* 标签页写系列名，而不是通用的「系列」 */
+    if (document && document.title !== undefined) {
+      document.title = (m.site.title || '') + ' · ' + s.title;
+    }
+    /* order 缺失或相同的章排在后面而不是乱序：999 兜底只为不抛，不为编造次序 */
+    var chapters = (s.posts || []).slice().sort(function (a, b) {
+      var oa = isFinite(a.order) ? a.order : 999;
+      var ob = isFinite(b.order) ? b.order : 999;
+      return oa - ob;
+    });
+    f.appendChild(el('p', 'lede', '共 ' + chapters.length + ' 章 · 系列'));
+
+    var first = seriesFirstSlug(s);
+    if (first) {
+      var start = el('p', 'chips');
+      start.appendChild(lnk('#/post/' + first, '从第一章开始阅读 →', 'chip'));
+      f.appendChild(start);
+    }
+
+    f.appendChild(el('p', 'section-h', '目录'));
+    var ol = el('ol', 'rows');
+    var n = 0;
+    for (var i = 0; i < chapters.length; i++) {
+      var p = bySlug(m.posts, chapters[i].slug);
+      if (!p) continue;                 /* 章节在 manifest 里查不到就跳过，绝不编一行 */
+      ol.appendChild(postRow(p, m.members));
+      n++;
+    }
+    f.appendChild(ol);
+    if (!n) f.appendChild(el('p', 'muted', '这个系列还没有可显示的章节。'));
+    setToc([], '', '');
+    return Promise.resolve(f);
+  }
+
+  /* 折叠状态写库：浏览器原生 toggle 事件；桩环境没有 toggle 派发也不报错。
+     summary 的 click 兜底一层（toggle 事件在个别旧内核上不触发）。 */
+  function rememberFold(details) {
+    if (!details || !details.addEventListener) return;
+    var save = function () {
+      writeSummaryCollapsed(!details.hasAttribute('open'));
+      syncSummarySwitch();
+    };
+    details.addEventListener('toggle', save);
+    var sum = details.querySelector ? details.querySelector('summary') : null;
+    if (sum && sum.addEventListener) {
+      sum.addEventListener('click', function () {
+        /* click 时 open 还没翻：下一帧再读，读到的就是翻转后的状态 */
+        if (typeof setTimeout === 'function') setTimeout(save, 0);
+      });
+    }
   }
 
   function viewLibrary(query) {
@@ -2292,8 +2699,20 @@
     if (p.updated && p.updated !== p.date) by.appendChild(el('span', '', '更新于 ' + p.updated));
     f.appendChild(by);
 
-    f.appendChild(el('p', 'lede', shownSummary || ''));
-    if (p.ai_summary) f.appendChild(summaryCard(p.ai_summary));
+    /* 有构建期摘要卡时，不再渲染一份同样的 lede，避免两段摘要重复。
+       没有摘要卡时，lede 仍可单独折叠；两者共用同一折叠状态。 */
+    if (p.ai_summary) {
+      f.appendChild(summaryCard(p.ai_summary));
+    } else if (shownSummary) {
+      var ledeBox = el('details', 'lede-box');
+      ledeBox.appendChild(el('summary', 'lede-sum', '文章摘要'));
+      ledeBox.appendChild(el('p', 'lede', shownSummary));
+      if (!readSummaryCollapsed()) ledeBox.setAttribute('open', 'open');
+      rememberFold(ledeBox);
+      f.appendChild(ledeBox);
+    } else {
+      f.appendChild(el('p', 'lede', ''));
+    }
 
     /* 文章形态：只由真实内容决定（标签 / 是否有图集块） */
     var form = 'reading';
@@ -2875,6 +3294,7 @@
     home: function () { return viewHome(); },
     date: function (r) { return viewByDate(r.seg[1] || ''); },
     library: function (r) { return viewLibrary(r.q); },
+    series: function (r) { return viewSeries(r.seg[1]); },
     posts: function () { return viewLibrary({}); },
     knowledge: function () { return viewKnowledge(); },
     topics: function () { return viewTopics(); },
@@ -2974,9 +3394,10 @@
            顺序有意义：折叠先给 <pre> 建好 id 与类，高亮只改 <code> 内部。 */
         setupCodeBlocks(viewEl);
         highlightCode(viewEl);
-        if (key === 'home') mountQuote(); else unmountQuote();
+        if (key === 'home') { mountQuote(); mountWrench(); } else { unmountQuote(); unmountWrench(); }
         buildToc();
         buildFooter();
+        buildSettingsLinks();
         var brand = $('#brand-title');
         if (brand) {
           clear(brand);
@@ -2998,26 +3419,16 @@
     if (typeof window !== 'undefined' && window.addEventListener) {
       window.addEventListener('hashchange', function () { render(); });
     }
-    /* 桌面端左侧目录收起；状态存 localStorage，不依赖构建 */
+    /* 主题与正文字号：先应用存储里的状态，再画页面（避免明暗跳变） */
+    applyTheme(readTheme());
+    applyReadingSize(readReadingSize());
+    mountSettings();
+    /* 桌面端左侧目录收起；状态存 localStorage，与设置面板开关共用 TOC_KEY */
     var tt = $('#toc-toggle');
     if (tt && tt.addEventListener) {
-      var tocKey = 'recblog-toc-collapsed';
-      function applyTocCollapsed(on) {
-        if (document.body && document.body.classList) {
-          if (on) document.body.classList.add('toc-collapsed');
-          else document.body.classList.remove('toc-collapsed');
-        }
-        tt.setAttribute('aria-pressed', on ? 'true' : 'false');
-        tt.setAttribute('aria-label', on ? '展开目录' : '收起目录');
-        tt.setAttribute('title', on ? '展开目录' : '收起目录');
-      }
-      var tocOn = false;
-      try { tocOn = localStorage.getItem(tocKey) === '1'; } catch (e) { tocOn = false; }
-      applyTocCollapsed(tocOn);
+      applyTocCollapsed(readTocCollapsed());
       tt.addEventListener('click', function () {
-        tocOn = !tocOn;
-        applyTocCollapsed(tocOn);
-        try { localStorage.setItem(tocKey, tocOn ? '1' : '0'); } catch (e) {}
+        applyTocCollapsed(!readTocCollapsed());
       });
     }
     var sf = $('#search-form');
@@ -3043,6 +3454,11 @@
         if (quoteVisible()) closeQuote();
         /* 面板外的点击收起「显示条数」面板（按钮自己会 stopPropagation） */
         if (t && typeof t.closest === 'function' && !t.closest('.list-panel')) closeListPanels();
+        /* 设置面板：点面板外 / 入口三角外关闭（入口与面板自己会 stopPropagation） */
+        if (t && typeof t.closest === 'function' &&
+            !t.closest('#settings-panel') && !t.closest('#settings-fab') && !t.closest('#settings-wrench')) {
+          closeSettings();
+        }
         if (t && typeof t.closest === 'function' && t.closest('[data-close]')) {
           if (ev.preventDefault) ev.preventDefault();
           hideModal();
@@ -3053,6 +3469,7 @@
           hideModal();
           closeQuote();
           closeListPanels();
+          closeSettings();
         }
       });
     }
@@ -3160,12 +3577,29 @@
         autoMs: QUOTE_MS, list: quoteList, open: openQuote, close: closeQuote,
         mount: mountQuote, unmount: unmountQuote, visible: quoteVisible
       },
+      /* 设置面板与阅读设置（字号 / 摘要折叠 / 目录收起 / 主题） */
+      settings: {
+        key: {
+          size: READING_SIZE_KEY, summary: SUMMARY_KEY, toc: TOC_KEY, theme: THEME_KEY
+        },
+        size: {
+          min: READING_SIZE_MIN, max: READING_SIZE_MAX, step: READING_SIZE_STEP, def: READING_SIZE_DEFAULT,
+          read: readReadingSize, write: applyReadingSize, clamp: clampReadingSize
+        },
+        summary: { read: readSummaryCollapsed, write: writeSummaryCollapsed },
+        toc: { read: readTocCollapsed, write: writeTocCollapsed, apply: applyTocCollapsed },
+        theme: { read: readTheme, write: applyTheme },
+        panel: { open: openSettings, close: closeSettings, toggle: toggleSettings, isOpen: settingsOpen },
+        tab: selectSettingsTab,
+        wrench: { mount: mountWrench, unmount: unmountWrench },
+        seriesScrollAfter: SERIES_SCROLL_AFTER
+      },
       code: {
         threshold: codeCollapseLines, setup: setupCodeBlocks,
         highlight: highlightCode, countLines: countLines
       },
       buildSiteNav: buildSiteNav, buildToc: buildToc, route: route,
-      viewLibrary: viewLibrary, viewPost: viewPost, viewTopic: viewTopic,
+      viewLibrary: viewLibrary, viewSeries: viewSeries, viewPost: viewPost, viewTopic: viewTopic,
       viewProject: viewProject, viewMember: viewMember, viewService: viewService,
       viewWeeklyItem: viewWeeklyItem, viewPage: viewPage, viewJoin: viewJoin,
       viewSearch: viewSearch, viewMembers: viewMembers, viewServices: viewServices,

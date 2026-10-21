@@ -814,6 +814,555 @@ async function main() {
     need(quote.w >= 52 && quote.w <= 56, '按钮直径 52–56px', quote.w + 'px');
     need(quote.round, '按钮是正圆');
   }
+  /* ---------- 本页目录：读到哪儿（真实 CSS + 真实滚动） ----------
+   * DOM 桩只能断言规则文本；「三角有没有被裁掉 / 会不会把页面挤宽 / 颜色对不对」
+   * 只有真浏览器能量。窄屏那份目录是抽屉，单独量一次。 */
+  console.log('== 本页目录：当前阅读位置的小三角 ==');
+  await metrics(1280, 900, false);
+  await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' }] });
+  await go('#/post/md-writing', 'post', { toc: 'yes' });
+  const tocMark = await cdp.eval(`(async () => {
+    const links = Array.from(document.querySelectorAll('#toc-nav a'));
+    if (links.length < 2) return { links: links.length };
+    const want = links[1].getAttribute('data-anchor');
+    const target = document.getElementById(want);
+    window.scrollTo(0, target.getBoundingClientRect().top + (window.pageYOffset || 0) - 60);
+    await new Promise((r) => setTimeout(r, 400));
+    const cur = document.querySelector('#toc-nav a.cur');
+    if (!cur) return { links: links.length, cur: null };
+    const cs = getComputedStyle(cur, '::before');
+    const col = document.getElementById('col-left');
+    const box = cur.getBoundingClientRect();
+    const colBox = col.getBoundingClientRect();
+    return {
+      links: links.length, want: want, cur: cur.getAttribute('data-anchor'),
+      curCount: document.querySelectorAll('#toc-nav a.cur').length,
+      content: cs.content, color: cs.color, curColor: getComputedStyle(cur).color,
+      inCol: box.left >= colBox.left - 1 && box.right <= colBox.right + 1,
+      colScrollW: col.scrollWidth, colClientW: col.clientWidth,
+      scrollW: document.documentElement.scrollWidth, clientW: document.documentElement.clientWidth
+    };
+  })()`);
+  need(tocMark.links >= 2, '文章页目录至少 2 个分节', String(tocMark.links));
+  eq2(tocMark.cur, tocMark.want, '滚到第二节 → 目录高亮第二节');
+  eq2(tocMark.curCount, 1, '同一时刻只有一个当前项');
+  includes2(tocMark.content, '▸', '当前项有小三角 ▸');
+  eq2(tocMark.color, tocMark.curColor, '三角是 accent 色（与当前项同色）');
+  need(tocMark.inCol, '整行（含三角）在左栏框内，没被裁切');
+  need(tocMark.colScrollW <= tocMark.colClientW + 1, '左栏不出横向滚动条（三角没撑宽）',
+    tocMark.colScrollW + ' ≤ ' + tocMark.colClientW);
+  need(tocMark.scrollW <= tocMark.clientW + 1, '1280px 整页无横向滚动',
+    tocMark.scrollW + ' ≤ ' + tocMark.clientW);
+  await cdp.shot(path.join(SHOTS, 'toc-mark-1280.png'));
+
+  await metrics(375, 812, true);
+  await go('#/post/md-writing', 'post', { toc: 'yes' });
+  const tocMob = await cdp.eval(`(async () => {
+    const d = document.getElementById('mobile-toc');
+    d.setAttribute('open', 'open');
+    await new Promise((r) => setTimeout(r, 300));
+    const cur = document.querySelector('#toc-nav-m a.cur');
+    if (!cur) return { cur: null };
+    const cs = getComputedStyle(cur, '::before');
+    const box = cur.getBoundingClientRect();
+    const dBox = d.getBoundingClientRect();
+    return {
+      cur: cur.getAttribute('data-anchor'), content: cs.content,
+      visible: cur.checkVisibility ? cur.checkVisibility({ checkVisibilityCSS: true }) : true,
+      inDrawer: box.left >= dBox.left - 1 && box.right <= dBox.right + 1,
+      scrollW: document.documentElement.scrollWidth, clientW: document.documentElement.clientWidth
+    };
+  })()`);
+  need(!!tocMob.cur, '窄屏抽屉目录也标出当前项', String(tocMob.cur));
+  includes2(tocMob.content, '▸', '抽屉里的三角同样画出来');
+  need(tocMob.visible === true, '抽屉里的当前项真的可见');
+  need(tocMob.inDrawer, '抽屉里的行（含三角）没被裁切');
+  need(tocMob.scrollW <= tocMob.clientW + 1, '375px 抽屉展开后无横向滚动',
+    tocMob.scrollW + ' ≤ ' + tocMob.clientW);
+  await cdp.shot(path.join(SHOTS, 'toc-mark-375.png'));
+
+  /* ---------- 系列目录页：点系列行进得去、章节回文章、无效 id 不崩 ---------- */
+  console.log('== 系列目录页 #/series/<id> ==');
+  await metrics(1280, 900, false);
+  await go('#/library?tag=rust', 'library');
+  const seriesEntry = await cdp.eval(`(() => {
+    const a = document.querySelector('#view a[href^="#/series/"]');
+    return a ? a.getAttribute('href') : null;
+  })()`);
+  need(!!seriesEntry, '书库 / 标签页的系列行有 #/series/<id> 入口', String(seriesEntry));
+  if (seriesEntry) {
+    await go(seriesEntry, 'series');
+    /* 截图要能看见页头（面包屑 / h1 / 「共 N 章」/ 从第一章开始）：
+       同文档导航不重置滚动，这里手动回到顶部。 */
+    await cdp.eval('window.scrollTo(0, 0)');
+    const sp = await cdp.eval(`(() => {
+      const view = document.getElementById('view');
+      const rows = view.querySelectorAll('.rows li.row');
+      const first = rows.length ? rows[0].querySelector('a.row-title') : null;
+      const chip = view.querySelector('.chips a.chip');
+      return {
+        h1: (view.querySelector('h1') || {}).textContent || '',
+        title: document.title,
+        lede: (view.querySelector('.lede') || {}).textContent || '',
+        crumb: !!view.querySelector('.crumb a[href="#/library"]'),
+        rows: rows.length,
+        firstHref: first ? first.getAttribute('href') : null,
+        chipHref: chip ? chip.getAttribute('href') : null,
+        heads: Array.from(view.querySelectorAll('.section-h')).map((n) => n.textContent).join(','),
+        toc: document.body.getAttribute('data-toc'),
+        scrollW: document.documentElement.scrollWidth, clientW: document.documentElement.clientWidth
+      };
+    })()`);
+    need(sp.h1.length > 0, '系列页有 h1 标题', sp.h1);
+    includes2(sp.title, sp.h1, '标签页标题写系列名（不是通用的「系列」）');
+    includes2(sp.lede, '章 · 系列', '系列页写明「共 N 章 · 系列」');
+    need(sp.rows >= 2, '目录列出全部章节', String(sp.rows));
+    need(!!sp.firstHref && sp.firstHref.indexOf('#/post/') === 0, '章节链接回 #/post/<slug>',
+      String(sp.firstHref));
+    need(!!sp.chipHref && sp.chipHref.indexOf('#/post/') === 0, '「从第一章开始阅读」指向第一章',
+      String(sp.chipHref));
+    need(sp.crumb === true, '面包屑能回文章库');
+    includes2(sp.heads, '目录', '系列页有「目录」段');
+    eq2(sp.toc, 'none', '系列页没有分节标题 → 左栏不占位');
+    need(sp.scrollW <= sp.clientW + 1, '系列页无横向滚动', sp.scrollW + ' ≤ ' + sp.clientW);
+    await cdp.shot(path.join(SHOTS, 'series-1280.png'));
+
+    await go('#/series/一定没有这个系列', 'series');
+    const bad = await cdp.eval(`(() => document.getElementById('view').textContent)()`);
+    includes2(bad, '没有这个系列', '无效系列 id 显示空态（不崩）');
+  }
+
+  /* ---------- 系列展开滚动框（真实 CSS） ---------- */
+  console.log('== 系列展开：20 章滚动 / 5 章不限制 ==');
+  await metrics(1280, 900, false);
+  await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' }] });
+  await go('#/library?tag=rust', 'library');
+  const seriesScroll = await cdp.eval(`(() => {
+    const rows = Array.from(document.querySelectorAll('#view li.row-series'));
+    if (!rows.length) return { count: 0 };
+    const row = rows.reduce((best, cur) =>
+      cur.querySelectorAll('.series-posts li.row').length >
+      best.querySelectorAll('.series-posts li.row').length ? cur : best, rows[0]);
+    const sum = row.querySelector('.series-sum');
+    const details = row.querySelector('details');
+    if (details && !details.open) sum.click();
+    const box = row.querySelector('.series-posts');
+    const cs = getComputedStyle(box);
+    /* 5 章的短系列：同结构现造，量的就是「不加限制」 */
+    const short = document.createElement('ol');
+    short.className = 'rows series-posts';
+    for (let i = 0; i < 5; i++) {
+      const li = document.createElement('li');
+      li.className = 'row';
+      li.innerHTML = '<span class="row-date">2026-01-01</span>'
+        + '<span class="row-title">第 ' + (i + 1) + ' 章</span><span class="row-words">100 字</span>';
+      short.appendChild(li);
+    }
+    document.getElementById('view').appendChild(short);
+    const shortMaxH = getComputedStyle(short).maxHeight;
+    short.remove();
+    return {
+      count: rows.length,
+      chapters: box.querySelectorAll('li.row').length,
+      overflowY: cs.overflowY, overflowX: cs.overflowX,
+      maxH: Math.round(parseFloat(cs.maxHeight)),
+      scrollH: Math.round(box.scrollHeight), clientH: Math.round(box.clientHeight),
+      scrollW: box.scrollWidth, clientW: box.clientWidth,
+      shortMaxH: shortMaxH,
+      docScrollW: document.documentElement.scrollWidth,
+      docClientW: document.documentElement.clientWidth
+    };
+  })()`);
+  need(seriesScroll.count >= 1, '标签页有系列行', String(seriesScroll.count));
+  need(seriesScroll.chapters > 8, '选中的最大系列超过 8 章', seriesScroll.chapters + ' 章');
+  eq2(seriesScroll.overflowY, 'auto', '展开后 overflow-y: auto（可滚动）');
+  eq2(seriesScroll.overflowX, 'hidden', 'overflow-x: hidden（只纵滚）');
+  need(seriesScroll.maxH >= 384 && seriesScroll.maxH <= 448,
+    'max-height 在 24–28rem', seriesScroll.maxH + 'px');
+  need(seriesScroll.scrollH > seriesScroll.clientH, '20 章展开真的可滚动',
+    seriesScroll.scrollH + ' > ' + seriesScroll.clientH);
+  need(seriesScroll.scrollW <= seriesScroll.clientW, '滚动框自身不横向溢出',
+    seriesScroll.scrollW + ' / ' + seriesScroll.clientW);
+  need(seriesScroll.docScrollW <= seriesScroll.docClientW, '1280px 无横向滚动');
+  eq2(seriesScroll.shortMaxH, 'none', '5 章系列不加高度限制');
+
+  await metrics(375, 812, true);
+  await go('#/library?tag=rust', 'library');
+  const seriesMob = await cdp.eval(`(() => {
+    const row = document.querySelector('#view li.row-series');
+    if (!row) return { count: 0 };
+    const sum = row.querySelector('.series-sum');
+    const details = row.querySelector('details');
+    if (details && !details.open) sum.click();
+    const box = row.querySelector('.series-posts');
+    return { count: 1, scrollW: box.scrollWidth, clientW: box.clientWidth,
+             docScrollW: document.documentElement.scrollWidth,
+             docClientW: document.documentElement.clientWidth };
+  })()`);
+  need(seriesMob.count === 1, '375px 有系列行');
+  need(seriesMob.scrollW <= seriesMob.clientW, '375px 滚动框不横向溢出',
+    seriesMob.scrollW + ' / ' + seriesMob.clientW);
+  need(seriesMob.docScrollW <= seriesMob.docClientW, '375px 无横向滚动',
+    seriesMob.docScrollW + ' / ' + seriesMob.docClientW);
+
+  /* ---------- 正文字号 ---------- */
+  console.log('== 正文字号：默认 / 极值 / 刷新保持 / 重置 ==');
+  await metrics(1280, 900, false);
+  await go('#/post/md-writing', 'post', { toc: 'yes' });
+  const size0 = await cdp.eval(`(() => ({
+    varSize: getComputedStyle(document.documentElement).getPropertyValue('--reading-size').trim(),
+    mainFs: getComputedStyle(document.querySelector('.col-main')).fontSize,
+    leftW: Math.round(document.querySelector('#col-left').getBoundingClientRect().width)
+  }))()`);
+  eq2(size0.varSize, '100%', '默认 --reading-size = 100%');
+  eq2(size0.mainFs, '17px', '默认正文字号 17px');
+  const size1 = await cdp.eval(`(() => {
+    document.getElementById('settings-fab').click();
+    const r = document.getElementById('settings-size');
+    r.value = '120';
+    r.dispatchEvent(new Event('input', { bubbles: true }));
+    return { mainFs: getComputedStyle(document.querySelector('.col-main')).fontSize,
+             stored: localStorage.getItem('rec-blog:reading-size'),
+             val: document.getElementById('settings-size-val').textContent,
+             leftW: Math.round(document.querySelector('#col-left').getBoundingClientRect().width) };
+  })()`);
+  eq2(size1.mainFs, '20.4px', '调到 120% → 正文 20.4px');
+  eq2(size1.stored, '120', '写 localStorage');
+  includes2(size1.val, '120%', '面板显示当前值');
+  eq2(size1.leftW, size0.leftW, '左栏宽度不受字号影响');
+  const size2 = await cdp.eval(`(() => {
+    const r = document.getElementById('settings-size');
+    r.value = '90';
+    r.dispatchEvent(new Event('input', { bubbles: true }));
+    return { mainFs: getComputedStyle(document.querySelector('.col-main')).fontSize,
+             stored: localStorage.getItem('rec-blog:reading-size') };
+  })()`);
+  eq2(size2.mainFs, '15.3px', '调到 90% → 正文 15.3px');
+  eq2(size2.stored, '90', '最小也写库');
+  /* 真刷新：localStorage 保持 */
+  await cdp.send('Page.reload');
+  await waitFor(() => cdp.eval(
+    'document.body.getAttribute("data-page") === "post" && document.getElementById("view").children.length > 0'));
+  const size3 = await cdp.eval(`(() => ({
+    stored: localStorage.getItem('rec-blog:reading-size'),
+    mainFs: getComputedStyle(document.querySelector('.col-main')).fontSize
+  }))()`);
+  eq2(size3.stored, '90', '刷新后 localStorage 保持');
+  eq2(size3.mainFs, '15.3px', '刷新后字号保持');
+  const size4 = await cdp.eval(`(() => {
+    document.getElementById('settings-size-reset').click();
+    return { mainFs: getComputedStyle(document.querySelector('.col-main')).fontSize,
+             stored: localStorage.getItem('rec-blog:reading-size') };
+  })()`);
+  eq2(size4.mainFs, '17px', '重置回 17px');
+  eq2(size4.stored, '100', '重置写回 100');
+  const size5 = await cdp.eval(`(() => {
+    const r = document.getElementById('settings-size');
+    r.value = '120';
+    r.dispatchEvent(new Event('input', { bubbles: true }));
+    return { codeFs: getComputedStyle(document.querySelector('.code pre')).fontSize };
+  })()`);
+  eq2(size5.codeFs, '13.2px', '代码块字号固定，不随正文变化');
+  await cdp.eval(`document.getElementById('settings-size-reset').click();`);
+
+  /* ---------- 摘要折叠 ---------- */
+  console.log('== 摘要折叠：点击 / 刷新保持 / 正文不丢 ==');
+  await go('#/post/hello-rec', 'post', { toc: 'yes' });
+  const sum0 = await cdp.eval(`(() => {
+    const card = document.querySelector('.ai-summary');
+    return { open: card.hasAttribute('open'),
+             points: card.querySelectorAll('.ai-points li').length,
+             sumVisible: card.querySelector('summary').checkVisibility() };
+  })()`);
+  eq2(sum0.open, true, '摘要卡默认展开');
+  need(sum0.points >= 1, '摘要卡有要点列表', String(sum0.points));
+  /* details 的 toggle 事件在浏览器里是排队派发的：click 后要等一拍再读库 */
+  const sum1 = await cdp.eval(`(async () => {
+    document.querySelector('.ai-summary > summary').click();
+    await new Promise((r) => setTimeout(r, 60));
+    const card = document.querySelector('.ai-summary');
+    const pts = card.querySelector('.ai-points');
+    return { open: card.hasAttribute('open'),
+             stored: localStorage.getItem('rec-blog:summary-collapsed'),
+             pointsHidden: pts ? !pts.checkVisibility() : true,
+             stillInDom: !!pts,
+             sumVisible: card.querySelector('summary').checkVisibility() };
+  })()`);
+  eq2(sum1.open, false, '点击后折叠');
+  eq2(sum1.stored, '1', '折叠写库');
+  eq2(sum1.pointsHidden, true, '折叠后要点隐藏');
+  eq2(sum1.stillInDom, true, '折叠后摘要文本仍在 DOM（不误删正文）');
+  eq2(sum1.sumVisible, true, '只剩一行标题仍可见');
+  const sum2 = await cdp.eval(`(async () => {
+    const sum = document.querySelector('.ai-summary > summary');
+    sum.focus();
+    const focused = document.activeElement === sum;
+    sum.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    sum.click();
+    await new Promise((r) => setTimeout(r, 60));
+    return { focused: focused,
+             open: document.querySelector('.ai-summary').hasAttribute('open'),
+             stored: localStorage.getItem('rec-blog:summary-collapsed') };
+  })()`);
+  eq2(sum2.focused, true, 'summary 可获得焦点（键盘可达）');
+  eq2(sum2.open, true, '键盘 Enter 可再次展开');
+  eq2(sum2.stored, '0', '展开状态写库');
+  await cdp.eval(`document.querySelector('.ai-summary > summary').click();`);
+  await cdp.send('Page.reload');
+  await waitFor(() => cdp.eval(
+    'document.body.getAttribute("data-page") === "post" && document.getElementById("view").children.length > 0'));
+  const sum3 = await cdp.eval(`(() => ({
+    open: document.querySelector('.ai-summary').hasAttribute('open'),
+    stored: localStorage.getItem('rec-blog:summary-collapsed')
+  }))()`);
+  eq2(sum3.stored, '1', '刷新后库中仍是折叠');
+  eq2(sum3.open, false, '刷新后摘要卡保持折叠');
+  await cdp.eval(`localStorage.removeItem('rec-blog:summary-collapsed');`);
+
+  /* ---------- 目录收起：设置开关与顶栏按钮双向同步 ---------- */
+  console.log('== 目录收起：开关与按钮双向同步 ==');
+  await go('#/post/md-writing', 'post', { toc: 'yes' });
+  const toc0 = await cdp.eval(`(() => ({
+    mainW: Math.round(document.querySelector('#main').getBoundingClientRect().width),
+    leftW: Math.round(document.querySelector('#col-left').getBoundingClientRect().width)
+  }))()`);
+  const toc1 = await cdp.eval(`(() => {
+    document.getElementById('settings-toc').click();
+    return { cls: document.body.classList.contains('toc-collapsed'),
+             leftDisplay: getComputedStyle(document.querySelector('#col-left')).display,
+             mainW: Math.round(document.querySelector('#main').getBoundingClientRect().width),
+             pressed: document.getElementById('toc-toggle').getAttribute('aria-pressed'),
+             stored: localStorage.getItem('recblog-toc-collapsed'),
+             docScrollW: document.documentElement.scrollWidth,
+             docClientW: document.documentElement.clientWidth };
+  })()`);
+  eq2(toc1.cls, true, '开关打开 → body.toc-collapsed');
+  eq2(toc1.leftDisplay, 'none', '左栏收起');
+  need(toc1.mainW > toc0.mainW, '正文变宽（不跳动）', toc0.mainW + ' → ' + toc1.mainW);
+  eq2(toc1.pressed, 'true', '顶栏按钮同步为按下');
+  eq2(toc1.stored, '1', '写库');
+  need(toc1.docScrollW <= toc1.docClientW, '收起后无横向滚动',
+    toc1.docScrollW + ' / ' + toc1.docClientW);
+  const toc2 = await cdp.eval(`(() => {
+    document.getElementById('toc-toggle').click();
+    return { cls: document.body.classList.contains('toc-collapsed'),
+             sw: document.getElementById('settings-toc').checked,
+             stored: localStorage.getItem('recblog-toc-collapsed'),
+             mainW: Math.round(document.querySelector('#main').getBoundingClientRect().width) };
+  })()`);
+  eq2(toc2.cls, false, '按钮点回 → 展开');
+  eq2(toc2.sw, false, '开关同步回来');
+  eq2(toc2.stored, '0', '写库');
+  eq2(toc2.mainW, toc0.mainW, '正文宽度恢复原值');
+
+  /* ---------- 设置面板入口：三角 / Esc / 点外部 / tab / 375 ---------- */
+  console.log('== 设置面板：三角入口 / Esc / 点外部 / 窄屏抽屉 ==');
+  const fab0 = await cdp.eval(`(() => {
+    const fab = document.getElementById('settings-fab');
+    const r = fab.getBoundingClientRect();
+    return { label: fab.getAttribute('aria-label'),
+             expanded: fab.getAttribute('aria-expanded'),
+             controls: fab.getAttribute('aria-controls'),
+             w: Math.round(r.width), h: Math.round(r.height),
+             rightGap: Math.round(window.innerWidth - r.right),
+             hidden: document.getElementById('settings-panel').hasAttribute('hidden'),
+             icon: !!fab.querySelector('svg') };
+  })()`);
+  eq2(fab0.label, '打开设置', '三角 aria-label=打开设置');
+  eq2(fab0.expanded, 'false', '初始 aria-expanded=false');
+  eq2(fab0.controls, 'settings-panel', 'aria-controls 指向面板');
+  need(fab0.icon, '三角是内联 SVG');
+  need(fab0.hidden, '面板默认隐藏');
+  need(fab0.w <= 20 && fab0.h <= 48, '三角形细长、不遮挡正文', fab0.w + '×' + fab0.h);
+  eq2(fab0.rightGap, 0, '贴在屏幕右缘');
+  const fab1 = await cdp.eval(`(() => {
+    document.getElementById('settings-fab').click();
+    const panel = document.getElementById('settings-panel');
+    const r = panel.getBoundingClientRect();
+    return { hidden: panel.hasAttribute('hidden'),
+             expanded: document.getElementById('settings-fab').getAttribute('aria-expanded'),
+             w: Math.round(r.width),
+             rightGap: Math.round(window.innerWidth - r.right),
+             docScrollW: document.documentElement.scrollWidth,
+             docClientW: document.documentElement.clientWidth };
+  })()`);
+  need(!fab1.hidden, '点三角打开面板');
+  eq2(fab1.expanded, 'true', '打开后 aria-expanded=true');
+  need(fab1.w >= 288 && fab1.w <= 352, '面板宽 18–22rem', fab1.w + 'px');
+  eq2(fab1.rightGap, 0, '面板贴右');
+  need(fab1.docScrollW <= fab1.docClientW, '打开面板不撑出横向滚动',
+    fab1.docScrollW + ' / ' + fab1.docClientW);
+  const fab2 = await cdp.eval(`(() => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    return { hidden: document.getElementById('settings-panel').hasAttribute('hidden') };
+  })()`);
+  need(fab2.hidden, 'Esc 关闭面板');
+  const fab3 = await cdp.eval(`(() => {
+    document.getElementById('settings-fab').click();
+    document.querySelector('.col-main h1').click();
+    return { hidden: document.getElementById('settings-panel').hasAttribute('hidden') };
+  })()`);
+  need(fab3.hidden, '点面板外关闭');
+  const fab4 = await cdp.eval(`(() => {
+    document.getElementById('settings-fab').click();
+    document.getElementById('settings-tab-site').click();
+    return { siteShown: !document.getElementById('settings-pane-site').hasAttribute('hidden'),
+             readHidden: document.getElementById('settings-pane-reading').hasAttribute('hidden'),
+             sel: document.getElementById('settings-tab-site').getAttribute('aria-selected'),
+             recentMax: document.getElementById('settings-recent').getAttribute('max') };
+  })()`);
+  need(fab4.siteShown && fab4.readHidden, 'tab 切换阅读/站点');
+  eq2(fab4.sel, 'true', '站点 tab aria-selected=true');
+  eq2(fab4.recentMax, '15', '站点 tab 的最近条数复用同一范围（1–15）');
+  await cdp.eval(`document.getElementById('settings-tab-reading').click();`);
+
+  await metrics(375, 812, true);
+  await go('#/post/md-writing', 'post');
+  const fabMob = await cdp.eval(`(() => {
+    document.getElementById('settings-fab').click();
+    const p = document.getElementById('settings-panel');
+    const r = p.getBoundingClientRect();
+    return { left: Math.round(r.left), right: Math.round(r.right), top: Math.round(r.top),
+             vh: window.innerHeight, vw: window.innerWidth,
+             docScrollW: document.documentElement.scrollWidth,
+             docClientW: document.documentElement.clientWidth };
+  })()`);
+  need(fabMob.left >= 0 && fabMob.right <= fabMob.vw, '375px 面板不出屏',
+    fabMob.left + '–' + fabMob.right + ' / ' + fabMob.vw);
+  need(fabMob.top >= 0 && fabMob.top < fabMob.vh, '375px 面板在视口内（底部抽屉）');
+  need(fabMob.docScrollW <= fabMob.docClientW, '375px 打开面板无横向滚动',
+    fabMob.docScrollW + ' / ' + fabMob.docClientW);
+
+  /* ---------- 首页扳手：只在首页、打开同一面板 ---------- */
+  console.log('== 首页扳手：只在首页显示 ==');
+  await metrics(1280, 900, false);
+  await go('#/home', 'home');
+  const wrench = await cdp.eval(`(() => {
+    const w = document.getElementById('settings-wrench');
+    const q = document.getElementById('quote-btn');
+    const fabCS = getComputedStyle(document.getElementById('settings-fab'));
+    if (!w) return { has: false, fabDisplay: fabCS.display };
+    const wr = w.getBoundingClientRect();
+    const qr = q ? q.getBoundingClientRect() : null;
+    w.click();
+    return { has: true, label: w.getAttribute('aria-label'),
+             radius: getComputedStyle(w).borderRadius,
+             w: Math.round(wr.width), h: Math.round(wr.height),
+             noOverlap: qr ? wr.bottom <= qr.top + 1 : true,
+             opens: !document.getElementById('settings-panel').hasAttribute('hidden'),
+             fabDisplay: fabCS.display };
+  })()`);
+  need(wrench.has, '首页有扳手按钮');
+  eq2(wrench.label, '打开设置', '扳手有 aria-label');
+  need(wrench.radius === '50%', '扳手是正圆', wrench.radius);
+  need(wrench.w >= 52 && wrench.w <= 56, '扳手与一言按钮同尺寸', wrench.w + 'px');
+  need(wrench.noOverlap, '扳手与「一言」按钮不重叠');
+  need(wrench.opens, '扳手打开同一个设置面板');
+  eq2(wrench.fabDisplay, 'none', '首页不显示三角入口');
+  await go('#/post/md-writing', 'post');
+  const wrenchGone = await cdp.eval(`(() => ({
+    has: !!document.getElementById('settings-wrench'),
+    fabDisplay: getComputedStyle(document.getElementById('settings-fab')).display
+  }))()`);
+  need(!wrenchGone.has, '离开首页：扳手卸载干净');
+  eq2(wrenchGone.fabDisplay, 'grid', '其它页：三角入口恢复显示');
+
+  /* ---------- 主题：跟随系统 / 手动覆盖 ---------- */
+  console.log('== 主题：跟随系统与手动覆盖 ==');
+  await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] });
+  await go('#/library', 'library');
+  const theme0 = await cdp.eval(`(() => ({
+    bg: getComputedStyle(document.body).backgroundColor,
+    attr: document.documentElement.getAttribute('data-theme')
+  }))()`);
+  need(theme0.bg !== 'rgb(250, 248, 245)', '系统暗色 → 暗色令牌生效', theme0.bg);
+  eq2(theme0.attr, null, '无 data-theme（跟随系统）');
+  const theme1 = await cdp.eval(`(() => {
+    document.getElementById('settings-fab').click();
+    document.getElementById('settings-tab-site').click();
+    const sel = document.getElementById('settings-theme');
+    sel.value = 'light';
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    return { bg: getComputedStyle(document.body).backgroundColor,
+             attr: document.documentElement.getAttribute('data-theme'),
+             stored: localStorage.getItem('rec-blog:theme') };
+  })()`);
+  eq2(theme1.bg, 'rgb(250, 248, 245)', '手动浅色覆盖系统暗色', theme1.bg);
+  eq2(theme1.attr, 'light', 'data-theme=light');
+  eq2(theme1.stored, 'light', '写 localStorage');
+  const theme2 = await cdp.eval(`(() => {
+    const sel = document.getElementById('settings-theme');
+    sel.value = 'dark';
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    return { bg: getComputedStyle(document.body).backgroundColor };
+  })()`);
+  eq2(theme2.bg, 'rgb(22, 20, 15)', '手动深色', theme2.bg);
+  await cdp.eval(`localStorage.removeItem('rec-blog:theme');
+    const s = document.getElementById('settings-theme');
+    s.value = ''; s.dispatchEvent(new Event('change', { bubbles: true }));`);
+  await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' }] });
+
+  /* ---------- 文章图片：本地图真的加载出来了（不是裂图） ----------
+   * 哪些文章含图从 dist 推导，不写死：以后谁加了图，这条断言自动覆盖到。
+   * DOM 桩与结构断言都量不到「浏览器能不能把图解码出来」，只有这里能。 */
+  console.log('== 文章图片：本地图真加载 ==');
+  const imgPosts = fs.readdirSync(path.join(ROOT, 'dist', 'p'))
+    .filter((f) => f.endsWith('.html'))
+    .filter((f) => fs.readFileSync(path.join(ROOT, 'dist', 'p', f), 'utf8').indexOf('<img ') >= 0)
+    .map((f) => f.replace(/\.html$/, ''))
+    .slice(0, 8);
+  need(imgPosts.length >= 1, '至少有一篇文章带图（否则这条断言是空的）', imgPosts.join(','));
+  await metrics(1280, 900, false);
+  for (const slug of imgPosts) {
+    await go('#/post/' + slug, 'post', { toc: 'yes' });
+    const imgs = await cdp.eval(`(async () => {
+      const list = Array.from(document.querySelectorAll('#view img'));
+      const settled = list.map((img) => img.complete ? Promise.resolve() :
+        new Promise((r) => {
+          img.addEventListener('load', r, { once: true });
+          img.addEventListener('error', r, { once: true });
+        }));
+      await Promise.all(settled);
+      return {
+        list: list.map((img) => ({
+          src: img.getAttribute('src'),
+          w: img.naturalWidth, h: img.naturalHeight,
+          alt: img.getAttribute('alt') || '',
+          cssW: Math.round(img.getBoundingClientRect().width)
+        })),
+        scrollW: document.documentElement.scrollWidth,
+        clientW: document.documentElement.clientWidth
+      };
+    })()`);
+    need(imgs.list.length >= 1, slug + '：文章里有 <img>', String(imgs.list.length));
+    const broken = imgs.list.filter((i) => !(i.w > 0 && i.h > 0));
+    eq2(broken.length, 0, slug + '：每张图都解码出来了（naturalWidth > 0）',
+        broken.map((i) => i.src).join(','));
+    const noAlt = imgs.list.filter((i) => !i.alt.trim());
+    eq2(noAlt.length, 0, slug + '：每张图都有 alt 文本', noAlt.map((i) => i.src).join(','));
+    const ext = imgs.list.filter((i) => /^(https?:)?\/\//.test(i.src || ''));
+    eq2(ext.length, 0, slug + '：图片全是本地路径（运行时零外部请求）',
+        ext.map((i) => i.src).join(','));
+    need(imgs.scrollW <= imgs.clientW + 1, slug + '：1280px 含图文章无横向滚动',
+        imgs.scrollW + ' ≤ ' + imgs.clientW);
+    // 375px：图不撑破页面
+    await metrics(375, 812, true);
+    await go('#/post/' + slug, 'post', { toc: 'yes' });
+    const mob = await cdp.eval(`(() => {
+      const list = Array.from(document.querySelectorAll('#view img'));
+      const vw = document.documentElement.clientWidth;
+      return {
+        over: list.filter((i) => i.getBoundingClientRect().width > vw + 1).length,
+        scrollW: document.documentElement.scrollWidth, clientW: vw
+      };
+    })()`);
+    eq2(mob.over, 0, slug + '：375px 图片不超出视口');
+    need(mob.scrollW <= mob.clientW + 1, slug + '：375px 含图文章无横向滚动',
+        mob.scrollW + ' ≤ ' + mob.clientW);
+    await cdp.shot(path.join(SHOTS, 'post-images-375-' + slug + '.png'));
+    console.log('       %s：%d 张图全部加载', slug, imgs.list.length);
+  }
+
   cdp.close();
   cleanup();
 

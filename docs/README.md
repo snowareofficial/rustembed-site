@@ -28,6 +28,7 @@
 | [`REPO-LAYOUT.md`](REPO-LAYOUT.md) | 仓库目录地图、文件该放哪 |
 | [`NATIVE.md`](NATIVE.md) | SML native 来源、编译、CI、include 预处理、安全 |
 | [`PLAN-SML-NATIVE.md`](PLAN-SML-NATIVE.md) | native include/契约改造的工作量与决策 |
+| [`PERF-BUILD.md`](PERF-BUILD.md) | 构建性能：基线、Out 收集器、没做的及原因 |
 
 ## GUI
 

@@ -7,6 +7,8 @@
  *   [3] 首页一言：只在首页、8 秒自动消失、任意点击 / Esc 关闭、空数据隐藏
  *   [4] 长代码块折叠：阈值取 site.code_collapse_lines、展开/收起、复制取全文
  *   [5] 语法高亮：本地 vendor 的 Prism（MIT），语言齐全，产物里没有外部 CDN
+ *   [6] 系列收拢 + #/series/<id> 目录页（20 章按 order 列出 / 无效 id 空态）
+ *   [10] 本页目录的「读到哪儿」标记：.toc a.cur + ::before 小三角（桌面与抽屉同步）
  *
  * 与另外三个 Node 脚本同样零依赖；真实尺寸 / 真实 CSS 交给 tests/browser-check.js。
  */
@@ -509,11 +511,31 @@ async function main() {
     eq(list.querySelectorAll('.row-series-flat').length, 1, '首页三条里系列只占一条');
     need(!list.querySelector('.series-posts'), '首页不铺开章节（保持紧凑）');
     const link = rows[0].querySelector('a');
-    eq(link && link.getAttribute('href'), '#/post/cxi-1', '系列行点进去是第一章');
+    eq(link && link.getAttribute('href'), '#/series/cxi-series', '首页紧凑系列行点进去是系列目录页');
+
+    const seriesView = await app.rec.viewSeries('cxi-series');
+    const sr = seriesView.querySelectorAll('.rows li.row');
+    eq(sr.length, 20, '系列目录页列出全部 20 章');
+    eq(sr.map((n) => n.querySelector('.row-title').textContent)[0], 'CXi 第 1 章：所有权',
+      '目录按 order 排序：第一章在最前');
+    eq(sr.map((n) => n.querySelector('.row-title').textContent)[19], 'CXi 第 20 章：生命周期',
+      '最后一章排最后');
+    eq(sr[0].querySelector('a.row-title').getAttribute('href'), '#/post/cxi-1',
+      '目录里的章节仍回 #/post/<slug>');
+    has(seriesView.textContent, '共 20 章 · 系列', '系列页写明「共 N 章 · 系列」');
+    has(seriesView.textContent, '目录', '系列页有「目录」段');
+    const chip = seriesView.querySelector('.chips a.chip');
+    eq(chip && chip.getAttribute('href'), '#/post/cxi-1', '「从第一章开始阅读」指向第一章');
+    const crumbBack = seriesView.querySelector('.crumb a');
+    eq(crumbBack && crumbBack.getAttribute('href'), '#/library', '面包屑能回文章库');
+
+    const none = await app.rec.viewSeries('一定没有这个系列');
+    has(none.textContent, '没有这个系列', '无效系列 id 显示空态（不抛、不崩）');
+    eq(none.querySelectorAll('.rows li.row').length, 0, '空态不编造章节');
     const all = app.rec.recent.list(15);
     eq(all.length, 11, '全站 30 篇 → 11 条条目（1 系列 + 10 单篇）');
     eq(all.filter((e) => e.kind === 'series').length, 1, '20 章只算 1 条');
-    console.log('  20 章 → 1 条；默认 3 条；点进去是第一章');
+    console.log('  20 章 → 1 条；默认 3 条；点进去是系列目录页（20 章按 order 列出）');
   }
   {
     /* 条目数 11 > 6：搜索框与滚动区都该出现 */
@@ -593,7 +615,15 @@ async function main() {
     const row = list.childNodes[0];
     has(row.textContent, '系列 · 20 章（本日 20 章）', '系列行写明本日章数');
     eq(row.querySelectorAll('.series-posts li.row').length, 20, '展开后 20 章都在（详情没被破坏）');
-    console.log('  20 章 → 页头 1 项；行内仍可展开看全部章节');
+    const dTitle = row.querySelector('.series-sum a.row-title');
+    eq(dTitle && dTitle.getAttribute('href'), '#/series/cxi-series', '日期页系列标题指向系列目录页');
+    const dBadge = row.querySelector('.series-sum a.series-badge');
+    eq(dBadge && dBadge.getAttribute('href'), '#/series/cxi-series', '日期页「系列 · N 章」徽章也指向目录页');
+    let stopped = false;
+    if (dTitle) dTitle.dispatch('click', { stopPropagation: () => { stopped = true; } });
+    need(stopped, '点系列链接拦住冒泡（不会顺手把 <details> 撑开）');
+    need(!!row.querySelector('details.series-box'), '原有 <details> 快速预览保留');
+    console.log('  20 章 → 页头 1 项；行内仍可展开看全部章节；标题/徽章另开目录页');
   }
   {
     const app = makeApp(bigManifest());
@@ -641,7 +671,11 @@ async function main() {
     const plain = frag.querySelectorAll('li.row').filter((n) => !n.closest('.row-series'));
     eq(plain.length, 10, '10 篇单篇照常显示');
     has(frag.textContent, 'CXi 的 Rust 学习笔记', '系列行保留系列标题');
-    console.log('  书库：20 章 1 条 + 10 单篇，章节完整');
+    const lTitle = seriesRow.querySelector('.series-sum a.row-title');
+    eq(lTitle && lTitle.getAttribute('href'), '#/series/cxi-series', '书库系列标题指向系列目录页');
+    const lBadge = seriesRow.querySelector('.series-sum a.series-badge');
+    eq(lBadge && lBadge.getAttribute('href'), '#/series/cxi-series', '书库徽章也指向系列目录页');
+    console.log('  书库：20 章 1 条 + 10 单篇，章节完整，标题/徽章可进目录页');
   }
   {
     /* 条目 > 12：书库补上滑块与滚动区，同时保留自己的搜索框与 data-filter 过滤 */
@@ -675,6 +709,310 @@ async function main() {
     eq(app.store['rec-blog:library-limit'], '20', '书库条数写自己的 key');
     eq(app.store['rec-blog:recent-limit'], undefined, '书库条数不影响首页条数');
     console.log('  书库：滑块 / 滚动区 / 过滤都不回归');
+  }
+  console.log('== [10] 本页目录：当前阅读位置的小三角 ==');
+  {
+    /* 三个分节的假文章：目录里要能看到「读到哪儿」，滚到第二节三角得跟着走。 */
+    const TOC = [
+      { id: 'sec-1', text: '第一节', level: 2 },
+      { id: 'sec-2', text: '第二节', level: 2 },
+      { id: 'sec-3', text: '第三节', level: 3 }
+    ];
+    const body = '<h2 id="sec-1">第一节</h2><p>第一段</p>'
+      + '<h2 id="sec-2">第二节</h2><p>第二段</p><h3 id="sec-3">第三节</h3>';
+    const app = makeApp(
+      manifest({ posts: [post('toc-post', '2026-06-06', '有分节的文章', ['rust'], '', { toc: TOC })] }),
+      { bodies: { 'p/toc-post.html': body } });
+    await app.rec.started;
+    app.location.hash = '#/post/toc-post';
+    await app.rec.render();
+
+    const nav = app.document.querySelector('#toc-nav');
+    const drawer = app.document.querySelector('#toc-nav-m');
+    eq(nav.querySelectorAll('a').length, 3, '左栏目录 3 个分节');
+    eq(drawer.querySelectorAll('a').length, 3, '抽屉目录同样 3 个（同一份 toc）');
+    const cur0 = nav.querySelector('a.cur');
+    need(!!cur0, '目录里有当前项 .cur');
+    eq(cur0 && cur0.getAttribute('data-anchor'), 'sec-1', '默认高亮第一节（第一个分节）');
+    need(!!drawer.querySelector('a.cur'), '抽屉目录也标出当前项（窄屏同样看得到）');
+
+    /* 桩没有布局，按 spyToc 的判据（top <= 120）手工喂一次真实的滚动位置 */
+    const setTop = (id, top) => {
+      const n = app.document.getElementById(id);
+      if (n) n.getBoundingClientRect = () => ({ top, left: 0, width: 0, height: 0, bottom: top, right: 0 });
+    };
+    setTop('sec-1', -320); setTop('sec-2', 40); setTop('sec-3', 600);
+    app.window.dispatch('scroll');
+    const cur2 = nav.querySelector('a.cur');
+    eq(cur2 && cur2.getAttribute('data-anchor'), 'sec-2', '滚到第二节后三角跟着走');
+    eq(nav.querySelectorAll('a.cur').length, 1, '同一时刻只有一个当前项');
+    eq((drawer.querySelector('a.cur') || {}).getAttribute
+      ? drawer.querySelector('a.cur').getAttribute('data-anchor') : null, 'sec-2',
+      '抽屉里的当前项同步（两份 DOM 一起标）');
+    /* 层级不能丢：第三节是 lv3 */
+    setTop('sec-1', -900); setTop('sec-2', -600); setTop('sec-3', 10);
+    app.window.dispatch('scroll');
+    const cur3 = nav.querySelector('a.cur');
+    has(cur3 ? cur3.className : '', 'lv3', '当前项仍带层级类（lv3）');
+    has(cur3 ? cur3.className : '', 'cur', '当前项仍带 cur 类');
+
+    /* 三角的画法：DOM 桩不算 CSS，这里断言规则本身（真实尺寸交给 browser-check） */
+    const css = readMaybe(path.join(THEME, 'style.css')) || '';
+    const mark = (css.match(/\.toc a\.cur::before\s*\{[^}]*\}/) || [''])[0];
+    need(mark.length > 0, 'style.css 里有 .toc a.cur::before 规则（不只靠左边框区分）');
+    has(mark, 'content: "▸"', '标记是 ▸ 字符（不引图标字体 / 外部资源）');
+    has(mark, 'var(--accent)', '三角用 accent 色');
+    has(mark, 'position: absolute', '三角定位在预留槽里（不把标题文字挤右移）');
+    const tocA = (css.match(/\.toc a \{[^}]*\}/) || [''])[0];
+    has(tocA, 'position: relative', '.toc a 是定位上下文（三角不出容器、不被裁切）');
+    has(tocA, 'padding', '.toc a 左侧预留了恒定槽位');
+    console.log('  目录：默认第一节 → 滚到第二节三角跟着走；抽屉同步；规则 = ▸ / accent / 绝对定位');
+  }
+
+  console.log('== [10] 系列展开：章节多才套滚动框 ==');
+  function seriesOfSize(n) {
+    const posts = [];
+    for (let i = 1; i <= n; i++) {
+      posts.push(post('sc-' + n + '-' + i, '2026-10-20', '第 ' + i + ' 章', ['rust'], 'sc-' + n));
+    }
+    return manifest({
+      posts: posts,
+      series: [{
+        id: 'sc-' + n, title: n + ' 章系列',
+        posts: posts.map((p, i) => ({ slug: p.slug, title: p.title, order: i + 1 }))
+      }]
+    });
+  }
+  {
+    const app = makeApp(bigManifest());           /* 内置 20 章系列 */
+    await app.rec.started;
+    const frag = await app.rec.VIEWS.library({ q: {} });
+    const row = frag.querySelector('li.row-series');
+    need(row.querySelector('.series-posts').classList.contains('series-posts-scroll'),
+      '20 章系列展开后加滚动框类');
+    eq(row.querySelectorAll('.series-posts li.row').length, 20,
+      '滚动框不删章节：20 章都还在');
+    eq(app.rec.settings.seriesScrollAfter, 8, '阈值 8（章数 > 8 才滚动）');
+  }
+  {
+    for (const n of [5, 8]) {
+      const app = makeApp(seriesOfSize(n));
+      await app.rec.started;
+      const frag = await app.rec.VIEWS.library({ q: {} });
+      const row = frag.querySelector('li.row-series');
+      need(!row.querySelector('.series-posts').classList.contains('series-posts-scroll'),
+        n + ' 章不加滚动框（不添滚动条）');
+      eq(row.querySelectorAll('.series-posts li.row').length, n, n + ' 章完整');
+    }
+  }
+  {
+    const app = makeApp(seriesOfSize(9));
+    await app.rec.started;
+    const frag = await app.rec.VIEWS.library({ q: {} });
+    need(frag.querySelector('li.row-series .series-posts').classList.contains('series-posts-scroll'),
+      '9 章（超过阈值）加滚动框');
+  }
+  {
+    /* 滚动框的样式落在真实 CSS 里（DOM 桩不算布局） */
+    const css = readMaybe(path.join(THEME, 'style.css')) || '';
+    has(css, '.series-posts-scroll', '滚动框样式在 style.css');
+    has(css, 'max-height: 26rem', '最大高度 26rem（24–28rem 区间）');
+    has(css, 'overflow-y: auto', '只纵向滚动');
+    has(css, 'overflow-x: hidden', '不横向溢出');
+    has(css, 'scrollbar-width: thin', '细滚动条（不用默认粗条）');
+    console.log('  20 章可滚 / 5、8 章不限制 / 样式在 CSS');
+  }
+  console.log('== [11] 正文字号：范围 / 变量 / 持久化 / 重置 ==');
+  {
+    const app = makeApp(manifest());
+    await app.rec.started;
+    const st = app.rec.settings.size;
+    eq(app.rec.settings.key.size, 'rec-blog:reading-size', 'localStorage 键名');
+    eq(st.def, 100, '默认 100%');
+    eq(st.min, 90, '下限 90%');
+    eq(st.max, 120, '上限 120%');
+    eq(st.step, 5, '步进 5%');
+    eq(st.read(), 100, '无存储时读默认');
+    eq(st.clamp(200), 120, '超过 120 压到 120');
+    eq(st.clamp(50), 90, '低于 90 抬到 90');
+    eq(st.clamp('x'), 100, '非法值回默认');
+    st.write(120);
+    eq(app.store['rec-blog:reading-size'], '120', '写入 localStorage');
+    eq(app.document.documentElement.style.getPropertyValue('--reading-size'), '120%',
+      '字号写进 :root 的 --reading-size（CSS 变量，不散落硬编码）');
+    st.write(90);
+    eq(app.document.documentElement.style.getPropertyValue('--reading-size'), '90%', '最小 90%');
+    st.write(100);
+    eq(app.document.documentElement.style.getPropertyValue('--reading-size'), '100%', '回到默认');
+
+    const range = app.document.querySelector('#settings-size');
+    eq(range.getAttribute('min'), '90', '面板滑条下限 90');
+    eq(range.getAttribute('max'), '120', '面板滑条上限 120');
+    eq(range.getAttribute('step'), '5', '面板滑条步进 5');
+    need(!!range.getAttribute('aria-label'), '滑条有 aria-label');
+    const val = app.document.querySelector('#settings-size-val');
+    has(val.textContent, '100%', '当前值显示在滑条旁');
+    range.value = '115';
+    range.dispatch('input');
+    eq(st.read(), 115, '拖滑条即生效');
+    has(app.document.querySelector('#settings-size-val').textContent, '115%', '当前值跟着变');
+    app.document.querySelector('#settings-size-reset').dispatch('click');
+    eq(st.read(), 100, '重置回默认');
+    eq(app.document.documentElement.style.getPropertyValue('--reading-size'), '100%', '重置后变量回 100%');
+    console.log('  90–120% / CSS 变量 / 持久化 / 重置');
+  }
+  console.log('== [12] 摘要折叠：默认展开 / 刷新保持 / 正文不丢 ==');
+  const sumMan = manifest({
+    posts: [post('sum', '2026-08-08', '摘要测试', null, null, {
+      summary: '这是文章的 lede 摘要。',
+      ai_summary: { source: 'ai', one_line: '一句话摘要', points: ['要点一', '要点二'], keywords: ['rust'] }
+    })]
+  });
+  const sumBodies = { 'p/sum.html': '<p>这是正文段落。</p>' };
+  {
+    const app = makeApp(sumMan, { bodies: sumBodies });
+    await app.rec.started;
+    await renderPost(app, 'sum');
+    const card = app.document.querySelector('.ai-summary');
+    need(!!card, '文章页有摘要卡');
+    need(card.hasAttribute('open'), '摘要卡默认展开');
+    has(card.textContent, '摘要', '卡头有「摘要」标题');
+    has(card.textContent, '一句话摘要', '卡内一句话摘要在');
+    has(card.textContent, '要点一', '卡内要点在');
+    const lede = app.document.querySelector('.lede-box');
+    need(!lede, '有摘要卡时不再重复渲染 lede 摘要');
+    need(!app.document.querySelector('p.lede'), '页面里不再出现第二份摘要文本');
+
+    /* 折叠：浏览器原生 details 去掉 open 并派发 toggle */
+    card.removeAttribute('open');
+    card.dispatch('toggle');
+    eq(app.store['rec-blog:summary-collapsed'], '1', '折叠写库');
+    has(card.textContent, '要点一', '折叠后卡内文本仍在 DOM（不误删正文）');
+
+    /* 刷新：同一 store 起新实例，默认应是折叠态 */
+    const app2 = makeApp(sumMan, { bodies: sumBodies });
+    app2.store['rec-blog:summary-collapsed'] = '1';
+    await app2.rec.started;
+    await renderPost(app2, 'sum');
+    need(!app2.document.querySelector('.ai-summary').hasAttribute('open'), '刷新后摘要卡保持折叠');
+    need(!app2.document.querySelector('.lede-box'), '刷新后也没有重复的 lede 摘要');
+    need(!!app2.document.querySelector('#settings-summary'), '设置面板有摘要折叠开关');
+    /* 预填的 store 在 boot 之后生效：写一次（幂等）让面板控件与存储对齐 */
+    app2.rec.settings.summary.write(true);
+    eq(app2.document.querySelector('#settings-summary').checked, true, '开关状态与存储一致');
+    app2.rec.settings.summary.write(false);
+    eq(app2.document.querySelector('#settings-summary').checked, false, '写 false 后开关同步');
+    console.log('  摘要卡 + lede：默认展开 / 折叠保持 / 文本不丢');
+  }
+  console.log('== [12b] 无摘要卡时 lede 仍可独立折叠 ==');
+  {
+    const plain = manifest({
+      posts: [post('lede-only', '2026-08-08', '只有 lede', null, null, {
+        summary: '这是没有摘要卡的 lede。'
+      })]
+    });
+    const app = makeApp(plain, { bodies: { 'p/lede-only.html': '<p>正文。</p>' } });
+    await app.rec.started;
+    app.location.hash = '#/post/lede-only';
+    await app.rec.render();
+    const box = app.document.querySelector('.lede-box');
+    need(!!box, '没有摘要卡时仍渲染 lede-box');
+    need(box.hasAttribute('open'), 'lede 默认展开');
+    has(app.document.querySelector('p.lede').textContent, '没有摘要卡', 'lede 文本在');
+  }
+  console.log('== [13] 目录收起：按钮与设置开关双向同步 ==');
+  {
+    const app = makeApp(manifest());
+    await app.rec.started;
+    eq(app.rec.settings.key.toc, 'recblog-toc-collapsed', '与顶栏按钮共用同一 key');
+    const sw = app.document.querySelector('#settings-toc');
+    const tt = app.document.querySelector('#toc-toggle');
+    need(!!sw && !!tt, '开关与按钮都在');
+    eq(!!sw.checked, false, '默认展开');
+    eq(tt.getAttribute('aria-pressed'), 'false', '按钮默认未按下');
+
+    sw.checked = true;
+    sw.dispatch('change');
+    need(app.document.body.classList.contains('toc-collapsed'), '开关打开 → 正文变宽');
+    eq(app.store['recblog-toc-collapsed'], '1', '开关写库');
+    eq(tt.getAttribute('aria-pressed'), 'true', '顶栏按钮同步为按下');
+
+    tt.dispatch('click');
+    need(!app.document.body.classList.contains('toc-collapsed'), '按钮再点 → 恢复展开');
+    eq(!!sw.checked, false, '开关同步回来');
+
+    sw.checked = true;
+    sw.dispatch('change');
+    app.document.querySelector('#settings-reset-all').dispatch('click');
+    need(!app.document.body.classList.contains('toc-collapsed'), '恢复默认 → 展开');
+    eq(app.store['recblog-toc-collapsed'], '0', '恢复默认写库');
+    eq(app.store['rec-blog:reading-size'], '100', '恢复默认连字号一起重置');
+    eq(app.store['rec-blog:summary-collapsed'], '0', '恢复默认连摘要一起重置');
+    console.log('  双向同步 / 共用 key / 恢复默认三项齐发');
+  }
+  console.log('== [14] 设置面板：三角 / Esc / 点外部 / 首页扳手 / 主题 ==');
+  {
+    const app = await home();
+    const fab = app.document.querySelector('#settings-fab');
+    const panel = app.document.querySelector('#settings-panel');
+    need(!!fab && !!panel, '右缘三角与面板节点都在');
+    eq(fab.getAttribute('aria-label'), '打开设置', '三角有 aria-label');
+    eq(fab.getAttribute('aria-expanded'), 'false', '初始 aria-expanded=false');
+    eq(fab.getAttribute('aria-controls'), 'settings-panel', 'aria-controls 指向面板');
+    need(!!fab.querySelector('svg'), '三角是内联 SVG');
+    need(panel.hasAttribute('hidden'), '面板默认隐藏');
+
+    fab.dispatch('click', { target: fab, stopPropagation: () => {} });
+    need(!panel.hasAttribute('hidden'), '点三角打开面板');
+    eq(fab.getAttribute('aria-expanded'), 'true', '打开后 aria-expanded=true');
+
+    app.document.dispatch('keydown', { key: 'Escape' });
+    need(panel.hasAttribute('hidden'), 'Esc 关闭面板');
+
+    fab.dispatch('click', { target: fab, stopPropagation: () => {} });
+    need(!panel.hasAttribute('hidden'), '可以再次打开');
+    app.document.dispatch('click', { target: app.document.body });
+    need(panel.hasAttribute('hidden'), '点面板外关闭');
+
+    need(!!bodyHasNode(app.document, 'settings-wrench'), '首页有扳手按钮');
+    const wrench = bodyHasNode(app.document, 'settings-wrench');
+    eq(wrench.getAttribute('aria-label'), '打开设置', '扳手有 aria-label');
+    wrench.dispatch('click', { target: wrench, stopPropagation: () => {} });
+    need(!panel.hasAttribute('hidden'), '扳手打开同一个面板');
+
+    app.rec.settings.tab('site');
+    need(!app.document.querySelector('#settings-pane-site').hasAttribute('hidden'), '站点 tab 显示');
+    need(app.document.querySelector('#settings-pane-reading').hasAttribute('hidden'), '阅读 tab 隐藏');
+    eq(app.document.querySelector('#settings-tab-site').getAttribute('aria-selected'), 'true',
+      '站点 tab aria-selected=true');
+    const recent = app.document.querySelector('#settings-recent');
+    eq(recent.getAttribute('max'), '15', '站点 tab 的最近条数复用首页滑条范围');
+    recent.value = '9';
+    recent.dispatch('input');
+    eq(app.store['rec-blog:recent-limit'], '9', '写的是同一个 key（不造第二套）');
+
+    app.location.hash = '#/library';
+    await app.rec.render();
+    need(!bodyHasNode(app.document, 'settings-wrench'), '离开首页：扳手卸载干净');
+    need(!!app.document.querySelector('#settings-fab'), '其它页：三角入口还在');
+    eq(app.document.body.getAttribute('data-page'), 'library', '路由切换后 data-page 更新');
+  }
+  {
+    /* 主题：空 = 跟随系统（移除 data-theme），手动值落 data-theme + localStorage */
+    const app = makeApp(manifest());
+    await app.rec.started;
+    eq(app.rec.settings.key.theme, 'rec-blog:theme', '主题 key');
+    eq(app.rec.settings.theme.read(), '', '默认跟随系统');
+    eq(app.document.documentElement.getAttribute('data-theme'), null, '默认无 data-theme');
+    app.rec.settings.theme.write('dark');
+    eq(app.store['rec-blog:theme'], 'dark', '深色写库');
+    eq(app.document.documentElement.getAttribute('data-theme'), 'dark', '深色落 data-theme');
+    eq(app.document.querySelector('#settings-theme').value, 'dark', '下拉框同步');
+    app.rec.settings.theme.write('light');
+    eq(app.document.documentElement.getAttribute('data-theme'), 'light', '浅色落 data-theme');
+    app.rec.settings.theme.write('');
+    eq(app.document.documentElement.getAttribute('data-theme'), null, '空值移除（回到跟随系统）');
+    console.log('  主题：跟随系统 / 浅色 / 深色 + 下拉同步');
   }
 }
 
