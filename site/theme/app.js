@@ -1248,13 +1248,17 @@
       ? document.createElementNS('http://www.w3.org/2000/svg', 'svg')
       : el('svg');
     mark.setAttribute('class', 'quote-btn-svg');
-    mark.setAttribute('viewBox', '0 0 1024 1024');
+    mark.setAttribute('viewBox', '0 0 1300 1300');
     mark.setAttribute('aria-hidden', 'true');
     mark.setAttribute('fill', 'currentColor');
     var glyph = document.createElementNS
       ? document.createElementNS('http://www.w3.org/2000/svg', 'path')
       : el('path');
     glyph.setAttribute('d', 'M1022.476 0v439.434c1.869 63.227-7.249 122.599-27.345 178.114s-48.267 104.363-84.73 146.559c-36.345 42.070-79.822 77.018-130.664 104.835-50.725 27.699-105.769 45.463-165.141 53.057v-189.564c72.809-24.895 122.599-61.704 149.363-110.56 26.882-48.856 40.201-108.692 40.201-179.512h-189.557v-442.356h407.872zM410.66 0v439.434c1.987 63.227-7.131 122.599-27.228 178.115-20.104 55.515-48.385 104.363-84.73 146.559-36.345 42.070-79.938 77.018-130.664 104.835-50.725 27.699-105.887 45.463-165.258 53.057v-189.564c72.809-24.895 122.599-61.704 149.363-110.56 26.882-48.856 40.201-108.692 40.201-179.512h-189.564v-442.356h407.88z');
+    /* path bbox 约 x:2.78–1022.7（中心 512.7），y:0–922（中心 461）；
+       viewBox 1300 的中心是 650，故平移 (137.25, 189) 让引号视觉居中。
+       同时 1300 的视框让引号在 30px 图标里比 1024 时略小，和扳手观感一致。 */
+    glyph.setAttribute('transform', 'translate(137.25 189)');
     mark.appendChild(glyph);
     btn.appendChild(mark);
     if (btn.addEventListener) {
@@ -1416,16 +1420,13 @@
     var svg = document.createElementNS
       ? document.createElementNS('http://www.w3.org/2000/svg', 'svg')
       : el('svg');
-    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('viewBox', '0 0 1024 1024');
     svg.setAttribute('aria-hidden', 'true');
-    svg.setAttribute('fill', 'none');
-    svg.setAttribute('stroke', 'currentColor');
-    svg.setAttribute('stroke-width', '1.7');
-    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('fill', 'currentColor');
     var path = document.createElementNS
       ? document.createElementNS('http://www.w3.org/2000/svg', 'path')
       : el('path');
-    path.setAttribute('d', 'M14.7 6.3a4.5 4.5 0 0 0 5.6 5.6l-9.9 9.9a2.4 2.4 0 0 1-1.7.7H6.3v-2.4c0-.6.2-1.3.7-1.7z');
+    path.setAttribute('d', 'M 737.099 331.708 c 10.6803 10.6906 28.0228 10.6906 38.7236 0 l 151.646 -119.387 C 966.755 332.021 901.57 460.912 781.86 500.197 c -42.4714 13.9489 -88.106 15.104 -131.243 3.32083 l -147.098 147.098 c 33.2165 121.542 -38.4 246.956 -159.922 280.162 c -43.1473 11.8047 -88.8033 10.6394 -131.295 -3.30957 l 119.387 -151.646 c 10.6906 -10.7008 10.6906 -28.0443 0 -38.7236 l -44.7713 -44.7816 c -10.6906 -10.7008 -28.0433 -10.7223 -38.7441 -0.02048 c 0 0 -0.01024 0 -0.01024 0.02048 l -151.646 119.398 C 57.2518 692.004 122.456 563.134 242.156 523.848 c 42.5021 -13.9377 88.1695 -15.0835 131.317 -3.27885 l 147.098 -147.097 C 487.311 251.961 558.867 126.495 680.388 93.2362 c 43.137 -11.8149 88.8136 -10.6691 131.327 3.27885 L 692.338 248.161 c -10.7008 10.6803 -10.7008 28.0115 -0.021504 38.7133 c 0 0 0.021504 0.01024 0.021504 0.021504 L 737.099 331.708 Z');
     svg.appendChild(path);
     b.appendChild(svg);
     if (b.addEventListener) {
@@ -2698,9 +2699,11 @@
     if (p.updated && p.updated !== p.date) by.appendChild(el('span', '', '更新于 ' + p.updated));
     f.appendChild(by);
 
-    /* lede 摘要与摘要卡共用同一折叠状态：折叠后只剩一行「文章摘要」。
-       默认展开；没有摘要时保持原来的空 p.lede（不套 details，不添空行）。 */
-    if (shownSummary) {
+    /* 有构建期摘要卡时，不再渲染一份同样的 lede，避免两段摘要重复。
+       没有摘要卡时，lede 仍可单独折叠；两者共用同一折叠状态。 */
+    if (p.ai_summary) {
+      f.appendChild(summaryCard(p.ai_summary));
+    } else if (shownSummary) {
       var ledeBox = el('details', 'lede-box');
       ledeBox.appendChild(el('summary', 'lede-sum', '文章摘要'));
       ledeBox.appendChild(el('p', 'lede', shownSummary));
@@ -2710,7 +2713,6 @@
     } else {
       f.appendChild(el('p', 'lede', ''));
     }
-    if (p.ai_summary) f.appendChild(summaryCard(p.ai_summary));
 
     /* 文章形态：只由真实内容决定（标签 / 是否有图集块） */
     var form = 'reading';

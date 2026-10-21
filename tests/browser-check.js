@@ -1255,7 +1255,7 @@ async function main() {
   need(wrench.has, '首页有扳手按钮');
   eq2(wrench.label, '打开设置', '扳手有 aria-label');
   need(wrench.radius === '50%', '扳手是正圆', wrench.radius);
-  need(wrench.w >= 30 && wrench.w <= 38, '扳手小而协调', wrench.w + 'px');
+  need(wrench.w >= 52 && wrench.w <= 56, '扳手与一言按钮同尺寸', wrench.w + 'px');
   need(wrench.noOverlap, '扳手与「一言」按钮不重叠');
   need(wrench.opens, '扳手打开同一个设置面板');
   eq2(wrench.fabDisplay, 'none', '首页不显示三角入口');
@@ -1301,6 +1301,67 @@ async function main() {
     const s = document.getElementById('settings-theme');
     s.value = ''; s.dispatchEvent(new Event('change', { bubbles: true }));`);
   await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' }] });
+
+  /* ---------- 文章图片：本地图真的加载出来了（不是裂图） ----------
+   * 哪些文章含图从 dist 推导，不写死：以后谁加了图，这条断言自动覆盖到。
+   * DOM 桩与结构断言都量不到「浏览器能不能把图解码出来」，只有这里能。 */
+  console.log('== 文章图片：本地图真加载 ==');
+  const imgPosts = fs.readdirSync(path.join(ROOT, 'dist', 'p'))
+    .filter((f) => f.endsWith('.html'))
+    .filter((f) => fs.readFileSync(path.join(ROOT, 'dist', 'p', f), 'utf8').indexOf('<img ') >= 0)
+    .map((f) => f.replace(/\.html$/, ''))
+    .slice(0, 8);
+  need(imgPosts.length >= 1, '至少有一篇文章带图（否则这条断言是空的）', imgPosts.join(','));
+  await metrics(1280, 900, false);
+  for (const slug of imgPosts) {
+    await go('#/post/' + slug, 'post', { toc: 'yes' });
+    const imgs = await cdp.eval(`(async () => {
+      const list = Array.from(document.querySelectorAll('#view img'));
+      const settled = list.map((img) => img.complete ? Promise.resolve() :
+        new Promise((r) => {
+          img.addEventListener('load', r, { once: true });
+          img.addEventListener('error', r, { once: true });
+        }));
+      await Promise.all(settled);
+      return {
+        list: list.map((img) => ({
+          src: img.getAttribute('src'),
+          w: img.naturalWidth, h: img.naturalHeight,
+          alt: img.getAttribute('alt') || '',
+          cssW: Math.round(img.getBoundingClientRect().width)
+        })),
+        scrollW: document.documentElement.scrollWidth,
+        clientW: document.documentElement.clientWidth
+      };
+    })()`);
+    need(imgs.list.length >= 1, slug + '：文章里有 <img>', String(imgs.list.length));
+    const broken = imgs.list.filter((i) => !(i.w > 0 && i.h > 0));
+    eq2(broken.length, 0, slug + '：每张图都解码出来了（naturalWidth > 0）',
+        broken.map((i) => i.src).join(','));
+    const noAlt = imgs.list.filter((i) => !i.alt.trim());
+    eq2(noAlt.length, 0, slug + '：每张图都有 alt 文本', noAlt.map((i) => i.src).join(','));
+    const ext = imgs.list.filter((i) => /^(https?:)?\/\//.test(i.src || ''));
+    eq2(ext.length, 0, slug + '：图片全是本地路径（运行时零外部请求）',
+        ext.map((i) => i.src).join(','));
+    need(imgs.scrollW <= imgs.clientW + 1, slug + '：1280px 含图文章无横向滚动',
+        imgs.scrollW + ' ≤ ' + imgs.clientW);
+    // 375px：图不撑破页面
+    await metrics(375, 812, true);
+    await go('#/post/' + slug, 'post', { toc: 'yes' });
+    const mob = await cdp.eval(`(() => {
+      const list = Array.from(document.querySelectorAll('#view img'));
+      const vw = document.documentElement.clientWidth;
+      return {
+        over: list.filter((i) => i.getBoundingClientRect().width > vw + 1).length,
+        scrollW: document.documentElement.scrollWidth, clientW: vw
+      };
+    })()`);
+    eq2(mob.over, 0, slug + '：375px 图片不超出视口');
+    need(mob.scrollW <= mob.clientW + 1, slug + '：375px 含图文章无横向滚动',
+        mob.scrollW + ' ≤ ' + mob.clientW);
+    await cdp.shot(path.join(SHOTS, 'post-images-375-' + slug + '.png'));
+    console.log('       %s：%d 张图全部加载', slug, imgs.list.length);
+  }
 
   cdp.close();
   cleanup();

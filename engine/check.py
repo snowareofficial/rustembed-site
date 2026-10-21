@@ -220,7 +220,37 @@ need('src="vendor/prism/prism.js"' in idx, "index.html 没有引用本地 prism.
 _ext = re.findall(r'(?:src|href)="(?:https?:)?//[^"]+"', idx)
 need(not _ext, "index.html 出现了外部资源引用（运行时零外部请求）：%s" % " ".join(_ext))
 
-# 成员头像：源里有就该落成产物，manifest 里写了就该有文件
+# 图片不变量：产物里每个 <img src> 都必须是本地、存在、非 0 字节、格式没写错。
+# 外链在 build.py 的 check_external_images 就已经拦掉了，这里兜第二道
+# （防的是「构建漏拷 / 提交漏带 / 有人手改产物」）。
+sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
+import imgcheck  # noqa: E402
+
+_IMG_DIRS = ("p", "w", "pages", "topics", "services")
+_img_checked = 0
+
+
+def _check_img(ref, where):
+    global _img_checked
+    if imgcheck.is_external(ref):
+        need(False, "%s 出现外链图片（运行时零外部请求）：%s" % (where, ref))
+        return
+    p = DIST / ref
+    if not p.exists():
+        need(False, "%s 引用的图片不在产物里：%s（源图漏提交或构建漏拷贝）" % (where, ref))
+        return
+    pr = imgcheck.probe(p)
+    _img_checked += 1
+    if pr["zero"]:
+        need(False, "%s 引用的图片是 0 字节：%s" % (where, ref))
+    elif pr["html_page"]:
+        need(False, "%s 引用的不是图片而是网页：%s" % (where, ref))
+    elif pr["bad_magic"]:
+        need(False, "%s 引用的图片扩展名与内容不符（%s 实际是 %s）：%s"
+             % (where, pr["want"], pr["fmt"], ref))
+
+
+# 成员头像：源里有就该落成产物，manifest 里写了就必须是本地路径且不是坏图
 _AVATAR_EXT = (".jpg", ".jpeg", ".png", ".webp")
 
 
@@ -236,7 +266,20 @@ for mem in m["members"]:
     if _has_avatar_source(mem["id"]):
         need(mem.get("avatar"), "成员 %s 目录里放着头像，manifest.avatar 却是空的" % mem["id"])
     if mem.get("avatar"):
-        need((DIST / mem["avatar"]).exists(), "成员 %s 的头像不在产物里：%s" % (mem["id"], mem["avatar"]))
+        _check_img(mem["avatar"], "manifest.json 成员 %s 的头像" % mem["id"])
+
+for _d in _IMG_DIRS:
+    for _html in sorted((DIST / _d).glob("*.html")):
+        try:
+            _text = _html.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        for _line, _ref in imgcheck.html_image_refs(_text):
+            _check_img(_ref, "%s:%d" % (_html.relative_to(DIST).as_posix(), _line))
+# 首页壳也走同一套（站名 logo 是静态注入的 <img>）
+for _line, _ref in imgcheck.html_image_refs(idx):
+    _check_img(_ref, "dist/index.html:%d" % _line)
+print("图片引用 %d 处：全部本地、存在、非 0 字节、格式一致" % _img_checked)
 
 print("文章 %d / 项目 %d / 成员 %d / 资源 %d / 周报 %d / 文档 %d / 黄页 %d"
       % (len(m["posts"]), len(m["projects"]), len(m["members"]),

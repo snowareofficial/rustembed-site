@@ -897,7 +897,12 @@ body[data-page="home"] .layout { grid-template-columns: minmax(0, 1fr); }
   background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent);
   border-radius: var(--radius);
 }
-.ai-head { display: flex; align-items: center; gap: .4rem; margin: 0 0 .3rem; font-size: 12px; color: var(--ink-mute); }
+.ai-head { display: flex; align-items: center; gap: .4rem; margin: 0 0 .3rem; font-size: 12px; color: var(--ink-mute); cursor: pointer; }
+.ai-head::after {
+  content: "▸"; margin-left: auto; font-size: 11px; line-height: 1;
+  color: var(--ink-mute); transition: transform .15s ease;
+}
+.ai-summary[open] > .ai-head::after { transform: rotate(90deg); }
 .ai-src { font-size: 11px; border: 1px solid var(--line); border-radius: 3px; padding: 0 .25rem; }
 .ai-line { margin: 0 0 .4rem; font-size: 14px; color: var(--ink); }
 .ai-points { margin: 0 0 .4rem; padding-left: 1.1rem; font-size: 13px; color: var(--ink-soft); }
@@ -1114,14 +1119,16 @@ body[data-page="home"] .settings-fab { display: none; }
 
 /* 首页扳手：只在首页挂载，位于「一言」按钮上方，不重叠 */
 .settings-wrench {
-  position: fixed; right: 1.1rem; bottom: 4.7rem; z-index: 70;
-  display: grid; place-items: center; width: 34px; height: 34px; padding: 0;
+  position: fixed; right: 1.1rem;
+  /* 与一言按钮同一边距：底边 1.1rem + 按钮 54px + 中间间隔 1.1rem */
+  bottom: calc(1.1rem + 54px + 1.1rem); z-index: 70;
+  display: grid; place-items: center; width: 54px; height: 54px; padding: 0;
   border-radius: 50%; cursor: pointer;
   background: var(--surface); color: var(--ink-mute);
   border: 1px solid var(--line-strong);
 }
 .settings-wrench:hover { color: var(--accent); border-color: var(--accent); }
-.settings-wrench svg { width: 17px; height: 17px; display: block; }
+.settings-wrench svg { width: 30px; height: 30px; display: block; fill: currentColor; }
 
 /* 窄屏：面板变底部抽屉（不遮整页），扳手随一言按钮一起缩进 */
 @media (max-width: 640px) {
@@ -1130,5 +1137,8 @@ body[data-page="home"] .settings-fab { display: none; }
     max-height: 72vh; border-left: 0; border-top: 1px solid var(--line-strong);
     border-radius: var(--radius) var(--radius) 0 0;
   }
-  .settings-wrench { right: .8rem; bottom: 4.4rem; width: 32px; height: 32px; }
+  .settings-wrench {
+    right: .8rem; bottom: calc(.8rem + 52px + .8rem);
+    width: 52px; height: 52px;
+  }
 }
