@@ -130,7 +130,7 @@ input, textarea, select { font-family: inherit; color: var(--ink); }
   font-size: 12.5px;
   line-height: 1.7;
 }
-.col-main { min-width: 0; max-width: var(--measure); width: 100%; margin: 0 auto; font-size: var(--reading-size); }
+.col-main { min-width: 0; max-width: var(--measure); width: 100%; margin: 0 auto; }
 
 /* 没有分节标题的页面：左栏不占位，但仍保留等宽空列，避免正文偏左 */
 body[data-toc="none"] .layout { grid-template-columns: 13rem minmax(0, 1fr) 13rem; }
@@ -547,6 +547,7 @@ body[data-page="members"], body[data-page="member"],
 body[data-page="services"], body[data-page="service"] { --measure: 50rem; }
 /* 文章正文单独放宽；首页/索引页保持原来的 38rem 版心与行距 */
 body[data-page="post"] { --measure: 42rem; }
+body[data-page="post"] .col-main { font-size: var(--reading-size); }
 body[data-page="post"] .col-main h1 { font-size: clamp(1.53em, 4vw, 2em); }
 body[data-page="post"] .col-main h2 { font-size: 1.32em; }
 body[data-page="post"] .col-main h3 { font-size: 1.08em; }
