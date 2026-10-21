@@ -760,6 +760,17 @@ async function main() {
     has(cur3 ? cur3.className : '', 'lv3', '当前项仍带层级类（lv3）');
     has(cur3 ? cur3.className : '', 'cur', '当前项仍带 cur 类');
 
+    /* 回归：从有目录文章切到无目录页后，旧的 scroll 监听不能再访问空 tocLinks[0] */
+    app.location.hash = '#/library';
+    await app.rec.render();
+    let scrollThrew = false;
+    try {
+      app.window.dispatch('scroll');
+    } catch (e) {
+      scrollThrew = true;
+    }
+    need(!scrollThrew, '切到无目录页后滚动不再因空 tocLinks 抛错');
+
     /* 三角的画法：DOM 桩不算 CSS，这里断言规则本身（真实尺寸交给 browser-check） */
     const css = readCss(THEME);
     const mark = (css.match(/\.toc a\.cur::before\s*\{[^}]*\}/) || [''])[0];
