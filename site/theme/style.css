@@ -19,7 +19,7 @@
   --ok: #2f6b4f;
   --warn: #8a5a12;
   /* 版心：--measure 一处定义，网格中栏与正文宽度共用它 */
-  --measure: 42rem;
+  --measure: 38rem;
   /* 正文字号：只作用于 .col-main（默认 100% = body 的 17px）。
      设置面板写的是 documentElement 上的同名属性，这里给默认值；
      代码块字号固定（.code pre / .col-main code），不随它变化。 */
@@ -131,7 +131,7 @@ input, textarea, select { font-family: inherit; color: var(--ink); }
   font-size: 12.5px;
   line-height: 1.7;
 }
-.col-main { min-width: 0; max-width: var(--measure); width: 100%; margin: 0 auto; font-size: var(--reading-size); line-height: var(--reading-line); }
+.col-main { min-width: 0; max-width: var(--measure); width: 100%; margin: 0 auto; font-size: var(--reading-size); }
 
 /* 没有分节标题的页面：左栏不占位，但仍保留等宽空列，避免正文偏左 */
 body[data-toc="none"] .layout { grid-template-columns: 13rem minmax(0, 1fr) 13rem; }
@@ -546,6 +546,8 @@ li.when::before {
 body[data-page="projects"], body[data-page="project"],
 body[data-page="members"], body[data-page="member"],
 body[data-page="services"], body[data-page="service"] { --measure: 50rem; }
+/* 文章正文单独放宽；首页/索引页保持原来的 38rem 版心与行距 */
+body[data-page="post"] { --measure: 42rem; }
 body[data-form="code"], body[data-form="tutorial"] { --measure: 44rem; }
 body[data-form="photo"] { --measure: 42rem; }
 body[data-form="code"] .col-main, body[data-form="tutorial"] .col-main { font-size: 16.5px; }
