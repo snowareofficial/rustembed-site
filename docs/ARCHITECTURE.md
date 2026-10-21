@@ -38,7 +38,7 @@ rec-blog/
 │  │  ├─ resources/<id>.sml      #   资源库
 │  │  ├─ weekly/YYYY-Wnn.sml     #   周报 / 月刊
 │  │  └─ contracts/*.sml         #   内容契约（字段即文档）
-│  ├─ theme/                     #   前端壳（index.html / app.js / style.css）
+│  ├─ theme/                     #   前端壳（index.html + css/ + js/；顺序见 index.html）
 │  ├─ fonts/                     #   自托管字体：src/ 与 subset/ 均 gitignore，
 │  │                             #   CI 解密加密包（FONT_PASSWORD）后构建期子集化
 │  ├─ meta/repos.json            #   仓库元数据缓存（入库）
@@ -121,7 +121,7 @@ rec-blog/
 ### 3.1 标签页里的系列（`#/library?tag=x`）
 
 标签页把「同一 series 的多章」收成**一条带标记的文章行**（`<details>` 展开即全部章节）。
-判定口径（2026-10-20 定，`site/theme/app.js: viewLibrary()`）：
+判定口径（2026-10-20 定，`site/theme/js/views.js: viewLibrary()`）：
 
 - **系列总章数 > 1 就合并**，与「这一章是否命中当前标签」无关。系列是「一份文档」，
   组里有一章命中就说明这组与该标签相关，整组呈现比只露一章有用；
@@ -171,7 +171,7 @@ rec-blog/
   → 产出 manifest.json / search-index.json / sitemap.xml / feed.xml → dist/
 ```
 
-前端：`index.html` 壳 + `app.js` 拉 `manifest.json` 做路由（首页/文章/项目/成员/资源/周报/群/搜索/标签归档），正文按 URL fetch 预渲染好的 HTML 片段；**投稿文本一律走文本节点，只有构建期预渲染的片段允许 `innerHTML`（构建侧已统一转义 + URL 白名单，`engine/lib/urls.py`）**。
+前端：`index.html` 壳 + `site/theme/js/`（core 建 `window.REC` 命名空间 → 各模块挂导出 → app.js 入口装配启动）拉 `manifest.json` 做路由（首页/文章/项目/成员/资源/周报/群/搜索/标签归档），正文按 URL fetch 预渲染好的 HTML 片段；**投稿文本一律走文本节点，只有构建期预渲染的片段允许 `innerHTML`（构建侧已统一转义 + URL 白名单，`engine/lib/urls.py`）**。
 
 ## 7. SML 工具链调研结论与改动建议
 

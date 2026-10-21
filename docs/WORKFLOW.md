@@ -46,14 +46,17 @@ rec-blog/
 │  │  ├─ weekly/<期>.sml      周报
 │  │  ├─ summaries/<slug>.json  可选：AI 摘要产物（有就用，没有退回抽取式）
 │  │  └─ contracts/*.sml      内容契约（字段即文档；改契约=改校验=改契约页）
-│  ├─ theme/                  index.html / app.js / style.css（hash 路由 SPA，零构建）
+│  ├─ theme/                  index.html + css/ + js/（hash 路由 SPA，零构建；顺序见 index.html）
 │  ├─ fonts/                  src/ 与 subset/ 均 gitignore；CI 解密加密包（FONT_PASSWORD）再子集化
 │  └─ meta/repos.json         仓库元数据缓存（入库）
 │
 ├─ tests/                     前端验收（Node）
 │  ├─ smoke.js                路由的 DOM 冒烟
-│  ├─ browser-check.js        无头 Edge 检查：布局/溢出/对比度/摘要/导图拖动
-│  ├─ dom-stub.js             DOM 桩（跑 app.js 视图用）
+│  ├─ theme-files.js          多文件加载唯一事实源（解析 index.html 的 link/script 顺序）
+│  ├─ browser-check.js        无头 Edge 检查 runner（布局/溢出/对比度/摘要/导图拖动）
+│  ├─ browser_lib.js          CDP 连接 / 起浏览器 / 断言工具 / 报告
+│  ├─ browser_checks_*.js     检查用例（layout / pages / reading / settings 四模块）
+│  ├─ dom-stub.js             DOM 桩（跑 js/ 多文件视图用，theme-files.js 按 index.html 顺序加载）
 │  └─ gui_api_test.py         写作台 API 回归（Python 标准库，起真实服务）
 │
 ├─ deploy/                    自托管：entrypoint / build / rebuild / gitee-webhook / fonts-crypt
