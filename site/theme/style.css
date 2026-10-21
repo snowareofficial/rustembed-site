@@ -19,11 +19,12 @@
   --ok: #2f6b4f;
   --warn: #8a5a12;
   /* 版心：--measure 一处定义，网格中栏与正文宽度共用它 */
-  --measure: 38rem;
+  --measure: 42rem;
   /* 正文字号：只作用于 .col-main（默认 100% = body 的 17px）。
      设置面板写的是 documentElement 上的同名属性，这里给默认值；
      代码块字号固定（.code pre / .col-main code），不随它变化。 */
   --reading-size: 100%;
+  --reading-line: 1.8;
   --radius: 6px;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", "Courier New", monospace;
 }
@@ -82,6 +83,7 @@ body {
   font-family: "Times New Roman", "Liberation Serif", "Nimbus Roman", "MiSans",
                system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", serif;
   overflow-wrap: anywhere;
+  line-height: var(--reading-line);
 }
 
 a { color: var(--accent); text-decoration: none; }
@@ -129,11 +131,13 @@ input, textarea, select { font-family: inherit; color: var(--ink); }
   font-size: 12.5px;
   line-height: 1.7;
 }
-.col-main { min-width: 0; max-width: var(--measure); width: 100%; margin: 0 auto; font-size: var(--reading-size); }
+.col-main { min-width: 0; max-width: var(--measure); width: 100%; margin: 0 auto; font-size: var(--reading-size); line-height: var(--reading-line); }
 
-/* 没有分节标题的页面：左栏不占位（否则只剩一句「本页没有分节标题」） */
-body[data-toc="none"] .layout { grid-template-columns: minmax(0, 1fr) 13rem; }
+/* 没有分节标题的页面：左栏不占位，但仍保留等宽空列，避免正文偏左 */
+body[data-toc="none"] .layout { grid-template-columns: 13rem minmax(0, 1fr) 13rem; }
 body[data-toc="none"] .col-left { display: none; }
+body[data-toc="none"] .col-main { grid-column: 2; }
+body[data-toc="none"] .col-right { grid-column: 3; }
 
 /* ---------- 5. 左栏：本文导航 ---------- */
 .col-left-inner { padding-right: .4rem; }
@@ -191,11 +195,11 @@ body[data-toc="none"] .col-left { display: none; }
 
 /* ---------- 7. 中栏：正文排版 ---------- */
 .col-main > *:first-child { margin-top: 0; }
-.col-main h1 { font-size: clamp(26px, 4vw, 34px); line-height: 1.35; margin: 0 0 .55rem; }
-.col-main h2 { font-size: 22.4px; line-height: 1.45; margin: 2.2rem 0 .6rem; }
-.col-main h3 { font-size: 18.4px; line-height: 1.5; margin: 1.8rem 0 .5rem; }
-.col-main h4 { font-size: 16px; margin: 1.4rem 0 .4rem; }
-.col-main h5, .col-main h6 { font-size: 15px; margin: 1.2rem 0 .3rem; color: var(--ink-soft); }
+.col-main h1 { font-size: clamp(1.53em, 4vw, 2em); line-height: 1.35; margin: 0 0 .55rem; }
+.col-main h2 { font-size: 1.32em; line-height: 1.45; margin: 2.2rem 0 .6rem; }
+.col-main h3 { font-size: 1.08em; line-height: 1.5; margin: 1.8rem 0 .5rem; }
+.col-main h4 { font-size: .94em; margin: 1.4rem 0 .4rem; }
+.col-main h5, .col-main h6 { font-size: .88em; margin: 1.2rem 0 .3rem; color: var(--ink-soft); }
 .col-main p { margin: 0 0 .75em; }
 .col-main ul, .col-main ol { margin: 0 0 1.1em; padding-left: 1.4rem; }
 .col-main li { margin-bottom: .25rem; }
@@ -217,7 +221,7 @@ body[data-toc="none"] .col-left { display: none; }
 .lede {
   margin: 0 0 1.6rem; padding-left: .85rem;
   border-left: 2px solid var(--line-strong);
-  color: var(--ink-soft); font-size: 17px;
+  color: var(--ink-soft); font-size: 1em; line-height: var(--reading-line);
 }
 .crumb { font-size: 12.5px; color: var(--ink-mute); margin: 0 0 .5rem; }
 .crumb a { color: var(--ink-mute); }
@@ -638,6 +642,12 @@ body[data-page="home"] { --measure: 64rem; }
 
 @media (max-width: 1039px) {
   .layout { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 1.4rem 1.1rem 3rem; }
+  body[data-toc="none"] .col-main,
+  body[data-toc="none"] .col-right,
+  body.toc-collapsed .col-main,
+  body.toc-collapsed .col-right { grid-column: auto; }
+  body[data-toc="none"] .layout,
+  body.toc-collapsed .layout { grid-template-columns: minmax(0, 1fr); }
   .col-left { display: none; }
   .col-main { margin: 0 auto; }
   .mobile-toc {
@@ -694,7 +704,7 @@ body[data-page="home"] { --measure: 64rem; }
 body[data-page="home"] .layout { grid-template-columns: minmax(0, 1fr); }
 body[data-page="home"] .col-right { display: none; }
 body[data-page="home"] .col-left { display: none; }
-body[data-page="home"] .col-main { margin: 0 auto; }
+body[data-page="home"] .col-main { margin: 0 auto; grid-column: auto; }
 body[data-page="home"] .home-hero { text-align: center; }
 body[data-page="home"] .home-logo { display: block; margin: 0 auto .7rem; }
 body[data-page="home"] .home-search { margin-left: auto; margin-right: auto; }
@@ -735,13 +745,17 @@ body[data-toc="none"] .mobile-toc { display: none; }
 }
 .search-btn:hover { color: var(--accent); border-color: var(--accent); }
 
-/* 两栏（右栏已并入顶栏） */
-.layout { grid-template-columns: 13rem minmax(0, 1fr); }
+/* 两栏内容 + 右侧等宽留白：左栏有目录时正文仍在中轴，无目录时也不偏 */
+.layout { grid-template-columns: 13rem minmax(0, 1fr) 13rem; }
 @media (min-width: 1040px) and (max-width: 1439px) {
-  .layout { grid-template-columns: 10rem minmax(0, 1fr); }
+  .layout { grid-template-columns: 10rem minmax(0, 1fr) 10rem; }
 }
-body[data-toc="none"] .layout { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1040px) {
+  .layout > .col-main { grid-column: 2; }
+}
+body[data-toc="none"] .layout { grid-template-columns: 13rem minmax(0, 1fr) 13rem; }
 body[data-page="home"] .layout { grid-template-columns: minmax(0, 1fr); }
+body[data-page="home"] .col-main { grid-column: auto; }
 
 /* 「章节结构与导图」按钮 */
 .map-link {
@@ -895,7 +909,7 @@ body[data-page="home"] .layout { grid-template-columns: minmax(0, 1fr); }
 .ai-summary {
   margin: .9rem 0 1.2rem; padding: .7rem .9rem;
   background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent);
-  border-radius: var(--radius);
+  border-radius: var(--radius); line-height: var(--reading-line);
 }
 .ai-head { display: flex; align-items: center; gap: .4rem; margin: 0 0 .3rem; font-size: 12px; color: var(--ink-mute); cursor: pointer; }
 .ai-head::after {
@@ -904,8 +918,8 @@ body[data-page="home"] .layout { grid-template-columns: minmax(0, 1fr); }
 }
 .ai-summary[open] > .ai-head::after { transform: rotate(90deg); }
 .ai-src { font-size: 11px; border: 1px solid var(--line); border-radius: 3px; padding: 0 .25rem; }
-.ai-line { margin: 0 0 .4rem; font-size: 14px; color: var(--ink); }
-.ai-points { margin: 0 0 .4rem; padding-left: 1.1rem; font-size: 13px; color: var(--ink-soft); }
+.ai-line { margin: 0 0 .4rem; font-size: .82em; color: var(--ink); }
+.ai-points { margin: 0 0 .4rem; padding-left: 1.1rem; font-size: .76em; color: var(--ink-soft); }
 .ai-points li { margin: .1rem 0; }
 
 /* 导图：可拖动/缩放视口 */
@@ -948,9 +962,12 @@ body[data-page="home"] .layout { grid-template-columns: minmax(0, 1fr); }
 body[data-toc="none"] .panel-btn { display: none; }
 body.toc-collapsed .panel-btn { color: var(--accent); border-color: var(--accent); }
 @media (min-width: 1040px) {
-  body.toc-collapsed .layout { grid-template-columns: minmax(0, 1fr) 13rem; }
+  /* 左栏收起后保留等宽的空列，正文仍在中轴；否则只剩右栏，整页会向左偏。 */
+  body.toc-collapsed .layout { grid-template-columns: 13rem minmax(0, 1fr) 13rem; }
   body.toc-collapsed .col-left { display: none; }
-  /* 左栏收起后版心放宽：正文真的变宽（38rem → 46rem），而不是只多出空白 */
+  body.toc-collapsed .col-main { grid-column: 2; }
+  body.toc-collapsed .col-right { grid-column: 3; }
+  /* 左栏收起后版心放宽：正文真的变宽（42rem → 46rem），而不是只多出空白 */
   body.toc-collapsed { --measure: 46rem; }
 }
 @media (max-width: 1039px) {
@@ -1058,13 +1075,17 @@ body.quote-anim .quote-veil { animation: quote-in .18s ease-out both; }
 /* 入口：右边缘垂直居中的细长等腰三角形，低对比、不遮挡正文。
    首页不显示（首页用扳手），由 body[data-page="home"] 规则隐藏。 */
 .settings-fab {
-  position: fixed; right: 0; top: 50%; transform: translateY(-50%); z-index: 79;
+  position: fixed; right: .75rem; top: 50%; transform: translateY(-50%); z-index: 81;
   display: grid; place-items: center; width: 18px; height: 44px; padding: 0;
-  border: 0; border-radius: 6px 0 0 6px; cursor: pointer;
+  border: 0; border-radius: 6px; cursor: pointer;
   background: transparent; color: var(--line-strong);
 }
 .settings-fab:hover { color: var(--accent); background: var(--surface); }
-.settings-fab svg { width: 8px; height: 22px; display: block; fill: currentColor; }
+.settings-fab svg {
+  width: 8px; height: 22px; display: block; fill: currentColor;
+  transition: transform .16s ease;
+}
+.settings-fab[aria-expanded="true"] svg { transform: rotate(180deg); }
 body[data-page="home"] .settings-fab { display: none; }
 
 /* 面板：固定右侧，宽 20rem（18–22rem 区间），全高抽屉，不遮整页 */

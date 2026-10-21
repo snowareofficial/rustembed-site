@@ -3,7 +3,7 @@
  *
  * 只依赖 Node 内置能力（fetch + 全局 WebSocket）+ 本机 Edge/Chrome 的 CDP，
  * 不给站点引任何第三方东西。真实测量：
- *   - 三栏是否真的存在、中栏是否 ≤ 38rem
+ *   - 三栏是否真的存在、中栏是否 ≤ 42rem
  *   - 右栏是否默认收起、展开后是否 10 个入口
  *   - 375px / 1280px 下 documentElement.scrollWidth 是否溢出（横向滚动）
  *   - 代码块 / 表格是否撑破页面
@@ -245,7 +245,7 @@ async function main() {
   need(r.btnRightOfInput === true, '搜索按钮在搜索框右侧', String(r.btnRightOfInput));
   need(Math.abs(r.navBtnW - r.searchBtnW) <= 1,
     '导航与搜索按钮等宽', r.navBtnW + ' vs ' + r.searchBtnW);
-  need(r.main && r.main.w <= 608.5, '中栏宽度 ≤ 38rem（608px）', r.main && Math.round(r.main.w) + 'px');
+  need(r.main && r.main.w <= 672.5, '中栏宽度 ≤ 42rem（672px）', r.main && Math.round(r.main.w) + 'px');
   need(r.drawerOpen === false, '站点导航默认收起（details 无 open）');
   need(r.navVisible === false, '收起时导航不可见', 'checkVisibility=' + r.navVisible);
   need(r.navCount === 10, '顶栏含 10 个站点入口', r.navCount);
@@ -1174,7 +1174,8 @@ async function main() {
   need(fab0.icon, '三角是内联 SVG');
   need(fab0.hidden, '面板默认隐藏');
   need(fab0.w <= 20 && fab0.h <= 48, '三角形细长、不遮挡正文', fab0.w + '×' + fab0.h);
-  eq2(fab0.rightGap, 0, '贴在屏幕右缘');
+  need(fab0.rightGap >= 8 && fab0.rightGap <= 20,
+    '三角与滚动条留出间距，不贴边', fab0.rightGap + 'px');
   const fab1 = await cdp.eval(`(() => {
     document.getElementById('settings-fab').click();
     const panel = document.getElementById('settings-panel');

@@ -997,6 +997,21 @@ async function main() {
     need(!!app.document.querySelector('#settings-fab'), '其它页：三角入口还在');
     eq(app.document.body.getAttribute('data-page'), 'library', '路由切换后 data-page 更新');
   }
+  console.log('== [14b] 行间距 ==');
+  {
+    const app = await home();
+    eq(app.rec.settings.line.read(), 1.8, '默认行距 1.8');
+    app.rec.settings.line.write(2.1);
+    eq(app.store['rec-blog:reading-line'], '2.1', '行距写库');
+    eq(app.document.documentElement.style.getPropertyValue('--reading-line'), '2.1', '行距落到 CSS 变量');
+    eq(app.rec.settings.line.clamp(9), 2.1, '行距上限夹紧');
+
+    const line = app.document.querySelector('#settings-line');
+    need(!!line, '设置面板有行距控件');
+    line.value = '1.6';
+    line.dispatch('input');
+    eq(app.store['rec-blog:reading-line'], '1.6', '行距滑条写库');
+  }
   {
     /* 主题：空 = 跟随系统（移除 data-theme），手动值落 data-theme + localStorage */
     const app = makeApp(manifest());
