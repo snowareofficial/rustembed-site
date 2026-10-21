@@ -15,6 +15,7 @@ import os
 import re
 import shutil
 import sys
+import time
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -100,9 +101,49 @@ def now_iso():
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
+# ---- 分阶段计时（build.py --timing；engine/bench.py 汇总冷/热/单篇基线） ----
+# 只做记录与打印，不改变任何产物；没有 --timing 时 _Tick 仍记账但无输出。
+_TIMINGS = []
+
+
+class _Tick:
+    """with _Tick("文章"): ... —— 记录一段耗时（秒，perf_counter）。"""
+
+    def __init__(self, name):
+        self.name = name
+
+    def __enter__(self):
+        self.t0 = time.perf_counter()
+        return self
+
+    def __exit__(self, *exc):
+        _TIMINGS.append((self.name, time.perf_counter() - self.t0))
+        return False
+
+
+def _mark(name):
+    """打一个时间戳，配合 _span() 记录不便用 with 包裹的大段。"""
+    return (name, time.perf_counter())
+
+
+def _span(t0):
+    """_span(_mark("llms"))：把这段耗时记进 _TIMINGS。"""
+    _TIMINGS.append((t0[0], time.perf_counter() - t0[1]))
+
+
+def print_timings(total):
+    """按记录顺序打印各阶段耗时与占比（--timing 用）。"""
+    if not _TIMINGS:
+        return
+    print("-- 计时")
+    for name, dt in _TIMINGS:
+        print("   %-22s %6.2fs  %4.1f%%" % (name, dt, (dt / total * 100) if total else 0))
+    print("   %-22s %6.2fs" % ("合计", total))
+
+
 def clean_out(out):
-    """清空产物目录。不用 shutil.rmtree：某些环境会拦截它做「安全删除」，
-    且预览服务可能持有文件句柄；逐项删除并容忍失败（后续写入会覆盖）。"""
+    """清空产物目录（仅供外部/调试用；常规构建走 Out.flush 的孤儿清理，
+    不在热构建里全删全写 —— 见 Out 的说明）。"""
     if not out.exists():
         out.mkdir(parents=True)
         return
@@ -114,6 +155,95 @@ def clean_out(out):
                 p.rmdir()
         except OSError:
             pass
+
+
+class Out:
+    """产物收集器：先记账，最后一齐落盘。
+
+    为什么不是「先清空再全写」：Windows 上仓库目录（Desktop 等）里的文件
+    删除/写入会被 Defender 实时扫描，152 个产物「删 + 写」实测 20s+；
+    而读内容比对只要 0.1s。所以热构建的形态是：
+      · put_text(rel, text) —— 内容与 dist 里现有文件相同就跳过写；
+      · put_copy(src, rel) —— (size, mtime_ns) 与 dist 里现有文件相同就跳过复制；
+      · flush() —— 删掉 dist 里不在本次清单中的文件（孤儿，如上版本的旧文章），
+        逐项删除并容忍失败（预览服务可能持有句柄）。
+
+    确定性不受影响：产物清单完全由输入决定，同一提交两次构建逐字节一致
+    （built_at 除外 —— 它本来就不该进内容签名，见 site_text）。
+    """
+
+    def __init__(self, root):
+        self.root = Path(root)
+        self.texts = {}      # rel -> text
+        self.copies = {}     # rel -> 源文件 Path
+        self.wrote = 0
+        self.skipped = 0
+        self.removed = 0
+
+    def put_text(self, rel, text):
+        self.texts[rel] = text
+
+    def put_copy(self, src, rel):
+        self.copies[rel] = Path(src)
+
+    def put_copy_dir(self, src_dir, rel_dir, exclude=()):
+        """整目录复制（assets/posts/<slug>、theme/…）：逐文件登记，跳过未变的。
+
+        exclude 里的相对路径不登记（如主题的 index.html —— 它走 put_text 的
+        注入后版本，复制原始件会把它盖回去）。
+        """
+        src_dir = Path(src_dir)
+        if not src_dir.is_dir():
+            return
+        prefix = rel_dir.strip("/")
+        skip = set(exclude)
+        for f in sorted(src_dir.rglob("*")):
+            if f.is_file():
+                rel = f.relative_to(src_dir).as_posix()
+                if rel in skip:
+                    continue
+                self.put_copy(f, prefix + "/" + rel if prefix else rel)
+
+    def flush(self):
+        keep = set(self.texts) | set(self.copies)
+        if self.root.exists():
+            for p in sorted(self.root.rglob("*"), key=lambda x: len(str(x)), reverse=True):
+                rel = p.relative_to(self.root).as_posix()
+                try:
+                    if p.is_file() or p.is_symlink():
+                        if rel not in keep:
+                            p.unlink()
+                            self.removed += 1
+                    elif p.is_dir() and not any(p.iterdir()):
+                        p.rmdir()
+                except OSError:
+                    pass
+        for rel, text in self.texts.items():
+            dst = self.root / rel
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                if dst.read_text(encoding="utf-8") == text:
+                    self.skipped += 1
+                    continue
+            except (OSError, UnicodeDecodeError):
+                pass
+            dst.write_text(text, encoding="utf-8")
+            self.wrote += 1
+        for rel, src in self.copies.items():
+            dst = self.root / rel
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                a, b = src.stat(), dst.stat()
+                if a.st_size == b.st_size and a.st_mtime_ns == b.st_mtime_ns:
+                    self.skipped += 1
+                    continue
+            except OSError:
+                pass
+            try:
+                shutil.copy2(src, dst)
+                self.wrote += 1
+            except OSError:
+                pass
 
 
 def _under(parent, child):
@@ -978,8 +1108,12 @@ def site_text(manifest, bodies=()):
 
     注意：manifest 里**不含文章正文**（正文以 _ 前缀被过滤），前端 JS/CSS 里的中文也不在里面，
     所以这里把正文渲染结果与 theme 源文件一起收进来，否则正文生僻字会回退到系统字体、段内字体混排。
+
+    built_at 不参与签名：它是每次构建都变的时间戳，算进去会让 stamp 永远不命中，
+    于是每次全量子集化（实测 4 个字体 30s+）——签名只该反映「文字内容与源字体」。
     """
-    parts = [json.dumps(manifest, ensure_ascii=False)]
+    sig_manifest = {k: v for k, v in manifest.items() if k != "built_at"}
+    parts = [json.dumps(sig_manifest, ensure_ascii=False)]
     # 正文是渲染后的 HTML：MathML/转义出口的数字实体（如 &#x02202; = ∂）是 ASCII 字面，
     # 先 unescape 再子集化，否则数学字形（∂ ∑ ∫ √ 等）不进 STIX 子集、页面回退系统字体。
     parts += [html.unescape(b) for b in bodies if b]
@@ -1012,6 +1146,8 @@ def font_family_weight(stem):
 
 def build_fonts(rep, out, manifest, bodies=()):
     """自托管字体：源字体 → 子集（woff2，缺 brotli 时退化为 woff）。
+
+    out 是 Out 收集器：复制/写 CSS 都记账，由 Out.flush 决定跳过与否。
 
     设计：子集产物（site/fonts/subset/）**提交进仓库**，CI 不需要装 fonttools；
     本地放 `site/fonts/src/*.ttf` 时自动（重新）生成子集。字体许可文件随产物一起发布。
@@ -1082,11 +1218,10 @@ def build_fonts(rep, out, manifest, bodies=()):
     if not use:
         return ""
 
-    (out / "fonts").mkdir(parents=True, exist_ok=True)
     for p in use:
-        shutil.copy2(p, out / "fonts" / p.name)
+        out.put_copy(p, "fonts/" + p.name)
     for lic in sorted(root.glob("LICENSE*")):
-        shutil.copy2(lic, out / "fonts" / lic.name)
+        out.put_copy(lic, "fonts/" + lic.name)
 
     faces = []
     for p in use:
@@ -1098,27 +1233,23 @@ def build_fonts(rep, out, manifest, bodies=()):
         css.append("@font-face{font-family:'%s';font-style:normal;font-weight:%d;"
                    "font-display:swap;src:url('fonts/%s') format('%s')}"
                    % (family, weight, name, fmt))
-    (out / "fonts.css").write_text("\n".join(css) + "\n", encoding="utf-8")
+    out.put_text("fonts.css", "\n".join(css) + "\n")
     total = sum(x[3] for x in faces) / 1024
     print("   字体子集 %d 个，共 %.0f KB（%s）"
           % (len(faces), total, ", ".join(sorted({x[0] for x in faces}))))
     return "fonts.css"
 
 
-def inject_head(rep, out, manifest, avatar, fonts_css=""):
-    """把标题/描述/favicon（群 logo）注入静态壳，并生成 webmanifest。"""
-    idx = out / "index.html"
-    if not idx.exists():
-        return
+def inject_head(rep, manifest, avatar, fonts_css, html):
+    """把标题/描述/favicon（群 logo）注入静态壳；返回 (html, icon)。
+
+    favicon 与 site.webmanifest 不在这里落盘：favicon 由调用方 put_copy
+    （源是仓库根的群头像），webmanifest 走 put_text —— 统一由 Out 决定跳过与否。
+    """
     site = manifest["site"]
     icon = ""
     if avatar:
-        suffix = Path(avatar).suffix.lower()
-        icon = "favicon" + suffix
-        try:
-            shutil.copy2(out / avatar, out / icon)
-        except OSError:
-            icon = avatar
+        icon = "favicon" + Path(avatar).suffix.lower()
     lines = ['<meta name="description" content="%s">' % render.esc(site.get("tagline", "")),
              '<meta name="theme-color" content="#b4552d">',
              '<meta property="og:title" content="%s">' % render.esc(site["title"]),
@@ -1132,18 +1263,10 @@ def inject_head(rep, out, manifest, avatar, fonts_css=""):
                   '<link rel="apple-touch-icon" href="%s">' % icon,
                   '<link rel="manifest" href="site.webmanifest">']
         lines.append('<meta property="og:image" content="%s/%s">' % (
-        render.esc(site["url"].rstrip("/")), icon))
-    html = idx.read_text(encoding="utf-8").replace("<!--BUILD:HEAD-->", "\n".join(lines))
+            render.esc(site["url"].rstrip("/")), icon))
+    html = html.replace("<!--BUILD:HEAD-->", "\n".join(lines))
     html = html.replace("<title>Rust嵌入式探讨</title>", "<title>%s</title>" % render.esc(site["title"]))
-    idx.write_text(html, encoding="utf-8")
-
-    if icon:
-        mani = {"name": site["title"], "short_name": site["title"][:12], "start_url": "./",
-                "display": "standalone", "background_color": "#fbfaf7", "theme_color": "#b4552d",
-                "icons": [{"src": icon, "sizes": "any",
-                           "type": MIME.get(Path(icon).suffix.lower(), "image/jpeg")}]}
-        (out / "site.webmanifest").write_text(json.dumps(mani, ensure_ascii=False, indent=1),
-                                              encoding="utf-8")
+    return html, icon
 
 
 NAV_LABEL = {
@@ -1153,16 +1276,20 @@ NAV_LABEL = {
 }
 
 
-def inject_shell(rep, out, manifest, posts):
-    """把「站点导航 + 最近文章」的静态 HTML 写进 index.html。
+def inject_shell(rep, manifest, posts):
+    """把「站点导航 + 最近文章」的静态 HTML 注入主题壳，返回 index.html 文本。
 
     渐进增强：JS 起来前页面已经有站名、10 个站点入口与最近文章列表（不是空白）；
     JS 起来后接管 #view / #site-nav（补当前项高亮）。右栏导航同时以静态形式存在，
     结构断言可以直接对 dist/index.html 断言，不依赖 JS。
+
+    不再读写 dist 里的 index.html：直接读主题源文件、返回文本，由 Out 统一落盘。
     """
-    idx = out / "index.html"
-    if not idx.exists():
-        return
+    src = THEME / "index.html"
+    if not src.exists():
+        rep.warn("index.html", "主题缺少 index.html")
+        return ""
+    html = src.read_text(encoding="utf-8")
     site = manifest["site"]
     nav = site.get("nav") or []
     nav_html = "\n".join('        <a href="#/%s">%s</a>' % (esc(k), esc(NAV_LABEL.get(k, k)))
@@ -1235,7 +1362,6 @@ def inject_shell(rep, out, manifest, posts):
     if not n:
         first.append('<p class="muted">还没有文章。</p>\n')
 
-    html = idx.read_text(encoding="utf-8")
     html = html.replace("<!--BUILD:NAV-->", nav_html)
     html = html.replace("<!--BUILD:FIRST-->", "".join(first))
     # 页脚授权分层声明（三行）：静态注入，JS 起来后也保留（app.js 的 buildFooter 不清它）
@@ -1249,7 +1375,7 @@ def inject_shell(rep, out, manifest, posts):
                   lambda m: m.group(1) + esc(site.get("title", "")) + m.group(2), html)
     if "<!--BUILD:NAV-->" in html or "<!--BUILD:FIRST-->" in html:
         rep.warn("index.html", "静态首屏/导航占位没被替换（主题缺少占位注释）")
-    idx.write_text(html, encoding="utf-8")
+    return html
 
 
 def main(argv=None):
@@ -1260,6 +1386,8 @@ def main(argv=None):
     ap.add_argument("--base-url", default="", help="覆盖 site.sml 里的站点 URL（多域名/预览用）")
     ap.add_argument("--contract-loose", action="store_true",
                     help="放宽 E-CONTRACT-004（未声明字段）——临时允许契约外的字段")
+    ap.add_argument("--timing", action="store_true",
+                    help="打印分阶段耗时（站点/文章/项目/成员/写产物/字体…），供性能基线用")
     config.add_site_arg(ap)
     args = ap.parse_args(argv)
     try:
@@ -1274,6 +1402,7 @@ def main(argv=None):
 
 
 def _run(args):
+    _t_start = time.perf_counter()
     out = guard_out(args.out)
     rep = Report()
 
@@ -1302,12 +1431,16 @@ def _run(args):
     CONTRACT_DEFAULTS.clear()
     CONTRACT_DEFAULTS.update({k: sml.as_str(v) for k, v in (site.get("contracts") or {}).items()
                               if sml.as_str(v)})
+    _t_site = _mark("site.sml/契约")
+
     print("-- 站点：%s" % ROOT)
     print("-- 契约")
     for f in docs_in(CONTENT / "contracts"):
         _, cs = load2(f)
         register_contracts(rep, f.relative_to(ROOT).as_posix(), cs)
     print("   %d 个契约，默认映射 %d 项" % (len(GLOBAL_CONTRACTS), len(CONTRACT_DEFAULTS)))
+    _span(_t_site)
+
 
     print("-- 图片引用")
     ext_imgs = check_external_images(rep)
@@ -1315,16 +1448,20 @@ def _run(args):
 
     cache = repo_meta.Cache(CACHE)
     print("-- 文章")
-    posts = build_posts(rep, cache, args.offline)
+    with _Tick("文章"):
+        posts = build_posts(rep, cache, args.offline)
     print("   %d 篇" % len(posts))
     print("-- 项目")
-    projects = build_projects(rep, cache, args.offline)
+    with _Tick("项目"):
+        projects = build_projects(rep, cache, args.offline)
     print("   %d 个" % len(projects))
     print("-- 成员")
-    members = build_members(rep)
+    with _Tick("成员"):
+        members = build_members(rep)
     print("   %d 人" % len(members))
     print("-- 一言")
-    quotes = build_quotes(rep, members)
+    with _Tick("一言"):
+        quotes = build_quotes(rep, members)
     print("   %d 条" % len(quotes))
     raw_lines = site.get("code_collapse_lines")
     code_lines = collapse_lines(site)
@@ -1332,42 +1469,44 @@ def _run(args):
         rep.warn("site.sml", "code_collapse_lines `%s` 不可用，已退回 %d 行（合法范围 1–500）"
                  % (sml.as_str(raw_lines), code_lines))
     print("-- 主题词条")
-    topics = build_topics(rep)
-    print("   %d 条" % len(topics))
+    with _Tick("词条/互助/资源/周报/页"):
+        topics = build_topics(rep)
+        print("   %d 条" % len(topics))
+        services = build_services(rep, members)
+        resources = build_simple("resources", rep, cache, args.offline)
+        weekly_raw = build_simple("weekly", rep)
+        pages_raw = build_simple("pages", rep)
     print("-- 技术互助")
-    services = build_services(rep, members)
     print("   %d 条" % len(services))
     print("-- 资源 / 周报 / 文档页")
-    resources = build_simple("resources", rep, cache, args.offline)
-    weekly_raw = build_simple("weekly", rep)
-    pages_raw = build_simple("pages", rep)
     weekly = [w[0] for w in weekly_raw]
     pages = sorted([w[0] for w in pages_raw], key=lambda x: (x.get("group", ""), x.get("order", 999), x["id"]))
     print("   %d 个文档页" % len(pages))
 
-    ids = {m["id"] for m in members}
-    for p in posts:
-        if p["author"] and p["author"] not in ids:
-            rep.warn(p["file"], "作者 `%s` 没有成员档案" % p["author"])
-    for pr in projects:
-        for who in [pr["owner"]] + pr["contributors"]:
-            if who and who not in ids:
-                rep.warn("projects/%s.sml" % pr["id"], "成员 `%s` 没有成员档案" % who)
-
-    # 词条 ↔ 文章双向关联：词条显式列 posts，或按同标签自动收
-    posts_by_slug = {p["slug"]: p for p in posts}
-    for t in topics:
-        ids = [s for s in t["posts"] if s in posts_by_slug]
+    with _Tick("关联与系列"):
+        ids = {m["id"] for m in members}
         for p in posts:
-            if p["slug"] not in ids and any(tag in p["tags"] for tag in t["tags"]):
-                ids.append(p["slug"])
-        t["resolved"] = ids
-        for s in ids:
-            posts_by_slug[s].setdefault("topics", []).append(t["id"])
-    for t in topics:
-        missing = [s for s in t["posts"] if s not in posts_by_slug]
-        for s in missing:
-            rep.warn(t["file"], "词条引用了不存在的文章 slug `%s`" % s)
+            if p["author"] and p["author"] not in ids:
+                rep.warn(p["file"], "作者 `%s` 没有成员档案" % p["author"])
+        for pr in projects:
+            for who in [pr["owner"]] + pr["contributors"]:
+                if who and who not in ids:
+                    rep.warn("projects/%s.sml" % pr["id"], "成员 `%s` 没有成员档案" % who)
+
+        # 词条 ↔ 文章双向关联：词条显式列 posts，或按同标签自动收
+        posts_by_slug = {p["slug"]: p for p in posts}
+        for t in topics:
+            ids = [s for s in t["posts"] if s in posts_by_slug]
+            for p in posts:
+                if p["slug"] not in ids and any(tag in p["tags"] for tag in t["tags"]):
+                    ids.append(p["slug"])
+            t["resolved"] = ids
+            for s in ids:
+                posts_by_slug[s].setdefault("topics", []).append(t["id"])
+        for t in topics:
+            missing = [s for s in t["posts"] if s not in posts_by_slug]
+            for s in missing:
+                rep.warn(t["file"], "词条引用了不存在的文章 slug `%s`" % s)
 
     series_map = {}
     for p in posts:
@@ -1389,52 +1528,51 @@ def _run(args):
             tag_count[t] = tag_count.get(t, 0) + 1
     tags = sorted([{"tag": k, "count": v} for k, v in tag_count.items()], key=lambda x: (-x["count"], x["tag"]))
 
-    clean_out(out)
-    (out / "p").mkdir(parents=True, exist_ok=True)
-    for p in posts:
-        (out / p["html"]).write_text(p["_html"] or "<p>（空）</p>", encoding="utf-8")
-        if p.get("map"):
-            (out / p["map"]).write_text(p["_map"], encoding="utf-8")
-        # 文章多语言：非默认语言版本单独写盘（如 p/<slug>.en.html），assets 共享
-        for v in (p.get("_variants") or {}).values():
-            (out / v["html"]).write_text(v["body"] or "<p>（空）</p>", encoding="utf-8")
-    for base, d, ctx, f in weekly_raw + pages_raw:
-        where = f.relative_to(ROOT).as_posix()
-        html_body, toc = render_body(d, ctx, 1, rep, where)
-        (out / base["html"]).parent.mkdir(parents=True, exist_ok=True)
-        (out / base["html"]).write_text(html_body or "<p>（空）</p>", encoding="utf-8")
-        base["toc"] = toc
-        base["text"] = render.strip_html(html_body)
-        kind = "w" if f.parent.name == "weekly" else "pages"
-        base["map"] = "%s/%s.map.svg" % (kind, f.stem)
-        prefix = "#/weekly/" if kind == "w" else "#/page/"
-        nodes = [dict(x, anchor="%s%s/%s" % (prefix, f.stem, x["id"])) for x in ctx.toc]
-        (out / base["map"]).write_text(
-            mindmap.to_svg(mindmap.from_toc(base["title"], nodes), base["title"]), encoding="utf-8")
+    out_dir = Out(out)
+    with _Tick("写 HTML 产物"):
+        for p in posts:
+            out_dir.put_text(p["html"], p["_html"] or "<p>（空）</p>")
+            if p.get("map"):
+                out_dir.put_text(p["map"], p["_map"])
+            # 文章多语言：非默认语言版本单独写盘（如 p/<slug>.en.html），assets 共享
+            for v in (p.get("_variants") or {}).values():
+                out_dir.put_text(v["html"], v["body"] or "<p>（空）</p>")
+        for base, d, ctx, f in weekly_raw + pages_raw:
+            where = f.relative_to(ROOT).as_posix()
+            html_body, toc = render_body(d, ctx, 1, rep, where)
+            out_dir.put_text(base["html"], html_body or "<p>（空）</p>")
+            base["toc"] = toc
+            base["text"] = render.strip_html(html_body)
+            kind = "w" if f.parent.name == "weekly" else "pages"
+            base["map"] = "%s/%s.map.svg" % (kind, f.stem)
+            prefix = "#/weekly/" if kind == "w" else "#/page/"
+            nodes = [dict(x, anchor="%s%s/%s" % (prefix, f.stem, x["id"])) for x in ctx.toc]
+            out_dir.put_text(base["map"],
+                mindmap.to_svg(mindmap.from_toc(base["title"], nodes), base["title"]))
 
-    for t in topics:
-        (out / t["html"]).parent.mkdir(parents=True, exist_ok=True)
-        (out / t["html"]).write_text(t["_html"] or "<p>（空）</p>", encoding="utf-8")
-        nodes = [dict(x, anchor="#/topic/%s/%s" % (t["id"], x["id"])) for x in t["toc"]]
-        (out / t["map"]).write_text(
-            mindmap.to_svg(mindmap.from_toc(t["title"], nodes), t["title"]), encoding="utf-8")
+        for t in topics:
+            out_dir.put_text(t["html"], t["_html"] or "<p>（空）</p>")
+            nodes = [dict(x, anchor="#/topic/%s/%s" % (t["id"], x["id"])) for x in t["toc"]
+                     ]
+            out_dir.put_text(t["map"],
+                             mindmap.to_svg(mindmap.from_toc(t["title"], nodes), t["title"]))
 
-    for s in services:
-        (out / s["html"]).parent.mkdir(parents=True, exist_ok=True)
-        (out / s["html"]).write_text(s["_html"] or "<p>（空）</p>", encoding="utf-8")
-        nodes = [dict(x, anchor="#/service/%s/%s" % (s["id"], x["id"])) for x in s["toc"]]
-        (out / s["map"]).write_text(
-            mindmap.to_svg(mindmap.from_toc(s["name"], nodes), s["name"]), encoding="utf-8")
+        for s in services:
+            out_dir.put_text(s["html"], s["_html"] or "<p>（空）</p>")
+            nodes = [dict(x, anchor="#/service/%s/%s" % (s["id"], x["id"])) for x in s["toc"]
+                     ]
+            out_dir.put_text(s["map"],
+                             mindmap.to_svg(mindmap.from_toc(s["name"], nodes), s["name"]))
 
-    contract_entry = build_contract_page()
-    if contract_entry:
-        (out / contract_entry["html"]).parent.mkdir(parents=True, exist_ok=True)
-        (out / contract_entry["html"]).write_text(contract_entry["_html"], encoding="utf-8")
-        (out / contract_entry["map"]).write_text(contract_entry["_map"], encoding="utf-8")
-        pages.append({k: v for k, v in contract_entry.items() if not k.startswith("_")})
-        pages.sort(key=lambda x: (x.get("group", ""), x.get("order", 999), x["id"]))
+        contract_entry = build_contract_page()
+        if contract_entry:
+            out_dir.put_text(contract_entry["html"], contract_entry["_html"])
+            out_dir.put_text(contract_entry["map"], contract_entry["_map"])
+            pages.append({k: v for k, v in contract_entry.items() if not k.startswith("_")})
+            pages.sort(key=lambda x: (x.get("group", ""), x.get("order", 999), x["id"]))
 
-    site_map = {"label": sml.as_str(site.get("title")), "href": "#/", "children": []}
+    with _Tick("map/manifest/search"):
+        site_map = {"label": sml.as_str(site.get("title")), "href": "#/", "children": []}
     art = {"label": "文章库", "children": []}
     for s in series:
         art["children"].append({
@@ -1489,8 +1627,8 @@ def _run(args):
                     {"label": d["title"], "href": "#/page/" + d["id"], "children": []} for d in items]}
                 for g, items in groups.items()],
         })
-    (out / "map.svg").write_text(
-        mindmap.to_svg(site_map, sml.as_str(site.get("title"))), encoding="utf-8")
+    out_dir.put_text("map.svg",
+                      mindmap.to_svg(site_map, sml.as_str(site.get("title"))))
 
     manifest = {
         "site": {
@@ -1539,7 +1677,7 @@ def _run(args):
         "built_at": now_iso(),
     }
 
-    (out / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8")
+    out_dir.put_text("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=1))
 
     search = []
     for p in posts:
@@ -1574,9 +1712,12 @@ def _run(args):
         search.append({"type": "文档", "title": pg["title"], "summary": pg.get("group", ""),
                        "tags": [], "url": "#/page/" + pg["id"],
                        "text": (pg.get("text") or "")[:2000]})
-    (out / "search-index.json").write_text(json.dumps(search, ensure_ascii=False), encoding="utf-8")
+    out_dir.put_text("search-index.json", json.dumps(search, ensure_ascii=False))
 
+    _t_llms = _mark("llms")
     # AI 可读的站点文档（llms.txt 约定）：索引放 llms.txt，正文合并放 llms-full.txt
+    _t_llms = _mark("llms")
+
     base_url0 = manifest["site"]["url"].rstrip("/")
     g = manifest["site"]["group"]
     L = ["# %s" % manifest["site"]["title"], "",
@@ -1634,7 +1775,7 @@ def _run(args):
     L.append("## 资源")
     for r in resources:
         L.append("- [%s](%s)（%s）%s" % (r["title"], r["url"], r["kind"], r.get("note", "")))
-    (out / "llms.txt").write_text("\n".join(L) + "\n", encoding="utf-8")
+    out_dir.put_text("llms.txt", "\n".join(L) + "\n")
 
     F = ["# %s — 全部文章正文（纯文本）" % manifest["site"]["title"], ""]
     for p in posts:
@@ -1647,7 +1788,11 @@ def _run(args):
         F.append("")
         F.append(p["_text"])
         F.append("")
-    (out / "llms-full.txt").write_text("\n".join(F), encoding="utf-8")
+    out_dir.put_text("llms-full.txt", "\n".join(F))
+    _span(_t_llms)
+
+
+    _t_feed = _mark("feed/sitemap/_headers")
 
     base_url = manifest["site"]["url"].rstrip("/")
     sitemap_urls = [base_url + "/"] + [base_url + "/#/post/" + p["slug"] for p in posts] + \
@@ -1659,7 +1804,7 @@ def _run(args):
     for u in sitemap_urls:
         sm.append("  <url><loc>%s</loc></url>" % esc(u))
     sm.append("</urlset>")
-    (out / "sitemap.xml").write_text("\n".join(sm), encoding="utf-8")
+    out_dir.put_text("sitemap.xml", "\n".join(sm))
 
     feed = ['<?xml version="1.0" encoding="UTF-8"?>',
             '<rss version="2.0"><channel>',
@@ -1676,11 +1821,11 @@ def _run(args):
                         esc(base_url), esc(p["slug"]),
                         esc(p["date"]), esc(p["summary"])))
     feed.append("</channel></rss>")
-    (out / "feed.xml").write_text("\n".join(feed), encoding="utf-8")
+    out_dir.put_text("feed.xml", "\n".join(feed))
 
     # Cloudflare Pages 的 _headers：给纯文本/AI 索引显式声明 UTF-8。
     # 不声明时，中文系统上直接打开 llms.txt 会按 GBK 解码成乱码（内容本身是 UTF-8）。
-    (out / "_headers").write_text(
+    out_dir.put_text("_headers",
         "\n".join([
             "/*",
             "  X-Content-Type-Options: nosniff",
@@ -1706,47 +1851,57 @@ def _run(args):
             "/site.webmanifest",
             "  Content-Type: application/manifest+json; charset=utf-8",
             "",
-        ]) + "\n", encoding="utf-8")
+        ]) + "\n")
 
-    (out / "summaries").mkdir(parents=True, exist_ok=True)
+    _span(_t_feed)
+
+    _t_assets = _mark("summaries/assets/theme")
     for p in posts:
-        (out / "summaries" / (p["slug"] + ".json")).write_text(
-            json.dumps(p.get("ai_summary") or {}, ensure_ascii=False, indent=1),
-            encoding="utf-8")
+        out_dir.put_text("summaries/" + p["slug"] + ".json",
+                         json.dumps(p.get("ai_summary") or {}, ensure_ascii=False, indent=1))
     for p in posts:
         src = ROOT / Path(p["file"]).parent / "assets"
         if src.exists():
-            dst = out / "assets" / "posts" / p["slug"]
-            dst.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copytree(src, dst)
+            out_dir.put_copy_dir(src, "assets/posts/" + p["slug"])
     for m in members:
         src_rel = m.pop("_avatar_src", "")
         if not src_rel:
             continue
         src = Path(src_rel)
-        dst = out / "assets" / "members" / ("%s%s" % (m["id"], src.suffix.lower()))
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(src, dst)
-        m["avatar"] = "assets/members/" + dst.name
+        rel = "assets/members/" + ("%s%s" % (m["id"], src.suffix.lower()))
+        out_dir.put_copy(src, rel)
+        m["avatar"] = rel
     if avatar:
-        shutil.copy2(ROOT / avatar, out / avatar)
+        out_dir.put_copy(ROOT / avatar, avatar)
 
-    site_dir = THEME
-    if site_dir.exists():
-        # 递归拷贝：主题里可以有子目录（如 vendor/prism/），以前只拷根目录文件会把它们丢掉
-        for f in sorted(site_dir.rglob("*")):
-            if not f.is_file():
-                continue
-            dst = out / f.relative_to(site_dir)
-            dst.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(f, dst)
+    # 递归拷贝主题：可以有子目录（如 vendor/prism/），逐文件登记、跳过未变的。
+    # index.html 除外：它由 inject_shell/inject_head 注入后走 put_text。
+    out_dir.put_copy_dir(THEME, "", exclude=("index.html",))
 
-    inject_shell(rep, out, manifest, posts)      # 静态首屏：站名 + 站点导航 + 最近文章
+    _span(_t_assets)
+
+    _t_fonts = _mark("fonts/shell/head")
+
+    index_html = inject_shell(rep, manifest, posts)      # 静态首屏：站名 + 站点导航 + 最近文章
 
     bodies = [p["_html"] for p in posts] + [x.get("_html", "") for x in pages + weekly + topics + services]
-    fonts_css = build_fonts(rep, out, manifest, bodies)
-    inject_head(rep, out, manifest, avatar, fonts_css)
+    fonts_css = build_fonts(rep, out_dir, manifest, bodies)
+    index_html, icon = inject_head(rep, manifest, avatar, fonts_css, index_html)
 
+    _span(_t_fonts)
+
+    if icon and icon != avatar:
+        out_dir.put_copy(ROOT / avatar, icon)   # favicon：源仍是仓库根的群头像
+    if icon:
+        mani = {"name": manifest["site"]["title"],
+                "short_name": manifest["site"]["title"][:12], "start_url": "./",
+                "display": "standalone", "background_color": "#fbfaf7", "theme_color": "#b4552d",
+                "icons": [{"src": icon, "sizes": "any",
+                           "type": MIME.get(Path(icon).suffix.lower(), "image/jpeg")}]}
+        out_dir.put_text("site.webmanifest", json.dumps(mani, ensure_ascii=False, indent=1))
+    if index_html:
+        out_dir.put_text("index.html", index_html)
+    out_dir.flush()
     cache.save()
 
     print("-- 校验")
@@ -1754,18 +1909,22 @@ def _run(args):
         print("  [warn] %s" % w)
     for e in rep.errors:
         print("  [error] %s" % e)
-    # 持久化构建告警，供 check.py 复核（仅告警、不影响产物与退出码）
+    # 持久化构建告警，供 check.py 复核（仅告警、不影响产物与退出码）。
+    # 这一段在 Out.flush() 之后：直接写盘即可（不参与跳过比对，文件很小）。
     try:
         import json as _json
-        (_warn_file) = out / "build-warnings.json"
-        _warn_file.write_text(_json.dumps(rep.warnings, ensure_ascii=False, indent=1),
-                              encoding="utf-8")
+        (out / "build-warnings.json").write_text(
+            _json.dumps(rep.warnings, ensure_ascii=False, indent=1), encoding="utf-8")
     except Exception:                       # noqa: BLE001 —— 写告警文件失败不阻断构建
         pass
     if rep.errors and not args.warn_only:
         print("构建失败：%d 个错误" % len(rep.errors))
         return 1
+    print("   落盘：写入 %d / 跳过未变 %d / 清理孤儿 %d"
+          % (out_dir.wrote, out_dir.skipped, out_dir.removed))
     print("产物：%s（文章 %d / 项目 %d / 成员 %d / 互助 %d）" % (out, len(posts), len(projects), len(members), len(services)))
+    if args.timing:
+        print_timings(time.perf_counter() - _t_start)
     return 0
 
 
