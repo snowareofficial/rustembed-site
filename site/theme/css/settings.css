@@ -3,7 +3,9 @@
 /* ---------- 16. 设置面板（右侧三角入口 / 右侧固定面板 / 首页扳手） ---------- */
 
 /* 入口：右边缘垂直居中的细长等腰三角形，低对比、不遮挡正文。
-   首页不显示（首页用扳手），由 body[data-page="home"] 规则隐藏。 */
+   首页不显示（首页用扳手），由 body[data-page="home"] 规则隐藏。
+   仅限三栏布局（≥1040px）：此时右侧 13rem 是空列，三角整条落在空白里。
+   单列布局下改停到顶栏右侧，见文件末尾 @media (max-width: 1039px)。 */
 .settings-fab {
   position: fixed; right: .75rem; top: 50%; transform: translateY(-50%); z-index: 81;
   display: grid; place-items: center; width: 18px; height: 44px; padding: 0;
@@ -80,6 +82,22 @@ body[data-page="home"] .settings-fab { display: none; }
 }
 .settings-wrench:hover { color: var(--accent); border-color: var(--accent); }
 .settings-wrench svg { width: 30px; height: 30px; display: block; fill: currentColor; }
+
+/* 单列布局（≤1039px）：正文从视口左边缘一路铺到右边缘（.layout 只剩 1.1rem 内边距），
+   垂直居中的三角必然压住正文最后一列字符，以及代码块头部并排的「复制 / 展开」两个按钮
+   （z-index 81 还会把它们的点击吃掉）。这里把它停进顶栏右侧的预留空白区 ——
+   .topbar 的 padding-right（9.5rem，窄屏 9rem）本来就是空的，停进去既不压正文，
+   也不用为它牺牲正文宽度。方形外观与顶栏的「收起/展开目录」按钮同一套。 */
+@media (max-width: 1039px) {
+  .settings-fab {
+    top: .5rem; right: .8rem; transform: none;
+    width: 2.1rem; height: 2rem;
+    border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--surface); color: var(--ink-soft);
+  }
+  .settings-fab:hover { color: var(--accent); border-color: var(--accent); }
+  .settings-fab svg { width: 7px; height: 12px; }
+}
 
 /* 窄屏：面板变底部抽屉（不遮整页），扳手随一言按钮一起缩进 */
 @media (max-width: 640px) {
