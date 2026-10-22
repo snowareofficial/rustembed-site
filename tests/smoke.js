@@ -122,7 +122,7 @@ async function main() {
   const routes = [
     '#/library', '#/knowledge', '#/topics', '#/topic/probe-rs',
     '#/post/hello-rec', '#/post/md-writing',
-    '#/projects', '#/project/rec-blog', '#/project/sml-sitegen',
+    '#/projects', '#/project/rec-blog',
     '#/resources', '#/members', '#/member/sal', '#/member/cxi',
     '#/services', '#/service/pcb-emc-review',
     '#/weekly', '#/weekly/2026-W38',
