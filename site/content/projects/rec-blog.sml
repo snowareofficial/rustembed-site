@@ -10,3 +10,5 @@ owner: sal
 contributors: [ sal ]
 featured: true
 meta_source: auto
+# 站内相关阅读（显式关联）：投稿指南讲的是怎么往本站写文章
+related_posts: [ md-writing ]

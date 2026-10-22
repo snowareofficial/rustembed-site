@@ -98,6 +98,17 @@ tags: [ "Rust", "静态站点" ]
 - **不要写背书类标签**：`Gitee 推荐`、`官方推荐`、`最佳实践` 这类把平台或本站态度
   写成项目属性的词一律不写 —— 本站只展示事实信息，不替任何项目背书；
 - `status: active` 会自动显示「活跃开发」chip，**不需要手写**这个标签。
+- 项目页的「相关阅读」只认手写的两个字段，**不会按 `languages` / `tags` 自动匹配**：
+
+  ```sml
+  related_series: [ hft-embedded-linux-14 ]   # 系列 id（文章 front matter 的 series.id）
+  related_posts: [ md-writing ]               # 文章 slug（posts/<年>/<短名> 的短名）
+  ```
+
+  - 都不写 → 整块不出现（不显示「暂无」），不要为了填满而关联；
+  - `related_series` 里的系列按「组」渲染（标题 + 章数 + 最近更新，点进 `#/series/<id>`），
+    不逐章铺开；属于这些系列的文章即使写进 `related_posts` 也不会重复出现；
+  - 写错 id / slug 构建不报错，但 `python engine/cli.py check` 会拦下来。
 
 ## 资源 `resources/<英文短名>.sml`
 
