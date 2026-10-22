@@ -147,6 +147,17 @@ def as_list(v):
     return sml.as_list(v)
 
 
+def uniq_str(v):
+    """去重后的字符串列表（顺序不变）：用于 related_series / related_posts 这类
+    引用型字段 —— 重复引用只会让前端多一次无意义的查找。"""
+    out = []
+    for x in as_list(v):
+        s = sml.as_str(x)
+        if s and s not in out:
+            out.append(s)
+    return out
+
+
 def pick(d, keys, default=None):
     for k in keys:
         v = d.get(k)
@@ -404,6 +415,10 @@ def build_projects(rep, cache, offline):
             "license": sml.as_str(d.get("license", "")),
             "owner": sml.as_str(d.get("owner", "")),
             "contributors": [sml.as_str(x) for x in as_list(d.get("contributors"))],
+            # 站内相关阅读（显式关联）：related_series 存系列 id，related_posts 存文章 slug。
+            # 两者都空 → 前端不渲染「相关阅读」，不做语言 / 标签的自动相交。
+            "related_series": uniq_str(d.get("related_series")),
+            "related_posts": uniq_str(d.get("related_posts")),
             "featured": d.get("featured") is True,
             "meta": None,
         }

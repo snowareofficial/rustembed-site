@@ -160,6 +160,18 @@ for s in m.get("services", []):
             need(c in (mem.get("links") or {}),
                  "黄页条目 %s 的联系方式 `%s` 不是成员 %s 已公开的 links 字段" % (s["id"], c, mem["id"]))
 
+# 项目「相关阅读」不变量：related_series / related_posts 是显式关联，指向必须真的存在
+# （写错 id / slug 只会让区块静默少一块，构建不报错，所以这里兜住）。
+_series_ids = {s["id"] for s in m.get("series", [])}
+_post_slugs = {x["slug"] for x in m["posts"]}
+for _p in m["projects"]:
+    for _sid in (_p.get("related_series") or []):
+        need(_sid in _series_ids,
+             "项目 %s 的 related_series `%s` 不存在（写错系列 id？）" % (_p["id"], _sid))
+    for _slug in (_p.get("related_posts") or []):
+        need(_slug in _post_slugs,
+             "项目 %s 的 related_posts `%s` 不存在（写错文章 slug？）" % (_p["id"], _slug))
+
 for d in m["pages"] + m["weekly"]:
     need((DIST / d["html"]).exists(), "片段缺失 %s" % d["html"])
     need((DIST / d["map"]).exists(), "导图缺失 %s" % d["map"])

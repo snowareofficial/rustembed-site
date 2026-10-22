@@ -377,6 +377,7 @@
   R.slidersIcon = slidersIcon;
   R.clampLimit = clampLimit;
   R.entryList = entryList;
+  R.compactSeriesRow = compactSeriesRow;
   R.kidCount = kidCount;
   R.closeListPanels = closeListPanels;
   R.RECENT_MIN = RECENT_MIN;

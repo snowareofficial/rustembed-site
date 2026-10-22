@@ -214,6 +214,35 @@
     });
   }
 
+  /* ---------- 项目页的「相关阅读」 ----------
+     区块标题：相关阅读（全站只用这一个说法，不再叫「相关文章」）。 */
+  var RELATED_HEAD = '相关阅读';
+
+  /* 项目的相关阅读只有一个来源：项目文件里手写的 related_series / related_posts。
+     没有自动匹配、没有弱回退 —— languages: [rust] 不该把 Rust 入门笔记挂到
+     「Rust 并发」项目下面。返回 { series: [...], posts: [...] }，两者都空时
+     调用方整块不渲染（不显示「暂无」）。 */
+  function relatedReading(p, m) {
+    m = m || R.S.man || {};
+    var out = { series: [], posts: [] };
+    var seenSeries = {};
+    var rs = p.related_series || [];
+    for (var i = 0; i < rs.length; i++) {
+      var s = R.byId(m.series || [], rs[i]);
+      if (!s || seenSeries[s.id]) continue;
+      seenSeries[s.id] = 1;
+      out.series.push(s);
+    }
+    var rp = p.related_posts || [];
+    for (var j = 0; j < rp.length; j++) {
+      var post = R.bySlug(m.posts || [], rp[j]);
+      /* 该文章所属系列已作为「组」出现时不重复列一枚枚单篇 */
+      if (!post || (post.series && seenSeries[post.series])) continue;
+      out.posts.push(post);
+    }
+    return out;
+  }
+
   function viewProject(id) {
     var m = R.S.man;
     var p = R.byId(m.projects, id);
@@ -274,23 +303,28 @@
       f.appendChild(tl);
     }
 
-    /* 相关文章：按标签（语言/平台）真实相交，取不到就留空，不编造 */
-    var keys = {};
-    var langs = (p.languages || []).concat(p.platforms || []);
-    var li2;
-    for (li2 = 0; li2 < langs.length; li2++) keys[langs[li2]] = 1;
-    var rel = [];
-    for (var pi = 0; pi < m.posts.length; pi++) {
-      var post = m.posts[pi];
-      for (var tj = 0; tj < (post.tags || []).length; tj++) {
-        if (keys[post.tags[tj]]) { rel.push(post); break; }
+    /* 相关阅读：只认作者在项目里显式写的关联（related_series / related_posts）。
+       以前这里是 languages + platforms 与文章 tags 相交 —— 那会把「Rust 并发」
+       项目和 Rust 入门笔记连在一起。宁可整块不显示，也不用泛标签硬凑。 */
+    var reading = relatedReading(p, m);
+    if (reading.series.length || reading.posts.length) {
+      f.appendChild(R.el('p', 'section-h', RELATED_HEAD));
+      if (reading.series.length) {
+        /* 系列按「组」渲染：标题 + N 章 + 最近更新，点进去才是 #/series/<id>。
+           这里不铺章节 —— 铺了就又把一篇项目的相关区撑成半个书库。 */
+        var sol = R.el('ol', 'rows');
+        for (var si = 0; si < reading.series.length; si++) {
+          sol.appendChild(R.compactSeriesRow(reading.series[si]));
+        }
+        f.appendChild(sol);
       }
-    }
-    if (rel.length) {
-      f.appendChild(R.el('p', 'section-h', '相关文章'));
-      var ol = R.el('ol', 'rows');
-      for (var ri = 0; ri < rel.length && ri < 6; ri++) ol.appendChild(R.postRow(rel[ri], m.members));
-      f.appendChild(ol);
+      if (reading.posts.length) {
+        var rol = R.el('ol', 'rows');
+        for (var wi = 0; wi < reading.posts.length; wi++) {
+          rol.appendChild(R.postRow(reading.posts[wi], m.members));
+        }
+        f.appendChild(rol);
+      }
     }
 
     R.setToc([], '', 'map.svg');
@@ -721,6 +755,8 @@
   R.openStructure = openStructure;
   R.viewPost = viewPost;
   R.viewProject = viewProject;
+  R.relatedReading = relatedReading;
+  R.RELATED_HEAD = RELATED_HEAD;
   R.viewMember = viewMember;
   R.viewService = viewService;
   R.viewTopic = viewTopic;

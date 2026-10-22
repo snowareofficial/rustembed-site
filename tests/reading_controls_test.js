@@ -10,6 +10,8 @@
  *   [5] 语法高亮：本地 vendor 的 Prism（MIT），语言齐全，产物里没有外部 CDN
  *   [6] 系列收拢 + #/series/<id> 目录页（20 章按 order 列出 / 无效 id 空态）
  *   [10] 本页目录的「读到哪儿」标记：.toc a.cur + ::before 小三角（桌面与抽屉同步）
+ *   [15] 项目页「相关阅读」：只认 related_series / related_posts 显式关联；
+ *        系列按组渲染不去铺章节、单篇去重、无关联整块隐藏、不再按 languages 自动匹配
  *
  * 与另外三个 Node 脚本同样零依赖；真实尺寸 / 真实 CSS 交给 tests/browser-check.js。
  */
@@ -1043,6 +1045,191 @@ async function main() {
     app.rec.settings.theme.write('');
     eq(app.document.documentElement.getAttribute('data-theme'), null, '空值移除（回到跟随系统）');
     console.log('  主题：跟随系统 / 浅色 / 深色 + 下拉同步');
+  }
+  console.log('== [15] 项目页「相关阅读」：只认显式关联 ==');
+  /*   cxi-learn 系列 3 章（tags: rust）＝之前被误带出来的「Rust 基础学习系列」
+   *   hft-series 系列 2 章（tags: hft）
+   *   single-a / single-b 两篇单篇（tags: rust）
+   *   项目一律 languages: [ rust ] —— 旧逻辑会把 cxi-learn 与 single-a/b 全贴上来。 */
+  function projectMan() {
+    const posts = [
+      post('cxi-1', '2026-01-01', 'CXi 第 1 章', ['rust'], 'cxi-learn'),
+      post('cxi-2', '2026-02-02', 'CXi 第 2 章', ['rust'], 'cxi-learn'),
+      post('cxi-3', '2026-03-03', 'CXi 第 3 章', ['rust'], 'cxi-learn'),
+      post('hft-1', '2026-04-04', 'HFT 第 1 章', ['hft'], 'hft-series'),
+      post('hft-2', '2026-05-05', 'HFT 第 2 章', ['hft'], 'hft-series'),
+      post('single-a', '2026-06-06', '单篇 A', ['rust']),
+      post('single-b', '2026-07-07', '单篇 B', ['rust'])
+    ];
+    const series = [
+      { id: 'cxi-learn', title: 'CXi 的 Rust 学习笔记', posts: [
+        { slug: 'cxi-1', title: 'CXi 第 1 章', order: 1 },
+        { slug: 'cxi-2', title: 'CXi 第 2 章', order: 2 },
+        { slug: 'cxi-3', title: 'CXi 第 3 章', order: 3 }] },
+      { id: 'hft-series', title: 'HFT 工程实践', posts: [
+        { slug: 'hft-1', title: 'HFT 第 1 章', order: 1 },
+        { slug: 'hft-2', title: 'HFT 第 2 章', order: 2 }] }
+    ];
+    return { posts, series };
+  }
+  function proj(id, over) {
+    return Object.assign({
+      id: id, name: id, one_liner: '一句话', status: 'active', repo: 'https://example.org/' + id,
+      languages: ['rust'], tags: [], meta: {}, contributors: [], featured: false
+    }, over || {});
+  }
+  async function projectView(projects) {
+    const app = makeApp(manifest(Object.assign(projectMan(), { projects: projects })));
+    await app.rec.started;
+    const frag = await app.rec.viewProject(projects[0].id);
+    const box = app.document.createElement('div');
+    box.appendChild(frag);
+    return box;
+  }
+  /* 项目页里的区块标题列表：判断「有没有相关阅读」只看这个，不看全文匹配 */
+  function heads(box) { return box.querySelectorAll('p.section-h').map((n) => n.textContent); }
+  function groupRows(box) { return box.querySelectorAll('li.row-series-flat'); }
+  function postRows(box) {
+    return box.querySelectorAll('li.row').filter((n) => !n.classList.contains('row-series-flat'));
+  }
+  {
+    /* [2] 有 related_series：只出系列组，不出该系列的逐章文章 */
+    const box = await projectView([proj('p1', { related_series: ['hft-series'] })]);
+    const hs = heads(box);
+    need(hs.indexOf('相关阅读') >= 0, '有 related_series 时出现「相关阅读」区块');
+    need(hs.indexOf('相关文章') < 0, '不再叫「相关文章」（全站只用一个说法）');
+    eq(groupRows(box).length, 1, '关联一个系列 → 一条系列组行');
+    const g = groupRows(box)[0];
+    has(g.textContent, 'HFT 工程实践', '系列组标题是系列名');
+    has(g.textContent, '系列 · 2 章', '系列组写明章数');
+    has(g.textContent, '2026-05-05', '系列组写明最近更新日期');
+    eq(g.querySelector('a.row-title').getAttribute('href'), '#/series/hft-series',
+      '系列组链接是 #/series/<id>（不是逐章的 #/post/）');
+    need(!box.querySelector('.series-posts'), '系列组不列出每一章');
+    eq(postRows(box).length, 0, '没有 related_posts 时一篇单篇都不渲染');
+    no(box.textContent, 'CXi', 'languages: [rust] 不再自动带出 Rust 基础系列');
+    no(box.textContent, '单篇', 'languages: [rust] 不再自动带出同标签单篇');
+    console.log('  related_series → 一条系列组（标题 / 章数 / 日期 / 目录页链接），不铺章节');
+  }
+  {
+    /* [3] related_posts 里的单篇正常显示 */
+    const box = await projectView([proj('p2', { related_posts: ['single-a', 'single-b'] })]);
+    need(heads(box).indexOf('相关阅读') >= 0, '只有 related_posts 也出现区块');
+    eq(groupRows(box).length, 0, '没有 related_series 时不渲染系列组');
+    eq(postRows(box).map((n) => n.querySelector('a.row-title').getAttribute('href')).join(','),
+      '#/post/single-a,#/post/single-b', 'related_posts 按声明顺序用 postRow 渲染');
+    console.log('  related_posts → 现有 postRow 逐篇渲染');
+  }
+  {
+    /* [4] 同系列的单篇不重复：cxi-2 属于已列出的 cxi-learn，应被去重 */
+    const box = await projectView([proj('p3', {
+      related_series: ['cxi-learn'], related_posts: ['cxi-2', 'single-a']
+    })]);
+    eq(groupRows(box).length, 1, '系列组 1 条');
+    eq(postRows(box).length, 1, 'cxi-2 被去重，只剩 single-a');
+    eq(postRows(box)[0].querySelector('a.row-title').getAttribute('href'), '#/post/single-a',
+      '保留下来的正是那篇不属于已列系列的文章');
+    no(box.textContent, 'CXi 第 2 章', '单篇列表里不再重复该系列的某一章');
+    console.log('  已在 related_series 的系列 → related_posts 不重复渲染');
+  }
+  {
+    /* [5] 没有关联 → 整块不渲染（不回退到标签匹配，也不显示「暂无」） */
+    for (const over of [{ related_series: [], related_posts: [] }, {}, { related_series: [] }]) {
+      const box = await projectView([proj('p4', over)]);
+      need(heads(box).indexOf('相关阅读') < 0, '没有关联时不出现「相关阅读」区块');
+      need(heads(box).indexOf('相关文章') < 0, '也没有残留的「相关文章」区块');
+      eq(groupRows(box).length, 0, '不渲染空的系列组');
+      eq(postRows(box).length, 0, '不渲染任何单篇');
+      need(!box.querySelector('p.muted'), '不给「暂无」占位');
+    }
+    console.log('  无关联 → 整块隐藏（无「暂无」、无标签兜底）');
+  }
+  {
+    /* 关联指向不存在的 id / slug：静默忽略，不抛、不造行 */
+    const box = await projectView([proj('p5', {
+      related_series: ['一定没有这个系列'], related_posts: ['一定没有这篇文章']
+    })]);
+    need(heads(box).indexOf('相关阅读') < 0, '关联全部失效时整块隐藏');
+    eq(groupRows(box).length + postRows(box).length, 0, '失效引用不产生空行');
+    console.log('  失效引用 → 忽略（check.py 会拦下来）');
+  }
+  {
+    /* [1][6] 真产物：契约接受了新字段，且 Rust 项目页不再被贴上 Rust 入门系列 */
+    const raw = readMaybe(path.join(DIST, 'manifest.json'));
+    need(!!raw, 'dist/manifest.json 不存在（先跑 python engine/build.py）');
+    if (raw) {
+      const man = JSON.parse(raw);
+      for (const pr of man.projects) {
+        need(Array.isArray(pr.related_series), '项目 ' + pr.id + ' 的 related_series 进 manifest 且是数组');
+        need(Array.isArray(pr.related_posts), '项目 ' + pr.id + ' 的 related_posts 进 manifest 且是数组');
+      }
+      const seriesIds = (man.series || []).map((s) => s.id);
+      const slugs = man.posts.map((p) => p.slug);
+      for (const pr of man.projects) {
+        for (const sid of pr.related_series) {
+          need(seriesIds.indexOf(sid) >= 0, '项目 ' + pr.id + ' 的 related_series ' + sid + ' 指向不存在的系列');
+        }
+        for (const sp of pr.related_posts) {
+          need(slugs.indexOf(sp) >= 0, '项目 ' + pr.id + ' 的 related_posts ' + sp + ' 指向不存在的文章');
+        }
+      }
+      const rel = man.projects.filter((p) => p.related_series.length || p.related_posts.length);
+      need(rel.length > 0, '至少要有一个项目写了显式关联（否则这条链路没被真数据覆盖）');
+
+      /* 拿真 manifest 各渲染一遍项目页：不该有因 languages 自动匹配出来的阅读区块 */
+      const app = makeApp(man, { bodies: {} });
+      await app.rec.started;
+      for (const pr of man.projects) {
+        const frag = await app.rec.viewProject(pr.id);
+        const box = app.document.createElement('div');
+        box.appendChild(frag);
+        if (!pr.related_series.length && !pr.related_posts.length) {
+          need(heads(box).indexOf('相关阅读') < 0,
+            '项目 ' + pr.id + ' 没有显式关联，页面不该出现「相关阅读」');
+        }
+      }
+      /* cshonor-rust-concurrency：languages 是 [rust]，以前会挂上 CXi 的 Rust 学习系列 */
+      const plain = man.projects.find((p) => p.id === 'cshonor-rust-concurrency');
+      need(!!plain, '产物里缺少项目 cshonor-rust-concurrency');
+      if (plain) {
+        eq(plain.related_series.length + plain.related_posts.length, 0,
+          'cshonor-rust-concurrency 没有真正相关的系列 → 显式关联留空');
+        const frag = await app.rec.viewProject('cshonor-rust-concurrency');
+        const box = app.document.createElement('div');
+        box.appendChild(frag);
+        no(box.textContent, '编译教学', '不再因 languages: [rust] 带出 Rust 学习系列的章节');
+        need(heads(box).indexOf('相关阅读') < 0, '该项目页没有相关阅读区块');
+      }
+      /* sal-sml 同理；rec-blog 显式关联了投稿指南那篇 */
+      const sml = man.projects.find((p) => p.id === 'sal-sml');
+      if (sml) {
+        eq(sml.related_series.length + sml.related_posts.length, 0,
+          'sal-sml 没有 SML / 站点构建文章 → 显式关联留空');
+      }
+      const rb = man.projects.find((p) => p.id === 'rec-blog');
+      need(!!rb && rb.related_posts.indexOf('md-writing') >= 0,
+        'rec-blog 显式关联了 md-writing（投稿指南）');
+      if (rb) {
+        const frag = await app.rec.viewProject('rec-blog');
+        const box = app.document.createElement('div');
+        box.appendChild(frag);
+        need(heads(box).indexOf('相关阅读') >= 0, 'rec-blog 项目页出现「相关阅读」');
+        eq(postRows(box).map((n) => n.querySelector('a.row-title').getAttribute('href')).join(','),
+          '#/post/md-writing', 'rec-blog 的相关阅读只有显式关联的那篇');
+      }
+      /* 有真系列关联的项目：HFT 项目页应出现那条系列组，且不铺开章节 */
+      const hft = man.projects.find((p) => (p.related_series || []).indexOf('hft-embedded-linux-14') >= 0);
+      need(!!hft, 'cshonor-hft-embedded-linux 应显式关联 hft-embedded-linux-14 系列');
+      if (hft) {
+        const frag = await app.rec.viewProject(hft.id);
+        const box = app.document.createElement('div');
+        box.appendChild(frag);
+        need(heads(box).indexOf('相关阅读') >= 0, 'HFT 项目页出现「相关阅读」');
+        eq(groupRows(box).length, 1, 'HFT 项目页只一条系列组');
+        need(!box.querySelector('.series-posts'), 'HFT 系列组不铺开 13 章');
+      }
+      console.log('  产物：新字段进 manifest、引用可解析、无自动匹配残留');
+    }
   }
 }
 
