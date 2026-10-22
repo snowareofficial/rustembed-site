@@ -37,7 +37,9 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+ENGINE = Path(__file__).resolve().parent
+sys.path.insert(0, str(ENGINE))
+sys.path.insert(0, str(ENGINE / "lib"))
 
 import config  # noqa: E402
 from lib import render  # noqa: E402
