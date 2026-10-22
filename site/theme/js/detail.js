@@ -234,6 +234,7 @@
     if (p.repo) btns.appendChild(R.outLink(p.repo, '仓库', 'chip'));
     if (p.homepage) btns.appendChild(R.outLink(p.homepage, '文档 / 主页', 'chip'));
     f.appendChild(btns);
+    if ((p.tags || []).length) f.appendChild(R.projectTagChips(p));
 
     var meta = p.meta || {};
     var metrics = R.el('div', 'metrics');

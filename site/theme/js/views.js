@@ -169,6 +169,15 @@
     return R.el('span', 'status ' + String(v || ''), M[v] || String(v || '—'));
   }
 
+  /* 项目标签 chip：纯展示（不可点）；「活跃开发」由构建期按 status 自动带上 */
+  function projectTagChips(p) {
+    var wrap = R.el('p', 'chips tag-chips');
+    for (var i = 0; i < (p.tags || []).length; i++) {
+      wrap.appendChild(R.el('span', 'tag-chip', p.tags[i]));
+    }
+    return wrap;
+  }
+
   function kv(pairs) {
     var dl = R.el('dl', 'kv');
     var n = 0;
@@ -876,6 +885,7 @@
     var mem = R.byId(m.members, p.owner);
     if (mem) { line.appendChild(document.createTextNode(' · ')); line.appendChild(R.lnk('#/member/' + mem.id, mem.name)); }
     left.appendChild(line);
+    if ((p.tags || []).length) left.appendChild(projectTagChips(p));
     var btns = R.el('p', 'chips');
     btns.appendChild(R.outLink(p.repo, '仓库', 'chip'));
     if (p.homepage) btns.appendChild(R.outLink(p.homepage, '主页', 'chip'));
@@ -901,10 +911,11 @@
     var m = R.S.man;
     var head = pageHead('比较', '项目', '左简介、右数据。数据来自构建期抓取的仓库元数据，抓不到就不显示。');
     var f = filterable(head, m.projects || [], {
-      placeholder: '按项目名 / 简介 / 语言 / 状态过滤',
+      placeholder: '按项目名 / 简介 / 标签 / 语言 / 状态过滤',
       empty: '没有匹配的项目。',
       match: function (p, q) {
-        return (p.name + ' ' + (p.one_liner || '') + ' ' + (p.languages || []).join(' ') + ' ' +
+        return (p.name + ' ' + (p.one_liner || '') + ' ' + (p.tags || []).join(' ') + ' ' +
+          (p.languages || []).join(' ') + ' ' +
           (p.status || '')).toLowerCase().indexOf(q) >= 0;
       },
       render: function (p) { return projectRow(p, m); }
@@ -1360,6 +1371,7 @@
   R.topicCard = topicCard;
   R.viewTopics = viewTopics;
   R.projectRow = projectRow;
+  R.projectTagChips = projectTagChips;
   R.viewProjects = viewProjects;
   R.viewMembers = viewMembers;
   R.serviceRow = serviceRow;

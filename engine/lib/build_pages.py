@@ -367,6 +367,15 @@ def build_posts(rep, cache, offline):
     return posts
 
 
+def project_tags(d):
+    """项目展示标签：作者写的 tags 原样保留；status: active 自动补「活跃开发」，
+    不要求作者手写（作者写了就不重复补）。"""
+    tags = [sml.as_str(x) for x in as_list(d.get("tags"))]
+    if sml.as_str(d.get("status")) == "active" and "活跃开发" not in tags:
+        tags.append("活跃开发")
+    return tags
+
+
 def build_projects(rep, cache, offline):
     out = []
     for f in docs_in(CONTENT / "projects"):
@@ -390,6 +399,7 @@ def build_projects(rep, cache, offline):
             "homepage": homepage,
             "languages": [sml.as_str(x) for x in as_list(d.get("languages"))],
             "platforms": [sml.as_str(x) for x in as_list(d.get("platforms"))],
+            "tags": project_tags(d),
             "status": sml.as_str(d.get("status")),
             "license": sml.as_str(d.get("license", "")),
             "owner": sml.as_str(d.get("owner", "")),

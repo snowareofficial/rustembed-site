@@ -160,9 +160,11 @@ def search_index(posts, projects, members, services, resources, topics, weekly, 
                        "tags": p["tags"], "url": "#/post/" + p["slug"],
                        "text": p["_text"][:4000]})
     for pr in projects:
+        ptags = (pr.get("tags") or [])
         search.append({"type": "项目", "title": pr["name"], "summary": pr["one_liner"],
-                       "tags": pr["languages"], "url": "#/project/" + pr["id"],
-                       "text": pr["one_liner"]})
+                       "tags": pr["languages"] + [t for t in ptags if t not in pr["languages"]],
+                       "url": "#/project/" + pr["id"],
+                       "text": pr["one_liner"] + " " + " ".join(ptags)})
     for m in members:
         search.append({"type": "成员", "title": m["name"], "summary": m["signature"],
                        "tags": m["skills"], "url": "#/member/" + m["id"],

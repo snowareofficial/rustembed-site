@@ -215,6 +215,12 @@ li.when::before {
 }
 .chip:hover { color: var(--ink); border-color: var(--line-strong); }
 .chip.on { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+/* 标签 chip（项目 tags 等）：复用 .chip 的 pill 视觉，纯展示、不可点 */
+.tag-chip {
+  font-size: 12px; padding: .02rem .45rem;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--surface-2); color: var(--ink-soft);
+}
 
 .tag { font-size: 12px; color: var(--ink-mute); }
 .tag::before { content: "#"; }
