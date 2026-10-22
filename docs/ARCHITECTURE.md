@@ -81,6 +81,7 @@ rec-blog/
 | host | 否 | `github` / `gitee` / `codeberg` / `gitea`（缺省按 URL 推断）|
 | homepage / docs | 否 | |
 | languages / platforms | 否 | 筛选用 |
+| tags | 否 | 展示标签（技术标签 / 编辑标签），列表过滤与搜索都含；`active` 自动补「活跃开发」 |
 | status | 是 | `active` / `archived` / `wip` |
 | license | 否 | |
 | owner / contributors | 否 | 成员 id，反查到个人页 |

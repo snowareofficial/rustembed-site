@@ -116,6 +116,10 @@
   license: str optional
   languages: [str] optional
   platforms: [str] optional
+  # 展示标签（chip）：技术标签（Rust / 物理引擎…）与编辑标签（社区精选…）两种，
+  # 不写背书类标签（如「Gitee 推荐」）；status: active 会自动补「活跃开发」，不用手写。
+  # 字段语义与写法见 docs/EDIT-SITE-DATA.md。
+  tags: [str] optional
   owner: str optional     # 成员 id
   contributors: [str] optional
   featured: bool optional # 是否上首页精选
