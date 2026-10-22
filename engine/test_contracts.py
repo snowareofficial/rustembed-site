@@ -7,8 +7,10 @@
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
 
+import config  # noqa: E402
 import contract  # noqa: E402
 import sml  # noqa: E402
 
@@ -84,6 +86,28 @@ def main():
          [contracts["OptEnum"]["fields"]["mode"]["required"]], [False])
     case("契约解析：enum 可选字段缺失不报错",
          codes(contracts, {}, "OptEnum"), [])
+
+    # 本站契约回归：项目页「相关阅读」靠 Project 的 related_series / related_posts
+    # 显式关联。契约里删掉这两个字段 → 写了它们的项目会撞 E-CONTRACT-004。
+    blog = config.CONTENT / "contracts" / "blog.sml"
+    case("本站契约文件存在", blog.is_file(), True)
+    if blog.is_file():
+        real = sml.parse_doc(blog.read_text(encoding="utf-8"), str(blog))[1]
+        fields = (real.get("Project") or {}).get("fields", {})
+        for fname in ("related_series", "related_posts"):
+            case("Project 契约声明了 %s（字符串数组）" % fname,
+                 (fields.get(fname) or {}).get("type"), "[str]")
+            case("Project.%s 是可选字段" % fname,
+                 (fields.get(fname) or {}).get("required"), False)
+        base = {"name": "x", "one_liner": "y", "repo": "https://e.org/a/b", "status": "active"}
+        case("Project 接受 related 两字段",
+             codes(real, dict(base, related_series=["s1"], related_posts=["p1"]), "Project"), [])
+        case("Project 不写 related 两字段也通过（旧项目兼容）", codes(real, base, "Project"), [])
+        case("Project 拒绝 related_series 非数组",
+             codes(real, dict(base, related_series="s1"), "Project"), ["E-CONTRACT-002"])
+        case("Project 拒绝 related_posts 里混非字符串",
+             codes(real, dict(base, related_posts=["ok", 7]), "Project"), ["E-CONTRACT-002"])
+        case("Project.docs 仍是 url 语义（不承文章组）", (fields.get("docs") or {}).get("type"), "url")
 
     if failed:
         print("契约自测失败 %d 项：" % len(failed))
