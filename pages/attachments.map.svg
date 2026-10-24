@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="282" height="220" viewBox="0 0 282 220" font-family="-apple-system,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif">
+<title>附件规则</title>
+<style>.nd{fill:#fff;stroke:#e4dfd6;rx:8} .rt{fill:#f6efe6;stroke:#d9c9b0}.tx{font-size:13px;fill:#23201c} .lk{cursor:pointer}.lk:hover .nd{stroke:#b4552d;fill:#fff8f2} .ed{fill:none;stroke:#ddd6c9;stroke-width:1.4}</style>
+<g class="edges">
+<path class="ed" d="M116.0 110.0 C139.0 110.0 139.0 34.0 162.0 34.0"/>
+<path class="ed" d="M116.0 110.0 C139.0 110.0 139.0 72.0 162.0 72.0"/>
+<path class="ed" d="M116.0 110.0 C139.0 110.0 139.0 110.0 162.0 110.0"/>
+<path class="ed" d="M116.0 110.0 C139.0 110.0 139.0 148.0 162.0 148.0"/>
+<path class="ed" d="M116.0 110.0 C139.0 110.0 139.0 186.0 162.0 186.0"/>
+</g>
+<g class="nodes">
+<rect class="nd rt" x="20.0" y="96.0" width="96.0" height="28" rx="8"/><text class="tx" x="30.0" y="115.0">附件规则</text>
+<a class="lk" href="#/page/attachments/总原则" xlink:href="#/page/attachments/总原则"><rect class="nd" x="162.0" y="20.0" width="96.0" height="28" rx="8"/><text class="tx" x="172.0" y="39.0">总原则</text></a>
+<a class="lk" href="#/page/attachments/入库的图片" xlink:href="#/page/attachments/入库的图片"><rect class="nd" x="162.0" y="58.0" width="100.0" height="28" rx="8"/><text class="tx" x="172.0" y="77.0">入库的图片</text></a>
+<a class="lk" href="#/page/attachments/外链附件" xlink:href="#/page/attachments/外链附件"><rect class="nd" x="162.0" y="96.0" width="96.0" height="28" rx="8"/><text class="tx" x="172.0" y="115.0">外链附件</text></a>
+<a class="lk" href="#/page/attachments/审核项" xlink:href="#/page/attachments/审核项"><rect class="nd" x="162.0" y="134.0" width="96.0" height="28" rx="8"/><text class="tx" x="172.0" y="153.0">审核项</text></a>
+<a class="lk" href="#/page/attachments/附件的展示" xlink:href="#/page/attachments/附件的展示"><rect class="nd" x="162.0" y="172.0" width="100.0" height="28" rx="8"/><text class="tx" x="172.0" y="191.0">附件的展示</text></a>
+</g></svg>

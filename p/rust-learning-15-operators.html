@@ -1,0 +1,157 @@
+<p>参考 <code>arithematic.rs</code> 的 5 种策略。运算符分类：</p>
+<table>
+<thead><tr><th>类型</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>一元</td><td><code>!</code>（按位非）、<code>-</code>（取负）、<code>*</code>（解引用）、<code>&amp;</code>（取址）、<code>&amp;mut</code>（取可变址）</td></tr>
+<tr><td>二元算术</td><td><code>+ - * / %</code></td></tr>
+<tr><td>比较</td><td><code>== != &lt; &lt;= &gt; &gt;=</code></td></tr>
+<tr><td>逻辑</td><td>`&amp;&amp;</td><td></td><td>`</td></tr>
+<tr><td>位运算</td><td>`&amp;</td><td>^ &lt;&lt; &gt;&gt;`</td></tr>
+<tr><td>复合赋值</td><td>`+= -= *= /= %= &amp;=</td><td>= ^= &lt;&lt;= &gt;&gt;=`</td></tr>
+</tbody>
+</table>
+<h4 id="一元操作符详表">一元操作符详表</h4>
+<table>
+<thead><tr><th>操作符</th><th>操作符名</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>-</code></td><td>取负</td><td>专门用于数值类型</td></tr>
+<tr><td><code>*</code></td><td>解引用</td><td>和 <code>Deref</code> / <code>DerefMut</code> 这个 trait 关联密切，类似于 C 语言里的指针取值</td></tr>
+<tr><td><code>!</code></td><td>取反</td><td>对数字类型使用时，会将每一位全部置反；例：<code>!1u8</code> 结果为 <code>254u8</code></td></tr>
+<tr><td><code>&amp;</code></td><td>借用</td><td>向所有者租借只读使用权，生成不可变引用</td></tr>
+<tr><td><code>&amp;mut</code></td><td>借用</td><td>向所有者租借读写使用权，生成可变引用</td></tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>关于&quot;借用不是所有权的转移&quot;</strong>：</p>
+<ul>
+<li><code>&amp;T</code> / <code>&amp;mut T</code> 是胖指针：长度固定（与平台指针同宽）、<strong>不夺走所有权</strong>，作用域结束自动解租。</li>
+<li>同一数据同一时刻只能有<strong>一个</strong> <code>&amp;mut T</code>（排他写），或<strong>任意多个</strong> <code>&amp;T</code>（共享读）。这是借用检查器（borrow checker）的核心约束。</li>
+<li><code>*</code> 解引用之所以重要，是因为 <code>&amp;T -&gt; T</code> 的转换会自动调用 <code>Deref::deref(&amp;T) -&gt; &amp;U</code>；<code>Box&lt;T&gt;</code>、<code>Rc&lt;T&gt;</code>、<code>String</code> 等都实现 <code>Deref</code>，所以 <code>(*my_box).field</code> 可以直接写成 <code>my_box.field</code>。</li>
+</ul>
+</blockquote>
+<h4 id="二元算术操作符">二元算术操作符</h4>
+<table>
+<thead><tr><th>操作符</th><th>操作符名</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>+</code></td><td>加法</td><td>实现了 <code>std::ops::Add</code></td></tr>
+<tr><td><code>-</code></td><td>减法</td><td>实现了 <code>std::ops::Sub</code></td></tr>
+<tr><td><code>*</code></td><td>乘法</td><td>实现了 <code>std::ops::Mul</code></td></tr>
+<tr><td><code>/</code></td><td>除法</td><td>实现了 <code>std::ops::Div</code></td></tr>
+<tr><td><code>%</code></td><td>取余</td><td>实现了 <code>std::ops::Rem</code></td></tr>
+</tbody>
+</table>
+<blockquote>
+<ul>
+<li>算术运算的具体溢出/回卷/钳制策略见 <a href="#121-整型" target="_blank" rel="nofollow noopener">1.2.1 整数溢出策略</a> 里的 5 种前缀（<code>checked_*</code> / <code>wrapping_*</code> / <code>saturating_*</code> / <code>overflowing_*</code> / 裸 <code>+/-/*</code>）。</li>
+<li>整型与浮点除法都按截断（向 0 取整）；要&quot;四舍五入&quot;得自己加半进位。</li>
+<li>二元运算符的实现机制：给目标类型 impl 对应 <code>std::ops::Xxx</code> 即可让 <code>a + b</code> 等表达式成立（细节见下面的 trait 速查表）。</li>
+</ul>
+</blockquote>
+<h4 id="位运算操作符">位运算操作符</h4>
+<table>
+<thead><tr><th>操作符</th><th>操作符名</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>&amp;</code></td><td>与操作</td><td>实现了 <code>std::ops::BitAnd</code></td></tr>
+<tr><td>`</td><td>`</td><td>或操作</td></tr>
+<tr><td><code>^</code></td><td>异或</td><td>实现了 <code>std::ops::BitXor</code></td></tr>
+<tr><td><code>&lt;&lt;</code></td><td>左移运算符</td><td>实现了 <code>std::ops::Shl</code></td></tr>
+<tr><td><code>&gt;&gt;</code></td><td>右移运算符</td><td>实现了 <code>std::ops::Shr</code></td></tr>
+</tbody>
+</table>
+<blockquote>
+<ul>
+<li>位运算在有/无符号整型上语义不同：算术（带符号）右移是 <code>shr</code>，但<strong>左移</strong>统一按逻辑移位（高位丢、低位补 0）。调试时要看清楚。</li>
+<li><code>&amp;</code> / <code>|</code> / <code>^</code> 既是按位算符又是<strong>短路</strong>布尔算符（仅 <code>bool</code>）：<code>false | true</code> 不短路，<code>false || true</code> 短路。</li>
+<li>跟算术运算一样，移位也有 5 种策略（<code>checked_shl</code> / <code>wrapping_shl</code> / <code>saturating_shl</code> / <code>overflowing_shl</code> / 裸 <code>&lt;&lt;</code>）；32 位 <code>u32</code> 左移 ≥32 即未定义行为，但 <code>wrapping_shl</code> 会按模 N 自动回卷到合法位置。</li>
+<li>移位算符的实现 / 重载走 trait <code>BitAnd</code> / <code>BitOr</code> / <code>BitXor</code> / <code>Shl</code> / <code>Shr</code>，可与自定义结构体配合使用。</li>
+</ul>
+</blockquote>
+<h4 id="比较运算符">比较运算符</h4>
+<table>
+<thead><tr><th>操作符</th><th>操作符名</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>==</code></td><td>等于</td><td>实现了 <code>std::cmp::PartialEq</code></td></tr>
+<tr><td><code>!=</code></td><td>不等于</td><td>实现了 <code>std::cmp::PartialEq</code></td></tr>
+<tr><td><code>&lt;</code></td><td>小于</td><td>实现了 <code>std::cmp::PartialOrd</code></td></tr>
+<tr><td><code>&lt;=</code></td><td>小于或等于</td><td>实现了 <code>std::cmp::PartialOrd</code></td></tr>
+<tr><td><code>&gt;</code></td><td>大于</td><td>实现了 <code>std::cmp::PartialOrd</code></td></tr>
+<tr><td><code>&gt;=</code></td><td>大于或等于</td><td>实现了 <code>std::cmp::PartialOrd</code></td></tr>
+</tbody>
+</table>
+<blockquote>
+<ul>
+<li><code>PartialEq</code> 与 <code>Eq</code> 不同：相等是&quot;部分相等&quot;（可以与 <code>NaN</code> 自反但 <code>NaN != NaN</code>），<code>Eq</code> 表示全等（等价关系 + 自反）。自定义类型用 <code>derive(PartialEq)</code> 即可；要求等价关系的额外写 <code>derive(Eq)</code>。</li>
+<li><code>PartialOrd</code> 与 <code>Ord</code> 类似：<code>PartialOrd</code> 允 <code>NaN</code>-style 不可比；<code>Ord</code> 是全序。常用 <code>derive(PartialOrd, Ord)</code>。</li>
+<li>Rust 写 <code>==</code> / <code>!=</code> / <code>&lt;</code> / <code>&gt;</code> 这些算符时，编译器都会自动引用相应 trait 里的方法（<code>eq</code>、<code>lt</code>、<code>gt</code> 等），所以只要 <code>derive</code> 或 <code>impl</code> 一次，整个类型就都能用了。</li>
+</ul>
+</blockquote>
+<h4 id="运算符对应的-trait-实现-trait-即可重载">运算符对应的 trait（实现 trait 即可重载）</h4>
+<table>
+<thead><tr><th>类别</th><th>Trait</th><th>运算符</th></tr></thead>
+<tbody>
+<tr><td>一元操作符</td><td><code>std::ops::Neg</code></td><td><code>-x</code></td></tr>
+<tr><td></td><td><code>std::ops::Not</code></td><td><code>!x</code></td></tr>
+<tr><td>算术操作符</td><td><code>std::ops::Add</code></td><td><code>x + y</code></td></tr>
+<tr><td></td><td><code>std::ops::Sub</code></td><td><code>x - y</code></td></tr>
+<tr><td></td><td><code>std::ops::Mul</code></td><td><code>x * y</code></td></tr>
+<tr><td></td><td><code>std::ops::Div</code></td><td><code>x / y</code></td></tr>
+<tr><td></td><td><code>std::ops::Rem</code></td><td><code>x % y</code></td></tr>
+<tr><td>位操作符</td><td><code>std::ops::BitAnd</code></td><td><code>x &amp; y</code></td></tr>
+<tr><td></td><td><code>std::ops::BitOr</code></td><td>`x</td><td>y`</td></tr>
+<tr><td></td><td><code>std::ops::BitXor</code></td><td><code>x ^ y</code></td></tr>
+<tr><td></td><td><code>std::ops::Shl</code></td><td><code>x &lt;&lt; y</code></td></tr>
+<tr><td></td><td><code>std::ops::Shr</code></td><td><code>x &gt;&gt; y</code></td></tr>
+<tr><td>复合算术赋值运算符</td><td><code>std::ops::AddAssign</code></td><td><code>x += y</code></td></tr>
+<tr><td></td><td><code>std::ops::SubAssign</code></td><td><code>x -= y</code></td></tr>
+<tr><td></td><td><code>std::ops::MulAssign</code></td><td><code>x *= y</code></td></tr>
+<tr><td></td><td><code>std::ops::DivAssign</code></td><td><code>x /= y</code></td></tr>
+<tr><td></td><td><code>std::ops::RemAssign</code></td><td><code>x %= y</code></td></tr>
+<tr><td>复合位操作赋值</td><td><code>std::ops::BitAndAssign</code></td><td><code>x &amp;= y</code></td></tr>
+<tr><td></td><td><code>std::ops::BitOrAssign</code></td><td>`x</td><td>= y`</td></tr>
+<tr><td></td><td><code>std::ops::BitXorAssign</code></td><td><code>x ^= y</code></td></tr>
+<tr><td></td><td><code>std::ops::ShlAssign</code></td><td><code>x &lt;&lt;= y</code></td></tr>
+<tr><td></td><td><code>std::ops::ShrAssign</code></td><td><code>x &gt;&gt;= y</code></td></tr>
+<tr><td>比较</td><td><code>std::cmp::PartialEq</code></td><td><code>x == y</code>, <code>x != y</code></td></tr>
+<tr><td></td><td><code>std::cmp::PartialOrd</code></td><td><code>x &lt; y</code>, <code>x &lt;= y</code>, <code>x &gt; y</code>, <code>x &gt;= y</code></td></tr>
+<tr><td>索引</td><td><code>std::ops::Index</code></td><td><code>x[y]</code></td></tr>
+<tr><td></td><td><code>std::ops::IndexMut</code></td><td><code>x[y] = z</code>, <code>&amp;mut x[y]</code></td></tr>
+</tbody>
+</table>
+<blockquote>
+<p>这些 trait 全在 <code>std::ops</code> / <code>std::cmp</code> 里，<strong>实现对应 trait 即可让自定义类型也用运算符</strong>：</p>
+<p>实现 <code>PartialEq</code> 自动得到 <code>==</code> 与 <code>!=</code>（Rust 写 <code>==</code> 自动 deref 到 <code>PartialEq::eq</code>）；<code>PartialOrd</code> 给 <code>derive(PartialOrd, Ord)</code> 即可。完整示例见 <a href="/Volumes/CX/学习/Rust/helloworld/src/Chapter4/impl代码块.rs" target="_blank" rel="nofollow noopener">src/Chapter4/impl代码块.rs</a> 里的 <code>impl Mul for Point { ... }</code>。</p>
+</blockquote>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">use std::ops::Add;
+struct Point { x: i32, y: i32 }
+impl Add for Point {
+    type Output = Point;
+    fn add(self, other: Point) -&gt; Point { Point { x: self.x + other.x, y: self.y + other.y } }
+}</code></pre>
+</div>
+<h4 id="运算符优先级-高-低">运算符优先级（高 → 低）</h4>
+<table>
+<thead><tr><th>运算符</th><th>结合性</th></tr></thead>
+<tbody>
+<tr><td>字段访问、方法调用、数组索引 <code>x.y</code> / <code>x.method()</code> / <code>x[i]</code></td><td>从左至右</td></tr>
+<tr><td><code>?</code>（错误传播）</td><td>—</td></tr>
+<tr><td>一元运算符（<code>-</code>、<code>*</code>、<code>!</code>、<code>&amp;</code>、<code>&amp;mut</code>）</td><td>从右至左</td></tr>
+<tr><td><code>as</code>（类型转换）</td><td>—</td></tr>
+<tr><td>二元乘除（<code>*</code>、<code>/</code>、<code>%</code>）</td><td>从左至右</td></tr>
+<tr><td>二元加减（<code>+</code>、<code>-</code>）</td><td>从左至右</td></tr>
+<tr><td>移位（<code>&lt;&lt;</code>、<code>&gt;&gt;</code>）</td><td>从左至右</td></tr>
+<tr><td>按位与 <code>&amp;</code></td><td>从左至右</td></tr>
+<tr><td>按位异或 <code>^</code></td><td>从左至右</td></tr>
+<tr><td>按位或 `</td><td>`</td><td>从左至右</td></tr>
+<tr><td>比较（<code>==</code>、<code>!=</code>、<code>&lt;</code>、<code>&gt;</code>、<code>&lt;=</code>、<code>&gt;=</code>）</td><td>需要括号</td></tr>
+<tr><td>逻辑与 <code>&amp;&amp;</code></td><td>从左至右</td></tr>
+<tr><td>逻辑或 `</td><td></td><td>`</td><td>从左至右</td></tr>
+<tr><td>范围（<code>..</code>、<code>..=</code>）</td><td>需要括号</td></tr>
+<tr><td>赋值（<code>=</code>、<code>+=</code>、<code>-=</code>、<code>*=</code>、<code>/=</code>、<code>%=</code>、<code>&amp;=</code>、`</td><td>=<code>、</code>^=<code>、</code>&lt;&lt;=<code>、</code>&gt;&gt;=`）</td><td>从右至左</td></tr>
+<tr><td><code>return</code>、<code>break</code>、闭包 `</td><td>…</td></tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>判断口诀</strong>：读写优先级时，从上往下&quot;逐渐降低&quot;；同级别多个算符连写时，再看行的结合性（&quot;从左至右&quot;还是&quot;从右至左&quot;）。<code>比较</code>、单 <code>?</code>、<code>return</code> 等&quot;非结合&quot;算符要求显式括号，避免读代码时产生歧义。</p>
+</blockquote>

@@ -1,0 +1,43 @@
+<h2 id="投稿方式">投稿方式</h2>
+<ol>
+<li>fork 仓库 → 新建 posts/&lt;年份&gt;/&lt;英文短名&gt;/index.md → 提 PR</li>
+<li>不方便用 git：把稿子交给有仓库权限的群管理，由对方代投（署名仍是你的）</li>
+</ol>
+<p>审核人会在 3 天内响应；退稿会给明原因（格式、事实、许可、附件问题）。构建脚本会直接报出格式错误，不用自己猜。</p>
+<h2 id="两种正文格式">两种正文格式</h2>
+<p>默认写 <em>Markdown</em>（index.md），与 SML（index.sml）渲染出的样式、章节树、搜索索引完全一致。</p>
+<p>需要严格字段类型校验或写定理/证明时，再用 SML。</p>
+<div class="code">
+<div class="code-head"><span>markdown</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-markdown">---
+title: &quot;标题&quot;
+author: sal
+date: 2026-09-20
+tags: [ rust embedded ]
+summary: &quot;一两句摘要&quot;
+---
+
+## 小节标题
+
+正文，支持**粗体**、`行内代码`、表格、引用、代码块、图片。
+
+单独一行放 B 站视频号会自动嵌入：BV1GJ411x7h7</code></pre>
+</div>
+<p>SML 版本写法见 posts/2026/hello-rec/index.sml；块类型 topic/section/para/code/quote/ul/table/img/note/theorem 等。</p>
+<h2 id="字段与附件">字段与附件</h2>
+<ul>
+<li>必填：title / author / date / tags / summary</li>
+<li>可选：updated / license / series / video（BV 号）/ attachments / co_authors</li>
+<li>图片放同目录 assets/，正文写相对路径 assets/xxx.png</li>
+<li>PDF、压缩包、固件等一律外链，写进 attachments 并从作者侧保证可用</li>
+<li>系列文章用 series: {id, title, order}，会自动进入侧栏树与上一章/下一章</li>
+</ul>
+<h2 id="字段写错会怎样">字段写错会怎样</h2>
+<p>每种内容都有契约（内容契约页在「文档 → 规范」里，由 content/contracts/*.sml 自动生成）。字段漏填或类型不对，构建会直接报出错误码 + 人话：</p>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">content/posts/2026/xxx/index.md: E-CONTRACT-003 契约 `BlogPost` 缺少必填字段 `summary`（字符串）</code></pre>
+</div>
+<p>这不是在卡人，而是 <em>契约本身就是字段文档</em>：想加字段就去改契约，改完校验与文档页同时更新。</p>
+<h2 id="署名与许可">署名与许可</h2>
+<p>默认按站点许可 <em>CC BY-NC-SA 4.0</em> 发布，可用 license 字段单独覆盖。引用他人内容必须标出处。</p>

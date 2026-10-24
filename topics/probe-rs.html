@@ -1,0 +1,15 @@
+<h3 id="定义">定义</h3>
+<p>probe-rs 是一套用 Rust 写的调试探针驱动与工具集，覆盖 CMSIS-DAP、ST-Link、J-Link 等常见探针，
+提供 <code>probe-rs run</code> / <code>probe-rs list</code> 等命令，并通过 RTT（Real-Time Transfer）在不停机的情况下看日志。</p>
+<h3 id="为什么用它">为什么用它</h3>
+<ul>
+<li>一条命令完成烧录 + 复位 + 日志，不需要维护 OpenOCD 配置文件</li>
+<li>与 <code>cargo run</code> 集成（<code>.cargo/config.toml</code> 里设 runner），日常开发只按一次</li>
+<li>跨平台，Windows 上不需要装额外驱动包（除探针自身驱动）</li>
+</ul>
+<h3 id="常见坑">常见坑</h3>
+<ul>
+<li>探针固件过旧会连不上，先升级固件</li>
+<li>芯片读保护状态下烧录失败，先解除保护</li>
+<li><code>--chip</code> 型号写错时报的是「找不到目标」，不是「连接失败」</li>
+</ul>

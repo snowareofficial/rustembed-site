@@ -1,0 +1,209 @@
+<p class="muted">本页由 <code>content/contracts/*.sml</code> 自动生成 —— 改契约即改这里。错误码见 docs/ARCHITECTURE.md。</p>
+<h2 id="contract-Attachment">Attachment</h2>
+<table>
+<thead><tr><th>字段</th><th>类型</th><th>必填</th><th>约束</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>name</code></td><td>str</td><td>是</td><td></td><td>附件显示名（写 resource 时可省略，取资源 title）</td></tr>
+<tr><td><code>kind</code></td><td>str</td><td>是</td><td>枚举 image/link</td><td>image 入库；link 走作者自备外链</td></tr>
+<tr><td><code>url</code></td><td>str</td><td>否</td><td></td><td>image 用相对路径（同目录 assets/），link 用 http(s)；</td></tr>
+<tr><td><code>size</code></td><td>str</td><td>否</td><td></td><td>体积说明，image 可由构建自动填</td></tr>
+<tr><td><code>code</code></td><td>str</td><td>否</td><td></td><td>提取码（如蓝奏云）；只存值，不自动展示给未点击的人</td></tr>
+<tr><td><code>resource</code></td><td>str</td><td>否</td><td></td><td>引用资源 id：构建期解析 url / 提取码；资源更新则附件跟随</td></tr>
+</tbody>
+</table>
+<h2 id="contract-BlogPost">BlogPost</h2>
+<table>
+<thead><tr><th>字段</th><th>类型</th><th>必填</th><th>约束</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>title</code></td><td>str</td><td>是</td><td></td><td>标题</td></tr>
+<tr><td><code>author</code></td><td>str</td><td>是</td><td></td><td>成员 id，对应 content/members/&lt;id&gt;</td></tr>
+<tr><td><code>date</code></td><td>date</td><td>是</td><td></td><td>首次发布日期</td></tr>
+<tr><td><code>tags</code></td><td>[str]</td><td>是</td><td></td><td>标签，至少一个</td></tr>
+<tr><td><code>summary</code></td><td>str</td><td>是</td><td></td><td>一句话摘要（列表页与分享卡片用）</td></tr>
+<tr><td><code>updated</code></td><td>date</td><td>否</td><td></td><td>最后更新日期</td></tr>
+<tr><td><code>license</code></td><td>str</td><td>否</td><td></td><td>覆盖站点默认许可</td></tr>
+<tr><td><code>draft</code></td><td>bool</td><td>否</td><td></td><td>草稿：true 则不参与构建</td></tr>
+<tr><td><code>series</code></td><td>Series</td><td>否</td><td></td><td>系列：自动进侧栏树与上一章/下一章</td></tr>
+<tr><td><code>video</code></td><td>str</td><td>否</td><td></td><td>B 站 BV 号</td></tr>
+<tr><td><code>map</code></td><td>bool</td><td>否</td><td></td><td>是否在构建期生成章节导图（默认关，开启后弹层可拖动缩放）</td></tr>
+<tr><td><code>attachments</code></td><td>[Attachment]</td><td>否</td><td></td><td></td></tr>
+<tr><td><code>co_authors</code></td><td>[str]</td><td>否</td><td></td><td></td></tr>
+<tr><td><code>body</code></td><td>any</td><td>否</td><td></td><td>SML 写法的正文块数组（Markdown 走 front matter + 正文）</td></tr>
+<tr><td><code>panel</code></td><td>Panel</td><td>否</td><td></td><td></td></tr>
+<tr><td><code>steps</code></td><td>Steps</td><td>否</td><td></td><td></td></tr>
+<tr><td><code>shot</code></td><td>Shot</td><td>否</td><td></td><td></td></tr>
+<tr><td><code>gallery</code></td><td>Gallery</td><td>否</td><td></td><td></td></tr>
+<tr><td><code>term</code></td><td>Term</td><td>否</td><td></td><td></td></tr>
+<tr><td><code>when</code></td><td>When</td><td>否</td><td></td><td></td></tr>
+</tbody>
+</table>
+<h2 id="contract-Gallery">Gallery（loose）</h2>
+<table>
+<thead><tr><th>字段</th><th>类型</th><th>必填</th><th>约束</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>cols</code></td><td>int</td><td>否</td><td></td><td>列数</td></tr>
+<tr><td><code>items</code></td><td>[Para]</td><td>否</td><td></td><td>图片项</td></tr>
+</tbody>
+</table>
+<h2 id="contract-Member">Member（loose）</h2>
+<table>
+<thead><tr><th>字段</th><th>类型</th><th>必填</th><th>约束</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>name</code></td><td>str</td><td>是</td><td></td><td>群昵称</td></tr>
+<tr><td><code>role</code></td><td>str</td><td>否</td><td></td><td>群主 / 管理员 / 群友 …</td></tr>
+<tr><td><code>avatar</code></td><td>str</td><td>否</td><td></td><td>头像文件路径（相对仓库根）</td></tr>
+<tr><td><code>signature</code></td><td>str</td><td>否</td><td></td><td>个性签名</td></tr>
+<tr><td><code>skills</code></td><td>[str]</td><td>否</td><td></td><td></td></tr>
+<tr><td><code>joined</code></td><td>date</td><td>否</td><td></td><td></td></tr>
+<tr><td><code>links</code></td><td>MemberLinks</td><td>否</td><td></td><td></td></tr>
+</tbody>
+</table>
+<h2 id="contract-MemberLinks">MemberLinks（loose）</h2>
+<table>
+<thead><tr><th>字段</th><th>类型</th><th>必填</th><th>约束</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>blog</code></td><td>url</td><td>否</td><td></td><td></td></tr>
+<tr><td><code>homepage</code></td><td>url</td><td>否</td><td></td><td>个人主页</td></tr>
+<tr><td><code>github</code></td><td>url</td><td>否</td><td></td><td></td></tr>
+<tr><td><code>gitee</code></td><td>url</td><td>否</td><td></td><td>Gitee 个人空间</td></tr>
+<tr><td><code>gitee_org</code></td><td>url</td><td>否</td><td></td><td>Gitee 组织/第二个空间（一个人两个号时用这个，别写两个 gitee —— 对象键会互相覆盖）</td></tr>
+<tr><td><code>email</code></td><td>str</td><td>否</td><td></td><td>由本人提供并授权展示；不想公开就删掉这一行</td></tr>
+</tbody>
+</table>
+<h2 id="contract-Page">Page</h2>
+<table>
+<thead><tr><th>字段</th><th>类型</th><th>必填</th><th>约束</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>title</code></td><td>str</td><td>是</td><td></td><td>页面标题</td></tr>
+<tr><td><code>group</code></td><td>str</td><td>是</td><td></td><td>文档树归组（指南 / 写作 / 规范 / 关于 …）</td></tr>
+<tr><td><code>order</code></td><td>int</td><td>是</td><td>范围 0..None</td><td>同组内顺序</td></tr>
+<tr><td><code>body</code></td><td>any</td><td>否</td><td></td><td></td></tr>
+<tr><td><code>group_link</code></td><td>url</td><td>否</td><td></td><td>该页顶部的行动按钮（如加群链接）</td></tr>
+</tbody>
+</table>
+<h2 id="contract-Panel">Panel（loose）</h2>
+<table>
+<thead><tr><th>字段</th><th>类型</th><th>必填</th><th>约束</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>title</code></td><td>str</td><td>否</td><td></td><td>面板标题</td></tr>
+<tr><td><code>text</code></td><td>str</td><td>否</td><td></td><td>正文内容</td></tr>
+</tbody>
+</table>
+<h2 id="contract-Project">Project</h2>
+<table>
+<thead><tr><th>字段</th><th>类型</th><th>必填</th><th>约束</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>name</code></td><td>str</td><td>是</td><td></td><td>项目名</td></tr>
+<tr><td><code>one_liner</code></td><td>str</td><td>是</td><td></td><td>一句话简介</td></tr>
+<tr><td><code>repo</code></td><td>url</td><td>是</td><td></td><td>仓库地址（构建期抓元数据）</td></tr>
+<tr><td><code>status</code></td><td>str</td><td>是</td><td>枚举 active/archived/wip</td><td></td></tr>
+<tr><td><code>host</code></td><td>str</td><td>否</td><td>枚举 github/gitee/codeberg/gitea</td><td></td></tr>
+<tr><td><code>homepage</code></td><td>url</td><td>否</td><td></td><td></td></tr>
+<tr><td><code>docs</code></td><td>url</td><td>否</td><td></td><td>外部文档 / 主页（别用它表达站内文章组）</td></tr>
+<tr><td><code>license</code></td><td>str</td><td>否</td><td></td><td></td></tr>
+<tr><td><code>languages</code></td><td>[str]</td><td>否</td><td></td><td></td></tr>
+<tr><td><code>platforms</code></td><td>[str]</td><td>否</td><td></td><td></td></tr>
+<tr><td><code>related_series</code></td><td>[str]</td><td>否</td><td></td><td></td></tr>
+<tr><td><code>related_posts</code></td><td>[str]</td><td>否</td><td></td><td></td></tr>
+<tr><td><code>tags</code></td><td>[str]</td><td>否</td><td></td><td></td></tr>
+<tr><td><code>owner</code></td><td>str</td><td>否</td><td></td><td>成员 id</td></tr>
+<tr><td><code>contributors</code></td><td>[str]</td><td>否</td><td></td><td></td></tr>
+<tr><td><code>featured</code></td><td>bool</td><td>否</td><td></td><td>是否上首页精选</td></tr>
+<tr><td><code>meta_source</code></td><td>str</td><td>否</td><td>枚举 auto/manual</td><td></td></tr>
+<tr><td><code>meta_override</code></td><td>any</td><td>否</td><td></td><td></td></tr>
+<tr><td><code>milestones</code></td><td>any</td><td>否</td><td></td><td></td></tr>
+</tbody>
+</table>
+<h2 id="contract-Resource">Resource（loose）</h2>
+<table>
+<thead><tr><th>字段</th><th>类型</th><th>必填</th><th>约束</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>title</code></td><td>str</td><td>是</td><td></td><td>资源名</td></tr>
+<tr><td><code>kind</code></td><td>str</td><td>是</td><td>枚举 book/tutorial/tool/video/course/route</td><td>类型</td></tr>
+<tr><td><code>url</code></td><td>url</td><td>是</td><td></td><td>链接</td></tr>
+<tr><td><code>tags</code></td><td>[str]</td><td>否</td><td></td><td></td></tr>
+<tr><td><code>note</code></td><td>str</td><td>否</td><td></td><td>一句话说明</td></tr>
+<tr><td><code>folder</code></td><td>str</td><td>否</td><td></td><td>展示用分组（不建真实目录，URL 保持稳定）</td></tr>
+<tr><td><code>code</code></td><td>str</td><td>否</td><td></td><td>提取码；列表与附件卡显示「提取码 · 复制」</td></tr>
+</tbody>
+</table>
+<h2 id="contract-Series">Series</h2>
+<table>
+<thead><tr><th>字段</th><th>类型</th><th>必填</th><th>约束</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>id</code></td><td>str</td><td>是</td><td></td><td>系列 id（相同 id 归为一组）</td></tr>
+<tr><td><code>order</code></td><td>int</td><td>是</td><td>范围 0..None</td><td>组内顺序</td></tr>
+<tr><td><code>title</code></td><td>str</td><td>否</td><td></td><td>系列显示名，缺省用 id</td></tr>
+</tbody>
+</table>
+<h2 id="contract-Service">Service</h2>
+<table>
+<thead><tr><th>字段</th><th>类型</th><th>必填</th><th>约束</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>name</code></td><td>str</td><td>是</td><td></td><td>条目名称（能力/服务一句话名）</td></tr>
+<tr><td><code>owner</code></td><td>str</td><td>是</td><td></td><td>成员 id，必须存在于 content/members/&lt;id&gt;.sml</td></tr>
+<tr><td><code>skills</code></td><td>[str]</td><td>是</td><td></td><td>技能标签，至少一个</td></tr>
+<tr><td><code>wants</code></td><td>[str]</td><td>否</td><td></td><td>想找什么（合作方向，自由列举）</td></tr>
+<tr><td><code>contact</code></td><td>[str]</td><td>是</td><td></td><td>联系方式：只能引用成员档案 links 里本人已公开的键（blog/homepage/github/gitee/gitee_org/email）</td></tr>
+<tr><td><code>rate</code></td><td>str</td><td>否</td><td></td><td>费用/方式说明，自由文本；本站不经手资金，具体由双方自行约定</td></tr>
+<tr><td><code>status</code></td><td>str</td><td>是</td><td>枚举 active/paused</td><td>active = 可接洽；paused = 暂停</td></tr>
+<tr><td><code>updated</code></td><td>date</td><td>是</td><td></td><td>最近更新日期</td></tr>
+<tr><td><code>body</code></td><td>any</td><td>否</td><td></td><td>详细介绍（SML 块 / Markdown 正文）</td></tr>
+</tbody>
+</table>
+<h2 id="contract-Shot">Shot（loose）</h2>
+<table>
+<thead><tr><th>字段</th><th>类型</th><th>必填</th><th>约束</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>src</code></td><td>str</td><td>是</td><td></td><td>图片路径</td></tr>
+<tr><td><code>alt</code></td><td>str</td><td>否</td><td></td><td>替代文本</td></tr>
+<tr><td><code>caption</code></td><td>str</td><td>否</td><td></td><td>图注</td></tr>
+<tr><td><code>full</code></td><td>bool</td><td>否</td><td></td><td>是否全宽出血</td></tr>
+</tbody>
+</table>
+<h2 id="contract-Steps">Steps（loose）</h2>
+<table>
+<thead><tr><th>字段</th><th>类型</th><th>必填</th><th>约束</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>items</code></td><td>[Para]</td><td>否</td><td></td><td>步骤项</td></tr>
+</tbody>
+</table>
+<h2 id="contract-Term">Term（loose）</h2>
+<table>
+<thead><tr><th>字段</th><th>类型</th><th>必填</th><th>约束</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>text</code></td><td>str</td><td>是</td><td></td><td>终端输出文本（逐行保留，行间以 &lt;br&gt; 连接；与 MD :::term 完全一致，不做内联角色替换）</td></tr>
+</tbody>
+</table>
+<h2 id="contract-Topic">Topic（loose）</h2>
+<table>
+<thead><tr><th>字段</th><th>类型</th><th>必填</th><th>约束</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>title</code></td><td>str</td><td>是</td><td></td><td>词条名</td></tr>
+<tr><td><code>summary</code></td><td>str</td><td>是</td><td></td><td>一句话定义（知识页与词条页用）</td></tr>
+<tr><td><code>tags</code></td><td>[str]</td><td>否</td><td></td><td>同标签的文章会自动归入本词条</td></tr>
+<tr><td><code>posts</code></td><td>[str]</td><td>否</td><td></td><td>显式关联的文章 slug</td></tr>
+<tr><td><code>related</code></td><td>[str]</td><td>否</td><td></td><td>相关词条 id</td></tr>
+<tr><td><code>body</code></td><td>any</td><td>否</td><td></td><td>定义、要点、参考资料</td></tr>
+</tbody>
+</table>
+<h2 id="contract-Weekly">Weekly（loose）</h2>
+<table>
+<thead><tr><th>字段</th><th>类型</th><th>必填</th><th>约束</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>period</code></td><td>str</td><td>是</td><td></td><td>期号，如 2026-W38</td></tr>
+<tr><td><code>title</code></td><td>str</td><td>是</td><td></td><td>本期标题</td></tr>
+<tr><td><code>highlights</code></td><td>[str]</td><td>否</td><td></td><td></td></tr>
+<tr><td><code>merged</code></td><td>[str]</td><td>否</td><td></td><td>关联文章 slug</td></tr>
+<tr><td><code>contributors</code></td><td>[str]</td><td>否</td><td></td><td></td></tr>
+<tr><td><code>body</code></td><td>any</td><td>否</td><td></td><td></td></tr>
+</tbody>
+</table>
+<h2 id="contract-When">When（loose）</h2>
+<table>
+<thead><tr><th>字段</th><th>类型</th><th>必填</th><th>约束</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>date</code></td><td>str</td><td>是</td><td></td><td>日期（YYYY-MM-DD），渲染进 &lt;span class=&quot;when-t&quot;&gt;</td></tr>
+<tr><td><code>text</code></td><td>str</td><td>是</td><td></td><td>事件正文（唯一来源：优先取 text 字段，缺失时取子块渲染结果；与 MD :::when 围栏头之后的正文对齐）</td></tr>
+</tbody>
+</table>

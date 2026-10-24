@@ -1,0 +1,3 @@
+[
+ "fonts: fontTools 已子集化；缺 brotli 压缩后端，输出 woff（浏览器支持；需要 woff2 时安装 brotli）"
+]

@@ -1,0 +1,214 @@
+<p>Rust 的 <code>struct</code> 是<strong>聚合类型</strong>——一种把若干数据字段捆绑在一起的容器。字段在内存中紧密排布，并在最严格字段对齐规则下整体对齐。</p>
+<h3 id="1-6-1-具名结构体-named-field-struct">1.6.1 具名结构体（named-field struct）</h3>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">#[derive(Debug,Default)]
+struct ColorRGB{
+    r:i32,
+    g:i32,
+    b:i32,
+}
+
+fn main()
+{
+    let origin = ColorRGB::default();
+    let _point = ColorRGB{g:5,..ColorRGB::default()};
+    let point = ColorRGB{g:100,..origin};
+    let ColorRGB { r:r0, g:g0, .. } = point;
+
+    println!(&quot;origin {:?} &quot;,origin);
+    println!(&quot; point {:?} &quot;,point);
+    println!(&quot;{} {}&quot;,r0,g0);
+
+    let init = ColorRGB{r:100,g:200,b:66};
+    let ColorRGB { r:r0, g:g0, b:b0 } = init;
+    println!(&quot;{} {} {}&quot;,r0,g0,b0);
+
+    let ColorRGB { r, g, b } = init;
+    println!(&quot;{} {} {}&quot;,r,g,b);
+}</code></pre>
+</div>
+<p><strong>已编译运行（取自 </strong><code>src/Chapter4/struct.rs</code><strong>）。</strong></p>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">origin ColorRGB { r: 0, g: 0, b: 0 } 
+ point ColorRGB { r: 0, g: 100, b: 0 } 
+0 100
+100 200 66
+100 200 66</code></pre>
+</div>
+<p>字段更新语法 <code>..base</code> 要求 <code>base</code> 在该位置之后不再被使用（部分移动机制保护）。</p>
+<h3 id="1-6-2-元组类型结构体-tuple-struct">1.6.2 元组类型结构体（tuple struct）</h3>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+struct Kilograms(u32);
+struct Pound(u32);
+let w = Kilograms(250);
+let Kilograms(kgm) = w; // 解构成局部变量 kgm: u32
+}</code></pre>
+</div>
+<p>常用于&quot;newtype&quot;模式：借类型系统在编译期防止 <code>Kilograms</code> 与 <code>Pound</code> 混算，比 <code>assert</code> 可靠百倍。</p>
+<h3 id="1-6-3-空结构体">1.6.3 空结构体</h3>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+struct Electron;     // unit-like struct，零大小类型 (ZST)
+struct Proton;       // 占用 0 字节，常做&quot;标记类型&quot;使用
+}</code></pre>
+</div>
+<p>空 struct 没有字段，类型仍存在，<code>std::mem::size_of::&lt;Electron&gt;() == 0</code>，常做 trait 标记、状态标记。</p>
+<h3 id="1-6-4-结构可见性">1.6.4 结构可见性</h3>
+<p>默认 <code>private</code>（仅当前 module 可见）；加 <code>pub</code> 才能暴露给外部 module。</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+pub struct GrayscaleMap {
+    pub pixels: Vec&lt;u8&gt;,         // 字段也单独控制 pub
+    pub size: (usize, usize),
+}
+struct Struct1 {
+    pub field1: i16,             // 字段 pub，struct 仍 private
+    field2:  String,             // 完全 private
+}
+}</code></pre>
+</div>
+<h3 id="1-6-5-结构-字段的可变性">1.6.5 结构/字段的可变性</h3>
+<p>Rust 没有 C++ 那种&quot;const 部分字段&quot;：整个绑定可不可变由 <code>let mut</code> 决定，<strong>字段本身永远是 immutable 标记</strong>。</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">use std::fmt::Display;
+
+// 默认是 不可见的 private
+pub struct GrayscaleMap {
+    pub pixels: Vec&lt;u8&gt;,
+    pub size: (usize, usize),
+}
+
+struct Struct1 {
+    pub field1: i16, // 外部可见
+    field2: String,  // 外部不可见
+}
+
+struct Point {
+    // 结构体具有可变性
+    // mut x:i32, // 内部声明不能直接声明 为可变-mut
+    x: i32,
+    y: i32,
+}
+
+#[derive(Debug)]
+struct S1{
+    field1:i32,
+    field2:S2
+}
+
+#[derive(Debug)]
+struct S2{
+    field:i32,
+}
+
+impl Display for S1 {
+    fn fmt(&amp;self, f: &amp;mut std::fmt::Formatter&lt;&#x27;_&gt;) -&gt; std::fmt::Result {
+        write!(f, &quot;S1(field1: {}, field2: S2(field: {}))&quot;, self.field1, self.field2.field)
+    }
+}
+
+fn main() {
+    let mut point = Point { x: 0, y: 0 };
+    point.x = 100;
+    (point.x,point.y) = (222,333);
+    println!(&quot;{}&quot;,point.x);
+
+    let s = S1{field1:45,field2:S2 { field: 666 }};
+    let mut s = S1{field1:77,field2:S2 { field: 99 }};
+    s.field1 = 666;
+    s.field2.field = 288;
+    println!(&quot;{:#?}&quot;,s);
+    println!(&quot;{}&quot;,s);
+}</code></pre>
+</div>
+<p><strong>已编译运行（取自 </strong><code>src/Chapter4/结构可见性.rs</code><strong>）。</strong></p>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">222
+S1 {
+    field1: 666,
+    field2: S2 {
+        field: 288,
+    },
+}
+S1(field1: 666, field2: S2(field: 288))</code></pre>
+</div>
+<p>要让&quot;外部看是只读、内部能改&quot;某字段，需要：</p>
+<ul>
+<li><code>Cell&lt;T&gt;</code>：原地改 <code>T</code>（无论 Copy 与否）；</li>
+<li><code>RefCell&lt;T&gt;</code>：运行时借用计数；</li>
+<li><code>UnsafeCell&lt;T&gt;</code>：手动 unsafe。</li>
+</ul>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">use std::cell::Cell;
+
+struct Struct1 {
+    f: i32,
+}
+
+struct Struct2&lt;&#x27;a&gt; {
+    f: &amp;&#x27;a mut Struct1, // 可变的引用字段
+}
+
+struct Struct3&lt;&#x27;a&gt; {
+    f: &amp;&#x27;a Struct1, // 不可变的引用字段
+}
+
+// 如果需要字段 可变 使用 Cell
+struct Point {
+    x: i32,
+    y: Cell&lt;i32&gt;,
+}
+
+fn main() {
+    let mut s1 = Struct1 { f: 56 };
+    let s2 = Struct2 { f: &amp;mut s1 };
+    s2.f.f = 666;
+
+    let s1 = Struct1 { f: 200 };
+    let mut s3 = Struct3 { f: &amp;s1 };
+
+    s3.f = &amp;s1;
+    println!(&quot;{}&quot;, s3.f.f);
+    s3.f = &amp;s2.f; // 地址传递
+    println!(&quot;{}&quot;, s3.f.f);
+
+    // s3.f.f = 100; // 错误不可修改
+    s3.f = &amp;Struct1 { f: 777 }; // 可以修改 结构体的“对象“
+    println!(&quot;{}&quot;, s3.f.f);
+
+    let init = Point {
+        x: 2,
+        y: Cell::new(55),
+    };
+    println!(&quot;{}&quot;, init.y.get());
+    init.y.set(66);
+    println!(&quot;{}&quot;, init.y.get());
+    init.y.set(88);
+    println!(&quot;{}&quot;, init.y.get());
+}</code></pre>
+</div>
+<p><strong>已编译运行（取自 </strong><code>src/Chapter4/结构体中使用引用.rs</code><strong>）。</strong></p>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">200
+666
+777
+55
+66
+88</code></pre>
+</div>
+<h3 id="1-6-6-其他">1.6.6 其他</h3>
+<ul>
+<li><strong>内存布局</strong>：<code>#[repr(Rust)]</code>（默认）允许编译器重排、对齐、补白；<code>#[repr(C)]</code> 锁定 C-ABI 与 C 互操作；<code>#[repr(transparent)]</code> 保证&quot;只有一个非零字段，与该字段完全等价&quot;。</li>
+<li><strong>字段重排限制</strong>：仅在不破坏 ABI 的前提下编译器可重排，但 <code>#[repr(C)]</code> 下严格遵守声明顺序。</li>
+<li><strong>const 字段</strong>：<code>impl Coord { const ZERO: Coord = Coord { x: 0.0, y: 0.0 }; }</code> 写法见 <code>变量.rs</code>。</li>
+</ul>

@@ -1,0 +1,14 @@
+{
+ "source": "extractive",
+ "one_line": "固有实现、trait 实现与关联函数/方法。",
+ "points": [
+  "三种 receiver",
+  "给运算符实现 trait",
+  "给枚举实现方法"
+ ],
+ "keywords": [
+  "rust",
+  "trait"
+ ],
+ "reading": 8
+}

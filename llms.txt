@@ -1,0 +1,101 @@
+# Rust嵌入式探讨
+
+> 一个 QQ 群的技术共建博客：嵌入式、Rust，以及把想法做出来的过程
+
+- 站点：https://rustembed.swebase.cn
+- 仓库：https://gitee.com/rustembed/site（Gitee 是权威源；投稿走 PR，或交给群管理代投）
+- 第二个源（SML 应用示例）：https://gitee.com/snoware/sml-sitegen
+- 默认许可：CC BY-NC-SA 4.0
+- RSS：https://rustembed.swebase.cn/feed.xml
+- 全部正文纯文本：https://rustembed.swebase.cn/llms-full.txt
+- 加入群：https://qm.qq.com/q/uo06W0c7Is
+
+## 文章（36 篇）
+- [1.19 其他](https://rustembed.swebase.cn/#/post/rust-learning-20-misc) — 2026-10-20 · rust/基础 · 下画线、格式化输出、类型清单与保留字等杂项。
+- [1.18 Rust 标准库](https://rustembed.swebase.cn/#/post/rust-learning-19-std-library) — 2026-10-20 · rust/标准库 · Rust 标准库的特点与常用模块速查。
+- [1.17 文件操作](https://rustembed.swebase.cn/#/post/rust-learning-18-file-io) — 2026-10-20 · rust/文件/标准库 · 文本/二进制文件、文件路径、扩展名搜索与压缩文件。
+- [1.16 程序的内存表现](https://rustembed.swebase.cn/#/post/rust-learning-17-memory-layout) — 2026-10-20 · rust/内存 · 程序运行时的内存布局。
+- [1.15 impl 代码块](https://rustembed.swebase.cn/#/post/rust-learning-16-impl-blocks) — 2026-10-20 · rust/trait · 固有实现、trait 实现与关联函数/方法。
+- [1.14 运算符](https://rustembed.swebase.cn/#/post/rust-learning-15-operators) — 2026-10-20 · rust/运算符 · 算术、比较、逻辑、位运算符以及运算符重载。
+- [1.13 注释](https://rustembed.swebase.cn/#/post/rust-learning-14-comments) — 2026-10-20 · rust/基础 · 行注释、块注释与文档注释。
+- [1.12 函数](https://rustembed.swebase.cn/#/post/rust-learning-13-functions) — 2026-10-20 · rust/函数 · 函数定义与返回、const fn、参数模式解构与提前返回。
+- [1.11 控制语句](https://rustembed.swebase.cn/#/post/rust-learning-12-control-flow) — 2026-10-20 · rust/控制流 · match、if、循环、if let / while let 的写法与匹配规则。
+- [1.10 变量和可变性](https://rustembed.swebase.cn/#/post/rust-learning-11-variables-mutability) — 2026-10-20 · rust/基础 · 变量绑定、可变性、作用域与遮蔽、常量/静态、类型转换和零长度类型。
+- [1.9 字符串](https://rustembed.swebase.cn/#/post/rust-learning-10-strings) — 2026-10-20 · rust/字符串 · 字符串切片、String、字节字符串、Cow 以及各种字符串转换与操作。
+- [1.8 数组、切片和向量](https://rustembed.swebase.cn/#/post/rust-learning-09-arrays-slices-vectors) — 2026-10-20 · rust/集合 · 数组、Vec 与切片的区别、内存布局和常用操作。
+- [1.7 枚举](https://rustembed.swebase.cn/#/post/rust-learning-08-enums) — 2026-10-20 · rust/枚举/类型 · C 风格枚举、带数据枚举、混合枚举，内存布局与代数数据类型。
+- [1.6 结构](https://rustembed.swebase.cn/#/post/rust-learning-07-structs) — 2026-10-20 · rust/类型/结构体 · 具名结构体、元组结构体、空结构体、可见性与可变性。
+- [1.5 范围类型](https://rustembed.swebase.cn/#/post/rust-learning-06-ranges) — 2026-10-20 · rust/类型 · Range 系列的写法，以及在循环和切片中的用法。
+- [1.4 元组](https://rustembed.swebase.cn/#/post/rust-learning-05-tuples) — 2026-10-20 · rust/类型 · 元组的声明、解构、索引与常见使用方式。
+- [1.3 字面量](https://rustembed.swebase.cn/#/post/rust-learning-04-literals) — 2026-10-20 · rust/类型 · 数字、字符串、字符字面量的写法、进制、下划线分隔与转义。
+- [1.2 基本数据类型](https://rustembed.swebase.cn/#/post/rust-learning-03-basic-types) — 2026-10-20 · rust/类型/基础 · 整型、布尔、字符、浮点类型的取值范围与内存表示。
+- [1.1 堆和栈](https://rustembed.swebase.cn/#/post/rust-learning-02-stack-heap) — 2026-10-20 · rust/基础/内存 · 栈与堆的区别、栈帧布局，以及 String 与切片的存储方式。
+- [编译教学](https://rustembed.swebase.cn/#/post/rust-learning-01-compile-basics) — 2026-10-20 · rust/编译/入门 · 从 cargo new 到 rustc 编译可执行文件和静态库，快速过一遍 Rust 工程与编译流程。
+- [高频 FPGA 与加密货币](https://rustembed.swebase.cn/#/post/hft-engineering-13-fpga-crypto) — 2026-10-20 · hft/quant/performance · FPGA 如何突破微秒极限、加密货币高频的新战场，以及云环境里的共址竞速。
+- [高频做市与套利策略](https://rustembed.swebase.cn/#/post/hft-engineering-12-market-making) — 2026-10-20 · hft/quant · 做市核心等式与逆向选择、库存风险的 AS 模型、排队位置经济学与延迟套利。
+- [实盘上线与运维进阶](https://rustembed.swebase.cn/#/post/hft-engineering-11-production-ops) — 2026-10-20 · hft/performance · 上线门禁清单、监控与报警怎么看、Kill Switch 分级、Capture/Replay 与故障降级矩阵。
+- [风控合规与滑点控制](https://rustembed.swebase.cn/#/post/hft-engineering-10-risk-slippage) — 2026-10-20 · hft/quant · Pre-Trade 本地拒单链、滑点怎么度量、审计日志与监管报送，以及风控什么时候该故意失效。
+- [延迟测量与基准压测](https://rustembed.swebase.cn/#/post/hft-engineering-09-latency-benchmark) — 2026-10-20 · hft/performance/linux · 内核旁路与 mmap、跨数据中心链路、异步日志，以及怎样把延迟测准而不是测出漂亮数字。
+- [超低延迟核心引擎开发](https://rustembed.swebase.cn/#/post/hft-engineering-08-engine-dev) — 2026-10-20 · hft/cpp/performance · C++ 内存模型、消除运行时决策、动态内存与异常的禁区，以及一份 FX 高频架构清单。
+- [无锁数据结构与内存布局](https://rustembed.swebase.cn/#/post/hft-engineering-07-lockless-memory) — 2026-10-20 · hft/cpp/performance · 锁为什么不能用、无锁 FIFO 队列怎么写、内存预分配与缓存友好布局的工程手段。
+- [低延迟网络与协议优化](https://rustembed.swebase.cn/#/post/hft-engineering-06-network) — 2026-10-20 · hft/network/performance · 交换机与网卡硬件、TCP 与 UDP 的取舍、金融应用层协议与数据包的内核路径。
+- [操作系统内核极致调优](https://rustembed.swebase.cn/#/post/hft-engineering-05-kernel-tuning) — 2026-10-20 · hft/linux/kernel · 上下文切换代价、CPU 隔离与绑核、Kernel Bypass、BIOS 电源与 HugePage 的实操口径。
+- [HFT 系统基础：硬件到操作系统](https://rustembed.swebase.cn/#/post/hft-engineering-04-hardware-os) — 2026-10-20 · hft/linux/performance · NUMA、超线程与缓存金字塔对延迟的影响，以及操作系统抽象与编译器链接的代价。
+- [交易所动态与订单簿](https://rustembed.swebase.cn/#/post/hft-engineering-03-orderbook-matching) — 2026-10-20 · hft/quant · 订单进入交易所后的路径、撮合引擎的三种场景与同价匹配算法，以及本地 Book Builder。
+- [交易系统关键组件](https://rustembed.swebase.cn/#/post/hft-engineering-02-exchange-components) — 2026-10-20 · hft/quant/network · Gateway、订单簿构建器、策略引擎与 OMS 各自负责什么，订单怎样流过关键路径。
+- [高频交易基础与生态](https://rustembed.swebase.cn/#/post/hft-engineering-01-fundamentals) — 2026-10-20 · hft/quant/performance · Tick-to-Trade 延迟是什么量级，热路径与冷路径如何划分，语言栈怎么选。
+- [From a Blank Board to RTT: A Cortex-M Bring-Up Field Note](https://rustembed.swebase.cn/#/post/cortex-m-bringup) — 2026-10-19 · rust/embedded/probe-rs/walkthrough · A weekend bring-up log: toolchain, wiring, first flash, RTT, and the checks that save an afternoon.
+- [投稿其实很简单：写 Markdown 就行](https://rustembed.swebase.cn/#/post/md-writing) — 2026-09-20 · 指南/markdown/投稿 · 不用学 SML。文章用 Markdown 写，front matter 填几个字段，提 PR 即可；SML 只是给需要更强结构的人准备的。
+- [从零点亮一块板子：probe-rs + Rust 的第一步](https://rustembed.swebase.cn/#/post/hello-rec) — 2026-09-19 · rust/embedded/probe-rs · 不讲大道理，先把程序烧进去：probe-rs 安装、连接、烧录、打日志的完整最小路径。
+
+## 系列
+- Rust 学习：编译教学 / 1.1 堆和栈 / 1.2 基本数据类型 / 1.3 字面量 / 1.4 元组 / 1.5 范围类型 / 1.6 结构 / 1.7 枚举 / 1.8 数组、切片和向量 / 1.9 字符串 / 1.10 变量和可变性 / 1.11 控制语句 / 1.12 函数 / 1.13 注释 / 1.14 运算符 / 1.15 impl 代码块 / 1.16 程序的内存表现 / 1.17 文件操作 / 1.18 Rust 标准库 / 1.19 其他
+- HFT 工程实践：高频交易基础与生态 / 交易系统关键组件 / 交易所动态与订单簿 / HFT 系统基础：硬件到操作系统 / 操作系统内核极致调优 / 低延迟网络与协议优化 / 无锁数据结构与内存布局 / 超低延迟核心引擎开发 / 延迟测量与基准压测 / 风控合规与滑点控制 / 实盘上线与运维进阶 / 高频做市与套利策略 / 高频 FPGA 与加密货币
+- Rust 嵌入式入门：从零点亮一块板子：probe-rs + Rust 的第一步 / 投稿其实很简单：写 Markdown 就行
+
+## 主题词条
+- [嵌入式 Rust 工具链](https://rustembed.swebase.cn/#/topic/embedded-rust-toolchain) — 从宿主机到目标板的一整套工具：rustup target、cargo runner、probe-rs / defmt、以及它们的取舍。（关联文章 0 篇）
+- [probe-rs](https://rustembed.swebase.cn/#/topic/probe-rs) — Rust 生态里的调试/烧录工具链：一条命令连上探针、烧录、看 RTT 日志，替代 OpenOCD + gdb 的组合。（关联文章 2 篇）
+
+## 站文档
+- [加入我们 / 合作与内推](https://rustembed.swebase.cn/#/page/join)（关于） — 怎么加入 加 QQ 群即可参与共建：写文章、做项目、整理资源，任选一种。 会写：投稿技术文章（PR 或交给群管理代投） 会做：把你的项目挂上项目墙 会整理：往资
+- [隐私与数据](https://rustembed.swebase.cn/#/page/privacy)（关于） — 我们不做的事 不接入第三方统计、广告、社交脚本 （没有 Google Analytics、百度统计、埋点 SDK）； 不设 Cookie 用于追踪（站点是纯静态
+- [Markdown 写作速查](https://rustembed.swebase.cn/#/page/write-markdown)（写作） — 最小可用模板 新建 content/posts/<年份>/<英文短名>/index.md，粘贴下面这段就能开工。 markdown 复制 --- title: 
+- [SML 写作速查（可选格式）](https://rustembed.swebase.cn/#/page/write-sml)（写作） — 什么时候值得用 Markdown 够用的场合就用 Markdown。下面这些情况 SML 更顺手： 需要严格字段校验（错字段名会直接报错，而不是被静默忽略） 要
+- [角色与权限制度](https://rustembed.swebase.cn/#/page/roles)（制度） — 三层权限，互不相干 这个站点有三处权限， 互相独立 ：群里的身份（QQ 群管理）不等于仓库权限，仓库权限不等于 CF Pages 发布权限。 角色 Gitee 
+- [仓库与分支制度](https://rustembed.swebase.cn/#/page/repo-policy)（制度） — 分支模型（保持极简） 只有一个长期分支 master 。 所有改动都经 PR ，包括管理员自己的改动——例外只有：修正错别字、修失效链接、紧急下架。 个人改动：
+- [创作与审稿制度](https://rustembed.swebase.cn/#/page/editorial)（制度） — 投稿流程与时限 作者新建 site/content/posts/<年份>/<英文短名>/index.md （也可用 .sml ），本地跑一遍 python en
+- [下架与申诉制度](https://rustembed.swebase.cn/#/page/moderation)（制度） — 可以先下架、后说明的情形 管理员可 先行下架 （把文章 draft: true 或撤下链接），再与作者沟通，仅限： 涉及未授权转载、版权投诉； 泄露密钥、个人信
+- [能力与合作黄页制度](https://rustembed.swebase.cn/#/page/yellow-pages)（制度） — 这是什么 「能力与合作」是群友 自愿登记 的黄页：成员把自己可供合作的能力（设计、审查、咨询、小批量制作等）写成条目，放在站点上展示。 它的性质必须一开始就说清
+- [参与项目](https://rustembed.swebase.cn/#/page/participate)（参与） — 这个站点不是“作者写给读者看”的单向博客，群友可以参与写作、整理数据、审稿和发布。下面按角色说明入口；不需要先懂 SML 或构建系统。 写文章 文章是 Mark
+- [投稿与共建指南](https://rustembed.swebase.cn/#/page/contribute)（指南） — 投稿方式 fork 仓库 → 新建 posts/<年份>/<英文短名>/index.md → 提 PR 不方便用 git：把稿子交给有仓库权限的群管理，由对方代
+- [附件规则](https://rustembed.swebase.cn/#/page/attachments)（规范） — 总原则 仓库只收 图片等小文件 ；大文件、固件、数据集一律用外链，由作者自己提供。 理由：仓库会随时间膨胀，而外链的责任边界清楚。 入库的图片 放在文章同目录的
+- [内容契约（自动生成）](https://rustembed.swebase.cn/#/page/contracts)（规范） — 本页由 content/contracts/*.sml 自动生成 —— 改契约即改这里。错误码见 docs/ARCHITECTURE.md。 Attachmen
+- [SML native 与 include（维护者）](https://rustembed.swebase.cn/#/page/sml-native)（规范） — 这是维护者文档。普通作者不需要读；写文章、加数据条目仍然不需要 native。 两套后端 后端 用途 builtin 纯 Python 子集；没有 native
+
+## 项目
+- [rec-blog](https://gitee.com/rustembed/site) — 群博客：SML 写内容，构建期预渲染，静态托管。 · ★3
+- [BSHSQ](https://github.com/bfxh/BSHSQ) — Rust 自研物理引擎，覆盖刚体、碰撞与仿真。 · Rust · ★2
+- [HFT / 嵌入式 Linux 学习笔记](https://github.com/cshonor/hft-embedded-linux-study) — HFT 低延迟 Linux 与嵌入式飞控的体系化笔记。 · HTML · ★11
+- [Linux 驱动开发](https://github.com/cshonor/LDD-) — 内核模块与设备驱动开发笔记。 · C · ★1
+- [Rust 并发与异步](https://github.com/cshonor/rust-concurrency-async-practice) — Rust 并发、异步与无锁实践，面向高性能场景。 · Rust · ★2
+- [SML标记语言](https://gitee.com/snoware/sml) — 介于JSON和YML之间的优秀替代品，gitee推荐项目 · ★4
+- [STM32 + RTOS](https://github.com/cshonor/stm32-rtos) — STM32 与 RTOS 的嵌入式练习。 · C · ★3
+- [trit](https://github.com/bfxh/trit) — Rust 原生三值推理工具箱：K3 / Ł3 / B3、SAT、BDD、网表 X 传播。 · Rust · ★1
+- [计算机网络](https://github.com/cshonor/Computer-Networking) — 后端网络原理、Socket、TCP/IP 与排查实践。 · Python · ★8
+- [量化与 AI 基础](https://github.com/cshonor/Quant-AI-Foundations) — 量化、智能体、期权期货所需的数学与计算机基础。 · Python · ★7
+
+## 成员
+- 暂时匿名的群友（群友）
+- bfxh（群友）
+- CShonor（群友）HFT 低延迟系统 / Linux 内核 / Rust · C · C++ / 量化金融
+- CXi（群主）大道所至之处天下安宁
+- Sal（管理员）为你而来，有你我在
+
+## 技术互助（仅信息展示：不交易、不担保、不抽成、不经手资金、不介入纠纷）
+- [PCB 布局与 EMC 走线复查](https://rustembed.swebase.cn/#/service/pcb-emc-review) — pcb / emc / altium / stm32；想找：小批量硬件一起做、固件移植交流；远程评审；需要寄样板时走快递；时间与方式私聊，不谈价格（active，更新 2026-10-16）
+
+## 资源
+- [probe-rs](https://github.com/probe-rs/probe-rs)（tool）Rust 生态的调试探针驱动与工具集，全平台可用；本站文章《从零点亮一块板子》用的就是它。
+- [The Embedded Rust Book](https://docs.rust-embedded.org/book/)（book）官方入门书，no_std 与外设访问的基础概念都在这里。
+- [Rust从入门到入土](https://snowcloud.lanzouc.com/i9f0w4cyuhgj)（tutorial）一本群主推荐的Rust入门书

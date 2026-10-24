@@ -1,0 +1,210 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="929" height="3108" viewBox="0 0 929 3108" font-family="-apple-system,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif">
+<title>Rust嵌入式探讨</title>
+<style>.nd{fill:#fff;stroke:#e4dfd6;rx:8} .rt{fill:#f6efe6;stroke:#d9c9b0}.tx{font-size:13px;fill:#23201c} .lk{cursor:pointer}.lk:hover .nd{stroke:#b4552d;fill:#fff8f2} .ed{fill:none;stroke:#ddd6c9;stroke-width:1.4}</style>
+<g class="edges">
+<path class="ed" d="M149.6 1848.5 C172.6 1848.5 172.6 879.5 195.6 879.5"/>
+<path class="ed" d="M149.6 1848.5 C172.6 1848.5 172.6 1516.0 195.6 1516.0"/>
+<path class="ed" d="M149.6 1848.5 C172.6 1848.5 172.6 1953.0 195.6 1953.0"/>
+<path class="ed" d="M149.6 1848.5 C172.6 1848.5 172.6 2238.0 195.6 2238.0"/>
+<path class="ed" d="M149.6 1848.5 C172.6 1848.5 172.6 2352.0 195.6 2352.0"/>
+<path class="ed" d="M149.6 1848.5 C172.6 1848.5 172.6 2428.0 195.6 2428.0"/>
+<path class="ed" d="M149.6 1848.5 C172.6 1848.5 172.6 2504.0 195.6 2504.0"/>
+<path class="ed" d="M149.6 1848.5 C172.6 1848.5 172.6 2542.0 195.6 2542.0"/>
+<path class="ed" d="M149.6 1848.5 C172.6 1848.5 172.6 2817.5 195.6 2817.5"/>
+<path class="ed" d="M291.6 879.5 C314.6 879.5 314.6 395.0 337.6 395.0"/>
+<path class="ed" d="M291.6 879.5 C314.6 879.5 314.6 1022.0 337.6 1022.0"/>
+<path class="ed" d="M291.6 879.5 C314.6 879.5 314.6 1307.0 337.6 1307.0"/>
+<path class="ed" d="M291.6 879.5 C314.6 879.5 314.6 1364.0 337.6 1364.0"/>
+<path class="ed" d="M433.6 395.0 C521.5 395.0 521.5 34.0 609.4 34.0"/>
+<path class="ed" d="M433.6 395.0 C521.5 395.0 521.5 72.0 609.4 72.0"/>
+<path class="ed" d="M433.6 395.0 C521.5 395.0 521.5 110.0 609.4 110.0"/>
+<path class="ed" d="M433.6 395.0 C521.5 395.0 521.5 148.0 609.4 148.0"/>
+<path class="ed" d="M433.6 395.0 C521.5 395.0 521.5 186.0 609.4 186.0"/>
+<path class="ed" d="M433.6 395.0 C521.5 395.0 521.5 224.0 609.4 224.0"/>
+<path class="ed" d="M433.6 395.0 C521.5 395.0 521.5 262.0 609.4 262.0"/>
+<path class="ed" d="M433.6 395.0 C521.5 395.0 521.5 300.0 609.4 300.0"/>
+<path class="ed" d="M433.6 395.0 C521.5 395.0 521.5 338.0 609.4 338.0"/>
+<path class="ed" d="M433.6 395.0 C521.5 395.0 521.5 376.0 609.4 376.0"/>
+<path class="ed" d="M433.6 395.0 C521.5 395.0 521.5 414.0 609.4 414.0"/>
+<path class="ed" d="M433.6 395.0 C521.5 395.0 521.5 452.0 609.4 452.0"/>
+<path class="ed" d="M433.6 395.0 C521.5 395.0 521.5 490.0 609.4 490.0"/>
+<path class="ed" d="M433.6 395.0 C521.5 395.0 521.5 528.0 609.4 528.0"/>
+<path class="ed" d="M433.6 395.0 C521.5 395.0 521.5 566.0 609.4 566.0"/>
+<path class="ed" d="M433.6 395.0 C521.5 395.0 521.5 604.0 609.4 604.0"/>
+<path class="ed" d="M433.6 395.0 C521.5 395.0 521.5 642.0 609.4 642.0"/>
+<path class="ed" d="M433.6 395.0 C521.5 395.0 521.5 680.0 609.4 680.0"/>
+<path class="ed" d="M433.6 395.0 C521.5 395.0 521.5 718.0 609.4 718.0"/>
+<path class="ed" d="M433.6 395.0 C521.5 395.0 521.5 756.0 609.4 756.0"/>
+<path class="ed" d="M452.4 1022.0 C530.9 1022.0 530.9 794.0 609.4 794.0"/>
+<path class="ed" d="M452.4 1022.0 C530.9 1022.0 530.9 832.0 609.4 832.0"/>
+<path class="ed" d="M452.4 1022.0 C530.9 1022.0 530.9 870.0 609.4 870.0"/>
+<path class="ed" d="M452.4 1022.0 C530.9 1022.0 530.9 908.0 609.4 908.0"/>
+<path class="ed" d="M452.4 1022.0 C530.9 1022.0 530.9 946.0 609.4 946.0"/>
+<path class="ed" d="M452.4 1022.0 C530.9 1022.0 530.9 984.0 609.4 984.0"/>
+<path class="ed" d="M452.4 1022.0 C530.9 1022.0 530.9 1022.0 609.4 1022.0"/>
+<path class="ed" d="M452.4 1022.0 C530.9 1022.0 530.9 1060.0 609.4 1060.0"/>
+<path class="ed" d="M452.4 1022.0 C530.9 1022.0 530.9 1098.0 609.4 1098.0"/>
+<path class="ed" d="M452.4 1022.0 C530.9 1022.0 530.9 1136.0 609.4 1136.0"/>
+<path class="ed" d="M452.4 1022.0 C530.9 1022.0 530.9 1174.0 609.4 1174.0"/>
+<path class="ed" d="M452.4 1022.0 C530.9 1022.0 530.9 1212.0 609.4 1212.0"/>
+<path class="ed" d="M452.4 1022.0 C530.9 1022.0 530.9 1250.0 609.4 1250.0"/>
+<path class="ed" d="M474.6 1307.0 C542.0 1307.0 542.0 1288.0 609.4 1288.0"/>
+<path class="ed" d="M474.6 1307.0 C542.0 1307.0 542.0 1326.0 609.4 1326.0"/>
+<path class="ed" d="M433.6 1364.0 C521.5 1364.0 521.5 1364.0 609.4 1364.0"/>
+<path class="ed" d="M291.6 1516.0 C314.6 1516.0 314.6 1421.0 337.6 1421.0"/>
+<path class="ed" d="M291.6 1516.0 C314.6 1516.0 314.6 1611.0 337.6 1611.0"/>
+<path class="ed" d="M433.6 1421.0 C521.5 1421.0 521.5 1402.0 609.4 1402.0"/>
+<path class="ed" d="M433.6 1421.0 C521.5 1421.0 521.5 1440.0 609.4 1440.0"/>
+<path class="ed" d="M433.6 1611.0 C521.5 1611.0 521.5 1478.0 609.4 1478.0"/>
+<path class="ed" d="M433.6 1611.0 C521.5 1611.0 521.5 1516.0 609.4 1516.0"/>
+<path class="ed" d="M433.6 1611.0 C521.5 1611.0 521.5 1554.0 609.4 1554.0"/>
+<path class="ed" d="M433.6 1611.0 C521.5 1611.0 521.5 1592.0 609.4 1592.0"/>
+<path class="ed" d="M433.6 1611.0 C521.5 1611.0 521.5 1630.0 609.4 1630.0"/>
+<path class="ed" d="M433.6 1611.0 C521.5 1611.0 521.5 1668.0 609.4 1668.0"/>
+<path class="ed" d="M433.6 1611.0 C521.5 1611.0 521.5 1706.0 609.4 1706.0"/>
+<path class="ed" d="M433.6 1611.0 C521.5 1611.0 521.5 1744.0 609.4 1744.0"/>
+<path class="ed" d="M291.6 1953.0 C314.6 1953.0 314.6 1782.0 337.6 1782.0"/>
+<path class="ed" d="M291.6 1953.0 C314.6 1953.0 314.6 1820.0 337.6 1820.0"/>
+<path class="ed" d="M291.6 1953.0 C314.6 1953.0 314.6 1858.0 337.6 1858.0"/>
+<path class="ed" d="M291.6 1953.0 C314.6 1953.0 314.6 1896.0 337.6 1896.0"/>
+<path class="ed" d="M291.6 1953.0 C314.6 1953.0 314.6 1934.0 337.6 1934.0"/>
+<path class="ed" d="M291.6 1953.0 C314.6 1953.0 314.6 1972.0 337.6 1972.0"/>
+<path class="ed" d="M291.6 1953.0 C314.6 1953.0 314.6 2010.0 337.6 2010.0"/>
+<path class="ed" d="M291.6 1953.0 C314.6 1953.0 314.6 2048.0 337.6 2048.0"/>
+<path class="ed" d="M291.6 1953.0 C314.6 1953.0 314.6 2086.0 337.6 2086.0"/>
+<path class="ed" d="M291.6 1953.0 C314.6 1953.0 314.6 2124.0 337.6 2124.0"/>
+<path class="ed" d="M291.6 2238.0 C314.6 2238.0 314.6 2162.0 337.6 2162.0"/>
+<path class="ed" d="M291.6 2238.0 C314.6 2238.0 314.6 2200.0 337.6 2200.0"/>
+<path class="ed" d="M291.6 2238.0 C314.6 2238.0 314.6 2238.0 337.6 2238.0"/>
+<path class="ed" d="M291.6 2238.0 C314.6 2238.0 314.6 2276.0 337.6 2276.0"/>
+<path class="ed" d="M291.6 2238.0 C314.6 2238.0 314.6 2314.0 337.6 2314.0"/>
+<path class="ed" d="M291.6 2352.0 C314.6 2352.0 314.6 2352.0 337.6 2352.0"/>
+<path class="ed" d="M291.6 2428.0 C314.6 2428.0 314.6 2390.0 337.6 2390.0"/>
+<path class="ed" d="M291.6 2428.0 C314.6 2428.0 314.6 2428.0 337.6 2428.0"/>
+<path class="ed" d="M291.6 2428.0 C314.6 2428.0 314.6 2466.0 337.6 2466.0"/>
+<path class="ed" d="M291.6 2504.0 C314.6 2504.0 314.6 2504.0 337.6 2504.0"/>
+<path class="ed" d="M291.6 2817.5 C314.6 2817.5 314.6 2599.0 337.6 2599.0"/>
+<path class="ed" d="M291.6 2817.5 C314.6 2817.5 314.6 2675.0 337.6 2675.0"/>
+<path class="ed" d="M291.6 2817.5 C314.6 2817.5 314.6 2808.0 337.6 2808.0"/>
+<path class="ed" d="M291.6 2817.5 C314.6 2817.5 314.6 2922.0 337.6 2922.0"/>
+<path class="ed" d="M291.6 2817.5 C314.6 2817.5 314.6 2960.0 337.6 2960.0"/>
+<path class="ed" d="M291.6 2817.5 C314.6 2817.5 314.6 3036.0 337.6 3036.0"/>
+<path class="ed" d="M433.6 2599.0 C521.5 2599.0 521.5 2580.0 609.4 2580.0"/>
+<path class="ed" d="M433.6 2599.0 C521.5 2599.0 521.5 2618.0 609.4 2618.0"/>
+<path class="ed" d="M433.6 2675.0 C521.5 2675.0 521.5 2656.0 609.4 2656.0"/>
+<path class="ed" d="M433.6 2675.0 C521.5 2675.0 521.5 2694.0 609.4 2694.0"/>
+<path class="ed" d="M433.6 2808.0 C521.5 2808.0 521.5 2732.0 609.4 2732.0"/>
+<path class="ed" d="M433.6 2808.0 C521.5 2808.0 521.5 2770.0 609.4 2770.0"/>
+<path class="ed" d="M433.6 2808.0 C521.5 2808.0 521.5 2808.0 609.4 2808.0"/>
+<path class="ed" d="M433.6 2808.0 C521.5 2808.0 521.5 2846.0 609.4 2846.0"/>
+<path class="ed" d="M433.6 2808.0 C521.5 2808.0 521.5 2884.0 609.4 2884.0"/>
+<path class="ed" d="M433.6 2922.0 C521.5 2922.0 521.5 2922.0 609.4 2922.0"/>
+<path class="ed" d="M433.6 2960.0 C521.5 2960.0 521.5 2960.0 609.4 2960.0"/>
+<path class="ed" d="M433.6 3036.0 C521.5 3036.0 521.5 2998.0 609.4 2998.0"/>
+<path class="ed" d="M433.6 3036.0 C521.5 3036.0 521.5 3036.0 609.4 3036.0"/>
+<path class="ed" d="M433.6 3036.0 C521.5 3036.0 521.5 3074.0 609.4 3074.0"/>
+</g>
+<g class="nodes">
+<a class="lk" href="#/" xlink:href="#/"><rect class="nd rt" x="20.0" y="1834.5" width="129.6" height="28" rx="8"/><text class="tx" x="30.0" y="1853.5">Rust嵌入式探讨</text></a>
+<rect class="nd" x="195.6" y="865.5" width="96.0" height="28" rx="8"/><text class="tx" x="205.6" y="884.5">文章库</text>
+<rect class="nd" x="337.6" y="381.0" width="96.0" height="28" rx="8"/><text class="tx" x="347.6" y="400.0">Rust 学习</text>
+<a class="lk" href="#/post/rust-learning-01-compile-basics" xlink:href="#/post/rust-learning-01-compile-basics"><rect class="nd" x="609.4" y="20.0" width="96.0" height="28" rx="8"/><text class="tx" x="619.4" y="39.0">编译教学</text></a>
+<a class="lk" href="#/post/rust-learning-02-stack-heap" xlink:href="#/post/rust-learning-02-stack-heap"><rect class="nd" x="609.4" y="58.0" width="100.0" height="28" rx="8"/><text class="tx" x="619.4" y="77.0">1.1 堆和栈</text></a>
+<a class="lk" href="#/post/rust-learning-03-basic-types" xlink:href="#/post/rust-learning-03-basic-types"><rect class="nd" x="609.4" y="96.0" width="144.4" height="28" rx="8"/><text class="tx" x="619.4" y="115.0">1.2 基本数据类型</text></a>
+<a class="lk" href="#/post/rust-learning-04-literals" xlink:href="#/post/rust-learning-04-literals"><rect class="nd" x="609.4" y="134.0" width="100.0" height="28" rx="8"/><text class="tx" x="619.4" y="153.0">1.3 字面量</text></a>
+<a class="lk" href="#/post/rust-learning-05-tuples" xlink:href="#/post/rust-learning-05-tuples"><rect class="nd" x="609.4" y="172.0" width="96.0" height="28" rx="8"/><text class="tx" x="619.4" y="191.0">1.4 元组</text></a>
+<a class="lk" href="#/post/rust-learning-06-ranges" xlink:href="#/post/rust-learning-06-ranges"><rect class="nd" x="609.4" y="210.0" width="114.8" height="28" rx="8"/><text class="tx" x="619.4" y="229.0">1.5 范围类型</text></a>
+<a class="lk" href="#/post/rust-learning-07-structs" xlink:href="#/post/rust-learning-07-structs"><rect class="nd" x="609.4" y="248.0" width="96.0" height="28" rx="8"/><text class="tx" x="619.4" y="267.0">1.6 结构</text></a>
+<a class="lk" href="#/post/rust-learning-08-enums" xlink:href="#/post/rust-learning-08-enums"><rect class="nd" x="609.4" y="286.0" width="96.0" height="28" rx="8"/><text class="tx" x="619.4" y="305.0">1.7 枚举</text></a>
+<a class="lk" href="#/post/rust-learning-09-arrays-slices-vectors" xlink:href="#/post/rust-learning-09-arrays-slices-vectors"><rect class="nd" x="609.4" y="324.0" width="174.0" height="28" rx="8"/><text class="tx" x="619.4" y="343.0">1.8 数组、切片和向量</text></a>
+<a class="lk" href="#/post/rust-learning-10-strings" xlink:href="#/post/rust-learning-10-strings"><rect class="nd" x="609.4" y="362.0" width="100.0" height="28" rx="8"/><text class="tx" x="619.4" y="381.0">1.9 字符串</text></a>
+<a class="lk" href="#/post/rust-learning-11-variables-mutability" xlink:href="#/post/rust-learning-11-variables-mutability"><rect class="nd" x="609.4" y="400.0" width="151.8" height="28" rx="8"/><text class="tx" x="619.4" y="419.0">1.10 变量和可变性</text></a>
+<a class="lk" href="#/post/rust-learning-12-control-flow" xlink:href="#/post/rust-learning-12-control-flow"><rect class="nd" x="609.4" y="438.0" width="122.2" height="28" rx="8"/><text class="tx" x="619.4" y="457.0">1.11 控制语句</text></a>
+<a class="lk" href="#/post/rust-learning-13-functions" xlink:href="#/post/rust-learning-13-functions"><rect class="nd" x="609.4" y="476.0" width="96.0" height="28" rx="8"/><text class="tx" x="619.4" y="495.0">1.12 函数</text></a>
+<a class="lk" href="#/post/rust-learning-14-comments" xlink:href="#/post/rust-learning-14-comments"><rect class="nd" x="609.4" y="514.0" width="96.0" height="28" rx="8"/><text class="tx" x="619.4" y="533.0">1.13 注释</text></a>
+<a class="lk" href="#/post/rust-learning-15-operators" xlink:href="#/post/rust-learning-15-operators"><rect class="nd" x="609.4" y="552.0" width="107.4" height="28" rx="8"/><text class="tx" x="619.4" y="571.0">1.14 运算符</text></a>
+<a class="lk" href="#/post/rust-learning-16-impl-blocks" xlink:href="#/post/rust-learning-16-impl-blocks"><rect class="nd" x="609.4" y="590.0" width="144.4" height="28" rx="8"/><text class="tx" x="619.4" y="609.0">1.15 impl 代码块</text></a>
+<a class="lk" href="#/post/rust-learning-17-memory-layout" xlink:href="#/post/rust-learning-17-memory-layout"><rect class="nd" x="609.4" y="628.0" width="166.6" height="28" rx="8"/><text class="tx" x="619.4" y="647.0">1.16 程序的内存表现</text></a>
+<a class="lk" href="#/post/rust-learning-18-file-io" xlink:href="#/post/rust-learning-18-file-io"><rect class="nd" x="609.4" y="666.0" width="122.2" height="28" rx="8"/><text class="tx" x="619.4" y="685.0">1.17 文件操作</text></a>
+<a class="lk" href="#/post/rust-learning-19-std-library" xlink:href="#/post/rust-learning-19-std-library"><rect class="nd" x="609.4" y="704.0" width="144.4" height="28" rx="8"/><text class="tx" x="619.4" y="723.0">1.18 Rust 标准库</text></a>
+<a class="lk" href="#/post/rust-learning-20-misc" xlink:href="#/post/rust-learning-20-misc"><rect class="nd" x="609.4" y="742.0" width="96.0" height="28" rx="8"/><text class="tx" x="619.4" y="761.0">1.19 其他</text></a>
+<rect class="nd" x="337.6" y="1008.0" width="114.8" height="28" rx="8"/><text class="tx" x="347.6" y="1027.0">HFT 工程实践</text>
+<a class="lk" href="#/post/hft-engineering-01-fundamentals" xlink:href="#/post/hft-engineering-01-fundamentals"><rect class="nd" x="609.4" y="780.0" width="159.2" height="28" rx="8"/><text class="tx" x="619.4" y="799.0">高频交易基础与生态</text></a>
+<a class="lk" href="#/post/hft-engineering-02-exchange-components" xlink:href="#/post/hft-engineering-02-exchange-components"><rect class="nd" x="609.4" y="818.0" width="144.4" height="28" rx="8"/><text class="tx" x="619.4" y="837.0">交易系统关键组件</text></a>
+<a class="lk" href="#/post/hft-engineering-03-orderbook-matching" xlink:href="#/post/hft-engineering-03-orderbook-matching"><rect class="nd" x="609.4" y="856.0" width="159.2" height="28" rx="8"/><text class="tx" x="619.4" y="875.0">交易所动态与订单簿</text></a>
+<a class="lk" href="#/post/hft-engineering-04-hardware-os" xlink:href="#/post/hft-engineering-04-hardware-os"><rect class="nd" x="609.4" y="894.0" width="233.2" height="28" rx="8"/><text class="tx" x="619.4" y="913.0">HFT 系统基础：硬件到操作系统</text></a>
+<a class="lk" href="#/post/hft-engineering-05-kernel-tuning" xlink:href="#/post/hft-engineering-05-kernel-tuning"><rect class="nd" x="609.4" y="932.0" width="174.0" height="28" rx="8"/><text class="tx" x="619.4" y="951.0">操作系统内核极致调优</text></a>
+<a class="lk" href="#/post/hft-engineering-06-network" xlink:href="#/post/hft-engineering-06-network"><rect class="nd" x="609.4" y="970.0" width="174.0" height="28" rx="8"/><text class="tx" x="619.4" y="989.0">低延迟网络与协议优化</text></a>
+<a class="lk" href="#/post/hft-engineering-07-lockless-memory" xlink:href="#/post/hft-engineering-07-lockless-memory"><rect class="nd" x="609.4" y="1008.0" width="188.8" height="28" rx="8"/><text class="tx" x="619.4" y="1027.0">无锁数据结构与内存布局</text></a>
+<a class="lk" href="#/post/hft-engineering-08-engine-dev" xlink:href="#/post/hft-engineering-08-engine-dev"><rect class="nd" x="609.4" y="1046.0" width="174.0" height="28" rx="8"/><text class="tx" x="619.4" y="1065.0">超低延迟核心引擎开发</text></a>
+<a class="lk" href="#/post/hft-engineering-09-latency-benchmark" xlink:href="#/post/hft-engineering-09-latency-benchmark"><rect class="nd" x="609.4" y="1084.0" width="159.2" height="28" rx="8"/><text class="tx" x="619.4" y="1103.0">延迟测量与基准压测</text></a>
+<a class="lk" href="#/post/hft-engineering-10-risk-slippage" xlink:href="#/post/hft-engineering-10-risk-slippage"><rect class="nd" x="609.4" y="1122.0" width="159.2" height="28" rx="8"/><text class="tx" x="619.4" y="1141.0">风控合规与滑点控制</text></a>
+<a class="lk" href="#/post/hft-engineering-11-production-ops" xlink:href="#/post/hft-engineering-11-production-ops"><rect class="nd" x="609.4" y="1160.0" width="159.2" height="28" rx="8"/><text class="tx" x="619.4" y="1179.0">实盘上线与运维进阶</text></a>
+<a class="lk" href="#/post/hft-engineering-12-market-making" xlink:href="#/post/hft-engineering-12-market-making"><rect class="nd" x="609.4" y="1198.0" width="159.2" height="28" rx="8"/><text class="tx" x="619.4" y="1217.0">高频做市与套利策略</text></a>
+<a class="lk" href="#/post/hft-engineering-13-fpga-crypto" xlink:href="#/post/hft-engineering-13-fpga-crypto"><rect class="nd" x="609.4" y="1236.0" width="174.0" height="28" rx="8"/><text class="tx" x="619.4" y="1255.0">高频 FPGA 与加密货币</text></a>
+<rect class="nd" x="337.6" y="1293.0" width="137.0" height="28" rx="8"/><text class="tx" x="347.6" y="1312.0">Rust 嵌入式入门</text>
+<a class="lk" href="#/post/hello-rec" xlink:href="#/post/hello-rec"><rect class="nd" x="609.4" y="1274.0" width="300.0" height="28" rx="8"/><text class="tx" x="619.4" y="1293.0">从零点亮一块板子：probe-rs + Rust 的…</text></a>
+<a class="lk" href="#/post/md-writing" xlink:href="#/post/md-writing"><rect class="nd" x="609.4" y="1312.0" width="262.8" height="28" rx="8"/><text class="tx" x="619.4" y="1331.0">投稿其实很简单：写 Markdown 就行</text></a>
+<rect class="nd" x="337.6" y="1350.0" width="96.0" height="28" rx="8"/><text class="tx" x="347.6" y="1369.0">2026 年</text>
+<a class="lk" href="#/post/cortex-m-bringup" xlink:href="#/post/cortex-m-bringup"><rect class="nd" x="609.4" y="1350.0" width="300.0" height="28" rx="8"/><text class="tx" x="619.4" y="1369.0">From a Blank Board to RTT: A Cortex-M…</text></a>
+<a class="lk" href="#/knowledge" xlink:href="#/knowledge"><rect class="nd" x="195.6" y="1502.0" width="96.0" height="28" rx="8"/><text class="tx" x="205.6" y="1521.0">文章知识</text></a>
+<a class="lk" href="#/topics" xlink:href="#/topics"><rect class="nd" x="337.6" y="1407.0" width="96.0" height="28" rx="8"/><text class="tx" x="347.6" y="1426.0">主题词条</text></a>
+<a class="lk" href="#/topic/embedded-rust-toolchain" xlink:href="#/topic/embedded-rust-toolchain"><rect class="nd" x="609.4" y="1388.0" width="159.2" height="28" rx="8"/><text class="tx" x="619.4" y="1407.0">嵌入式 Rust 工具链</text></a>
+<a class="lk" href="#/topic/probe-rs" xlink:href="#/topic/probe-rs"><rect class="nd" x="609.4" y="1426.0" width="96.0" height="28" rx="8"/><text class="tx" x="619.4" y="1445.0">probe-rs</text></a>
+<rect class="nd" x="337.6" y="1597.0" width="96.0" height="28" rx="8"/><text class="tx" x="347.6" y="1616.0">标签</text>
+<a class="lk" href="#/library" xlink:href="#/library"><rect class="nd" x="609.4" y="1464.0" width="96.0" height="28" rx="8"/><text class="tx" x="619.4" y="1483.0">#rust</text></a>
+<a class="lk" href="#/library" xlink:href="#/library"><rect class="nd" x="609.4" y="1502.0" width="96.0" height="28" rx="8"/><text class="tx" x="619.4" y="1521.0">#hft</text></a>
+<a class="lk" href="#/library" xlink:href="#/library"><rect class="nd" x="609.4" y="1540.0" width="114.8" height="28" rx="8"/><text class="tx" x="619.4" y="1559.0">#performance</text></a>
+<a class="lk" href="#/library" xlink:href="#/library"><rect class="nd" x="609.4" y="1578.0" width="96.0" height="28" rx="8"/><text class="tx" x="619.4" y="1597.0">#quant</text></a>
+<a class="lk" href="#/library" xlink:href="#/library"><rect class="nd" x="609.4" y="1616.0" width="96.0" height="28" rx="8"/><text class="tx" x="619.4" y="1635.0">#类型</text></a>
+<a class="lk" href="#/library" xlink:href="#/library"><rect class="nd" x="609.4" y="1654.0" width="96.0" height="28" rx="8"/><text class="tx" x="619.4" y="1673.0">#基础</text></a>
+<a class="lk" href="#/library" xlink:href="#/library"><rect class="nd" x="609.4" y="1692.0" width="96.0" height="28" rx="8"/><text class="tx" x="619.4" y="1711.0">#linux</text></a>
+<a class="lk" href="#/library" xlink:href="#/library"><rect class="nd" x="609.4" y="1730.0" width="96.0" height="28" rx="8"/><text class="tx" x="619.4" y="1749.0">#cpp</text></a>
+<rect class="nd" x="195.6" y="1939.0" width="96.0" height="28" rx="8"/><text class="tx" x="205.6" y="1958.0">项目</text>
+<a class="lk" href="#/projects" xlink:href="#/projects"><rect class="nd" x="337.6" y="1768.0" width="96.0" height="28" rx="8"/><text class="tx" x="347.6" y="1787.0">rec-blog</text></a>
+<a class="lk" href="#/projects" xlink:href="#/projects"><rect class="nd" x="337.6" y="1806.0" width="96.0" height="28" rx="8"/><text class="tx" x="347.6" y="1825.0">BSHSQ</text></a>
+<a class="lk" href="#/projects" xlink:href="#/projects"><rect class="nd" x="337.6" y="1844.0" width="225.8" height="28" rx="8"/><text class="tx" x="347.6" y="1863.0">HFT / 嵌入式 Linux 学习笔记</text></a>
+<a class="lk" href="#/projects" xlink:href="#/projects"><rect class="nd" x="337.6" y="1882.0" width="129.6" height="28" rx="8"/><text class="tx" x="347.6" y="1901.0">Linux 驱动开发</text></a>
+<a class="lk" href="#/projects" xlink:href="#/projects"><rect class="nd" x="337.6" y="1920.0" width="137.0" height="28" rx="8"/><text class="tx" x="347.6" y="1939.0">Rust 并发与异步</text></a>
+<a class="lk" href="#/projects" xlink:href="#/projects"><rect class="nd" x="337.6" y="1958.0" width="107.4" height="28" rx="8"/><text class="tx" x="347.6" y="1977.0">SML标记语言</text></a>
+<a class="lk" href="#/projects" xlink:href="#/projects"><rect class="nd" x="337.6" y="1996.0" width="114.8" height="28" rx="8"/><text class="tx" x="347.6" y="2015.0">STM32 + RTOS</text></a>
+<a class="lk" href="#/projects" xlink:href="#/projects"><rect class="nd" x="337.6" y="2034.0" width="96.0" height="28" rx="8"/><text class="tx" x="347.6" y="2053.0">trit</text></a>
+<a class="lk" href="#/projects" xlink:href="#/projects"><rect class="nd" x="337.6" y="2072.0" width="100.0" height="28" rx="8"/><text class="tx" x="347.6" y="2091.0">计算机网络</text></a>
+<a class="lk" href="#/projects" xlink:href="#/projects"><rect class="nd" x="337.6" y="2110.0" width="129.6" height="28" rx="8"/><text class="tx" x="347.6" y="2129.0">量化与 AI 基础</text></a>
+<rect class="nd" x="195.6" y="2224.0" width="96.0" height="28" rx="8"/><text class="tx" x="205.6" y="2243.0">成员</text>
+<a class="lk" href="#/member/anonymous" xlink:href="#/member/anonymous"><rect class="nd" x="337.6" y="2148.0" width="129.6" height="28" rx="8"/><text class="tx" x="347.6" y="2167.0">暂时匿名的群友</text></a>
+<a class="lk" href="#/member/bfxh" xlink:href="#/member/bfxh"><rect class="nd" x="337.6" y="2186.0" width="96.0" height="28" rx="8"/><text class="tx" x="347.6" y="2205.0">bfxh</text></a>
+<a class="lk" href="#/member/cshonor" xlink:href="#/member/cshonor"><rect class="nd" x="337.6" y="2224.0" width="96.0" height="28" rx="8"/><text class="tx" x="347.6" y="2243.0">CShonor</text></a>
+<a class="lk" href="#/member/cxi" xlink:href="#/member/cxi"><rect class="nd" x="337.6" y="2262.0" width="96.0" height="28" rx="8"/><text class="tx" x="347.6" y="2281.0">CXi</text></a>
+<a class="lk" href="#/member/sal" xlink:href="#/member/sal"><rect class="nd" x="337.6" y="2300.0" width="96.0" height="28" rx="8"/><text class="tx" x="347.6" y="2319.0">Sal</text></a>
+<rect class="nd" x="195.6" y="2338.0" width="96.0" height="28" rx="8"/><text class="tx" x="205.6" y="2357.0">技术互助</text>
+<a class="lk" href="#/service/pcb-emc-review" xlink:href="#/service/pcb-emc-review"><rect class="nd" x="337.6" y="2338.0" width="196.2" height="28" rx="8"/><text class="tx" x="347.6" y="2357.0">PCB 布局与 EMC 走线复查</text></a>
+<a class="lk" href="#/resources" xlink:href="#/resources"><rect class="nd" x="195.6" y="2414.0" width="96.0" height="28" rx="8"/><text class="tx" x="205.6" y="2433.0">资源</text></a>
+<a class="lk" href="#/resources" xlink:href="#/resources"><rect class="nd" x="337.6" y="2376.0" width="96.0" height="28" rx="8"/><text class="tx" x="347.6" y="2395.0">probe-rs</text></a>
+<a class="lk" href="#/resources" xlink:href="#/resources"><rect class="nd" x="337.6" y="2414.0" width="188.8" height="28" rx="8"/><text class="tx" x="347.6" y="2433.0">The Embedded Rust Book</text></a>
+<a class="lk" href="#/resources" xlink:href="#/resources"><rect class="nd" x="337.6" y="2452.0" width="144.4" height="28" rx="8"/><text class="tx" x="347.6" y="2471.0">Rust从入门到入土</text></a>
+<rect class="nd" x="195.6" y="2490.0" width="96.0" height="28" rx="8"/><text class="tx" x="205.6" y="2509.0">周报</text>
+<a class="lk" href="#/weekly/2026-W38" xlink:href="#/weekly/2026-W38"><rect class="nd" x="337.6" y="2490.0" width="96.0" height="28" rx="8"/><text class="tx" x="347.6" y="2509.0">2026-W38</text></a>
+<a class="lk" href="#/join" xlink:href="#/join"><rect class="nd" x="195.6" y="2528.0" width="96.0" height="28" rx="8"/><text class="tx" x="205.6" y="2547.0">加入我们</text></a>
+<rect class="nd" x="195.6" y="2803.5" width="96.0" height="28" rx="8"/><text class="tx" x="205.6" y="2822.5">站文档</text>
+<rect class="nd" x="337.6" y="2585.0" width="96.0" height="28" rx="8"/><text class="tx" x="347.6" y="2604.0">关于</text>
+<a class="lk" href="#/page/join" xlink:href="#/page/join"><rect class="nd" x="609.4" y="2566.0" width="181.4" height="28" rx="8"/><text class="tx" x="619.4" y="2585.0">加入我们 / 合作与内推</text></a>
+<a class="lk" href="#/page/privacy" xlink:href="#/page/privacy"><rect class="nd" x="609.4" y="2604.0" width="100.0" height="28" rx="8"/><text class="tx" x="619.4" y="2623.0">隐私与数据</text></a>
+<rect class="nd" x="337.6" y="2661.0" width="96.0" height="28" rx="8"/><text class="tx" x="347.6" y="2680.0">写作</text>
+<a class="lk" href="#/page/write-markdown" xlink:href="#/page/write-markdown"><rect class="nd" x="609.4" y="2642.0" width="151.8" height="28" rx="8"/><text class="tx" x="619.4" y="2661.0">Markdown 写作速查</text></a>
+<a class="lk" href="#/page/write-sml" xlink:href="#/page/write-sml"><rect class="nd" x="609.4" y="2680.0" width="203.6" height="28" rx="8"/><text class="tx" x="619.4" y="2699.0">SML 写作速查（可选格式）</text></a>
+<rect class="nd" x="337.6" y="2794.0" width="96.0" height="28" rx="8"/><text class="tx" x="347.6" y="2813.0">制度</text>
+<a class="lk" href="#/page/roles" xlink:href="#/page/roles"><rect class="nd" x="609.4" y="2718.0" width="129.6" height="28" rx="8"/><text class="tx" x="619.4" y="2737.0">角色与权限制度</text></a>
+<a class="lk" href="#/page/repo-policy" xlink:href="#/page/repo-policy"><rect class="nd" x="609.4" y="2756.0" width="129.6" height="28" rx="8"/><text class="tx" x="619.4" y="2775.0">仓库与分支制度</text></a>
+<a class="lk" href="#/page/editorial" xlink:href="#/page/editorial"><rect class="nd" x="609.4" y="2794.0" width="129.6" height="28" rx="8"/><text class="tx" x="619.4" y="2813.0">创作与审稿制度</text></a>
+<a class="lk" href="#/page/moderation" xlink:href="#/page/moderation"><rect class="nd" x="609.4" y="2832.0" width="129.6" height="28" rx="8"/><text class="tx" x="619.4" y="2851.0">下架与申诉制度</text></a>
+<a class="lk" href="#/page/yellow-pages" xlink:href="#/page/yellow-pages"><rect class="nd" x="609.4" y="2870.0" width="159.2" height="28" rx="8"/><text class="tx" x="619.4" y="2889.0">能力与合作黄页制度</text></a>
+<rect class="nd" x="337.6" y="2908.0" width="96.0" height="28" rx="8"/><text class="tx" x="347.6" y="2927.0">参与</text>
+<a class="lk" href="#/page/participate" xlink:href="#/page/participate"><rect class="nd" x="609.4" y="2908.0" width="96.0" height="28" rx="8"/><text class="tx" x="619.4" y="2927.0">参与项目</text></a>
+<rect class="nd" x="337.6" y="2946.0" width="96.0" height="28" rx="8"/><text class="tx" x="347.6" y="2965.0">指南</text>
+<a class="lk" href="#/page/contribute" xlink:href="#/page/contribute"><rect class="nd" x="609.4" y="2946.0" width="129.6" height="28" rx="8"/><text class="tx" x="619.4" y="2965.0">投稿与共建指南</text></a>
+<rect class="nd" x="337.6" y="3022.0" width="96.0" height="28" rx="8"/><text class="tx" x="347.6" y="3041.0">规范</text>
+<a class="lk" href="#/page/attachments" xlink:href="#/page/attachments"><rect class="nd" x="609.4" y="2984.0" width="96.0" height="28" rx="8"/><text class="tx" x="619.4" y="3003.0">附件规则</text></a>
+<a class="lk" href="#/page/contracts" xlink:href="#/page/contracts"><rect class="nd" x="609.4" y="3022.0" width="174.0" height="28" rx="8"/><text class="tx" x="619.4" y="3041.0">内容契约（自动生成）</text></a>
+<a class="lk" href="#/page/sml-native" xlink:href="#/page/sml-native"><rect class="nd" x="609.4" y="3060.0" width="255.4" height="28" rx="8"/><text class="tx" x="619.4" y="3079.0">SML native 与 include（维护者）</text></a>
+</g></svg>

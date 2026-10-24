@@ -1,0 +1,10 @@
+{
+ "source": "extractive",
+ "one_line": "行注释、块注释与文档注释。",
+ "points": [],
+ "keywords": [
+  "rust",
+  "基础"
+ ],
+ "reading": 3
+}

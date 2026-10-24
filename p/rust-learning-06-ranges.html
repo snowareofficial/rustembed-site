@@ -1,0 +1,33 @@
+<p>范围（<code>Range</code>）是迭代器 <code>Iterator</code> 的迷你版，可以和 <code>for</code>、<code>take</code>、<code>sum</code> 配合使用。</p>
+<table>
+<thead><tr><th>写法</th><th>类型</th><th>含义</th></tr></thead>
+<tbody>
+<tr><td><code>a..b</code></td><td><code>Range&lt;T&gt;</code></td><td>半开 <code>[a, b)</code></td></tr>
+<tr><td><code>a..=b</code></td><td><code>RangeInclusive&lt;T&gt;</code></td><td>闭 <code>[a, b]</code></td></tr>
+<tr><td><code>a..</code></td><td><code>RangeFrom&lt;T&gt;</code></td><td>自 <code>a</code> 开始，无终</td></tr>
+<tr><td><code>..b</code></td><td><code>RangeTo&lt;T&gt;</code></td><td>无起，到 <code>b</code> 止</td></tr>
+<tr><td><code>..=b</code></td><td><code>RangeToInclusive&lt;T&gt;</code></td><td>无起，到 <code>b</code> 闭止</td></tr>
+<tr><td><code>..</code></td><td><code>RangeFull</code></td><td>全域</td></tr>
+</tbody>
+</table>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+assert_eq!(3 + 4 + 5, (3..6).sum());      // 迭代求和
+for i in 10..15 { println!(&quot;{} &quot;, i); }    // 半开
+for i in 4.. {                              // 无限上界，要在循环里 break
+    if i * 10 &gt; 100 { break; }
+}
+let r: std::ops::RangeFull = ..;           // 全域 range 是零大小类型
+}</code></pre>
+</div>
+<p><strong>已编译运行。</strong></p>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">10 
+11 
+12 
+13 
+14 </code></pre>
+</div>
+<p>范围不是&quot;长度&quot;而是一对端点，因此 <code>Range&lt;i32&gt;</code> 的大小等于 <code>2*size_of::&lt;i32&gt;() = 8</code>；<code>RangeFull</code> 是空结构体 ZST，大小 0——不会随端点变胖。</p>

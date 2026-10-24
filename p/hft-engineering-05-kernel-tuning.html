@@ -1,0 +1,83 @@
+<h3 id="5-1-上下文切换的代价">5.1 上下文切换的代价</h3>
+<blockquote>
+<p>切换不只是 μs 级调度——更致命的是破坏 L1/L2 工作集</p>
+</blockquote>
+<p><strong>Context Switch：</strong> OS <strong>保存</strong> 当前线程/进程状态，<strong>恢复</strong> 另一线程运行。</p>
+<table>
+<thead><tr><th>开销</th><th>HFT 视角</th></tr></thead>
+<tbody>
+<tr><td><strong>保存 PCB</strong></td><td>寄存器、栈指针等 — CPU 周期</td></tr>
+<tr><td><strong>Cache Invalidation</strong></td><td>新线程 <strong>冷缓存</strong></td></tr>
+<tr><td><strong>TLB 刷新</strong></td><td>页表映射缓存失效 → <strong>内存 walk</strong></td></tr>
+<tr><td><strong>恢复后 Cache Miss</strong></td><td>从 <strong>RAM（~60ns 级）</strong> 重拉代码/数据 — chapter-04 缓存金字塔 L1 <strong>~0.5ns</strong> 对比</td></tr>
+</tbody>
+</table>
+<p><strong>对 HFT：</strong> 切换不仅是 <strong>μs 级调度</strong> — 更致命的是 <strong>破坏 L1/L2 工作集</strong>，原线程 <strong>恢复延迟暴增</strong>。</p>
+<p><strong>触发源：</strong> 公平调度 · <strong>I/O 阻塞 syscall</strong> · <strong>锁等待</strong> · <strong>IRQ</strong> — 热点路径应 <strong>逐一剔除</strong>。</p>
+<h3 id="5-2-cpu-隔离与核心绑定">5.2 CPU 隔离与核心绑定</h3>
+<blockquote>
+<p>为延迟牺牲吞吐：isolcpus + nohz_full + 热点线程独占物理核</p>
+</blockquote>
+<p><strong>违背</strong> OS 默认公平调度与节能 — <strong>为延迟牺牲吞吐</strong>。</p>
+<table>
+<thead><tr><th>手段</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><strong><code>taskset</code> / <code>pthread_setaffinity</code></strong></td><td>热点线程绑 <strong>独占物理核</strong></td></tr>
+<tr><td><strong><code>isolcpus=</code></strong></td><td>核心 <strong>不参与 CFS 通用队列</strong></td></tr>
+<tr><td><strong><code>nohz_full</code></strong></td><td>减少 <strong>定时器 tick</strong> 打断</td></tr>
+<tr><td><strong>IRQ affinity</strong></td><td>网卡中断 <strong>远离</strong> 热点核 · 或 <strong>用户态 poll</strong> 无 IRQ</td></tr>
+</tbody>
+</table>
+<p><strong>拓扑：</strong></p>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">Core 0: Gateway IN (poll)
+Core 1: Book Builder
+Core 2: Strategy
+Core 3: Gateway OUT
+(其余核: 日志/监控 — 可共享)</code></pre>
+</div>
+<p><strong>禁止：</strong> 热点线程与 <strong>HT 兄弟核</strong> 同跑重负载。</p>
+<p>→ 03-linux-userspace-api 调度</p>
+<h3 id="5-3-kernel-bypass">5.3 Kernel Bypass</h3>
+<blockquote>
+<p>阻塞 recv() = 必然切换；用户态 poll NIC ring，1.5–10 μs → 0.5–2 μs</p>
+</blockquote>
+<p><strong>阻塞式 <code>recv()</code></strong> → 线程睡眠 → <strong>必然切换</strong>。</p>
+<table>
+<thead><tr><th>对策</th><th>效果</th></tr></thead>
+<tbody>
+<tr><td><strong>User-space spinning</strong></td><td><strong>100% poll</strong> NIC ring — 无 IRQ/阻塞</td></tr>
+<tr><td><strong>Zero copy</strong></td><td>DMA → 用户映射 · 无 memcpy</td></tr>
+<tr><td><strong>OpenOnload / VMA / DPDK</strong></td><td>商用 Bypass</td></tr>
+<tr><td><strong>Busy-poll socket</strong>（次选）</td><td>仍经内核</td></tr>
+</tbody>
+</table>
+<p>| 效果（原书 Ch7） | <strong>1.5–10 μs → 0.5–2 μs</strong> |</p>
+<p>→ chapter-06 包路径 · chapter-09 Bypass · 13-DPDK</p>
+<h3 id="5-4-bios-电源-降低-jitter">5.4 BIOS / 电源：降低 Jitter</h3>
+<blockquote>
+<p>关 HT / C-states / Turbo — 消除一切频率与调度不可预测性</p>
+</blockquote>
+<table>
+<thead><tr><th>禁用</th><th>原因</th></tr></thead>
+<tbody>
+<tr><td><strong>Hyper-Threading</strong></td><td>争用执行单元 · 不可控交替</td></tr>
+<tr><td><strong>C-states / P-states</strong></td><td>唤醒惩罚</td></tr>
+<tr><td><strong>Turbo Boost</strong></td><td>频率跳变</td></tr>
+</tbody>
+</table>
+<h3 id="5-5-huge-pages-与-tlb">5.5 Huge Pages 与 TLB</h3>
+<blockquote>
+<p>大页减少 TLB miss；大页管映射，对象池管分配</p>
+</blockquote>
+<p><strong>切换加剧 TLB 压力</strong> — 大页 <strong>减少 miss 概率</strong>（原理 chapter-04 §OS 抽象）。</p>
+<div class="code">
+<div class="code-head"><span>bash</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-bash">echo 1024 &gt; /proc/sys/vm/nr_hugepages
+## 应用 mmap(MAP_HUGETLB) 或 libhugetlbfs</code></pre>
+</div>
+<p><strong>与 Memory Pool 分工：</strong> 大页 <strong>映映射</strong>；对象 <strong>池化</strong> → chapter-07 内存预分配</p>
+<aside class="admonition note"><p class="adm-title">来源与许可</p>
+<p>本文整理自 CShonor 的学习笔记仓库 <a href="https://github.com/cshonor/hft-embedded-linux-study" target="_blank" rel="nofollow noopener">hft-embedded-linux-study</a> 的 <code>14-hft-engineering</code> 模块（HFT 工程实践；该模块标注了与原书 Ch1–11 的对应关系，Ch10–13 为仓库自扩展章节），经作者授权以 CC BY 4.0 在本站署名发布。</p>
+</aside>

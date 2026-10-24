@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="385" height="182" viewBox="0 0 385 182" font-family="-apple-system,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif">
+<title>1.12 函数</title>
+<style>.nd{fill:#fff;stroke:#e4dfd6;rx:8} .rt{fill:#f6efe6;stroke:#d9c9b0}.tx{font-size:13px;fill:#23201c} .lk{cursor:pointer}.lk:hover .nd{stroke:#b4552d;fill:#fff8f2} .ed{fill:none;stroke:#ddd6c9;stroke-width:1.4}</style>
+<g class="edges">
+<path class="ed" d="M116.0 91.0 C139.0 91.0 139.0 34.0 162.0 34.0"/>
+<path class="ed" d="M116.0 91.0 C139.0 91.0 139.0 72.0 162.0 72.0"/>
+<path class="ed" d="M116.0 91.0 C139.0 91.0 139.0 110.0 162.0 110.0"/>
+<path class="ed" d="M116.0 91.0 C139.0 91.0 139.0 148.0 162.0 148.0"/>
+</g>
+<g class="nodes">
+<rect class="nd rt" x="20.0" y="77.0" width="96.0" height="28" rx="8"/><text class="tx" x="30.0" y="96.0">1.12 函数</text>
+<a class="lk" href="#/post/rust-learning-13-functions/提早返回" xlink:href="#/post/rust-learning-13-functions/提早返回"><rect class="nd" x="162.0" y="20.0" width="100.0" height="28" rx="8"/><text class="tx" x="172.0" y="39.0">1 提早返回</text></a>
+<a class="lk" href="#/post/rust-learning-13-functions/函数作为返回值" xlink:href="#/post/rust-learning-13-functions/函数作为返回值"><rect class="nd" x="162.0" y="58.0" width="144.4" height="28" rx="8"/><text class="tx" x="172.0" y="77.0">2 函数作为返回值</text></a>
+<a class="lk" href="#/post/rust-learning-13-functions/常量函数-const-fn" xlink:href="#/post/rust-learning-13-functions/常量函数-const-fn"><rect class="nd" x="162.0" y="96.0" width="203.6" height="28" rx="8"/><text class="tx" x="172.0" y="115.0">3 常量函数（`const fn`）</text></a>
+<a class="lk" href="#/post/rust-learning-13-functions/模式解构参数" xlink:href="#/post/rust-learning-13-functions/模式解构参数"><rect class="nd" x="162.0" y="134.0" width="129.6" height="28" rx="8"/><text class="tx" x="172.0" y="153.0">4 模式解构参数</text></a>
+</g></svg>
