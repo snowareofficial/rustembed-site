@@ -1,0 +1,50 @@
+<h3 id="1-18-1-rust-标准库的特点">1.18.1 Rust 标准库的特点</h3>
+<ol>
+<li><strong>零垃圾回收</strong>：纯借用 + 移动语义，无需 GC。</li>
+<li><strong>零成本抽象</strong>：迭代器、<code>?</code> 错误传播、<code>impl Trait</code> 都是 0 开销。</li>
+<li><strong>trait 化</strong>：能力靠 trait 表达：<code>Iterator</code>、<code>Read</code>、<code>Write</code>、<code>From</code>/<code>Into</code>、<code>AsRef</code>/<code>AsMut</code>、<code>Default</code>、<code>Debug</code>/<code>Display</code>。</li>
+<li><strong>无 unsafe 即可写 Rust</strong>：标准库对常见容器（<code>Vec</code>、<code>BTreeMap</code>、<code>HashMap</code>）提供安全 API。</li>
+<li><strong>小内核（</strong><code>core</code><strong>） + 完整 std</strong>：库能嵌入裸机，只用 <code>core</code>；用 OS 调度再 <code>std</code>。</li>
+<li><strong>强测试 + 文档示例</strong>：每个公共 API 都附带 doc-test 样例。</li>
+</ol>
+<h3 id="1-18-2-rust-标准库模块-速查">1.18.2 Rust 标准库模块（速查）</h3>
+<table>
+<thead><tr><th>模块</th><th>关键内容</th></tr></thead>
+<tbody>
+<tr><td><code>std::collections</code></td><td><code>HashMap</code>、<code>BTreeMap</code>、<code>VecDeque</code>、<code>HashSet</code>、<code>BTreeSet</code>、<code>LinkedList</code>、<code>BinaryHeap</code></td></tr>
+<tr><td><code>std::convert</code></td><td><code>From</code>/<code>Into</code>、<code>TryFrom</code>/<code>TryInto</code>、<code>AsRef</code>/<code>AsMut</code></td></tr>
+<tr><td><code>std::fmt</code></td><td><code>Debug</code>/<code>Display</code> 格式化、<code>write!</code>、<code>format!</code></td></tr>
+<tr><td><code>std::fs</code></td><td>文件系统：<code>File::create/open</code>、<code>metadata</code>、<code>read_dir</code></td></tr>
+<tr><td><code>std::io</code></td><td><code>Read</code>/<code>Write</code>/<code>Seek</code> trait、<code>BufReader</code>/<code>BufWriter</code>、<code>stdin()</code>/<code>stdout()</code></td></tr>
+<tr><td><code>std::iter</code></td><td>迭代器：<code>map</code>/<code>filter</code>/<code>take</code>/<code>skip</code>/<code>collect</code>/<code>fold</code>/<code>sum</code></td></tr>
+<tr><td><code>std::mem</code></td><td><code>size_of</code>/<code>align_of</code>/<code>transmute</code>/<code>replace</code>/<code>swap</code></td></tr>
+<tr><td><code>std::ops</code></td><td>重载运算符：<code>Add</code>/<code>Sub</code>/<code>Mul</code>/<code>Div</code>/<code>Neg</code>/<code>Index</code>/<code>Deref</code>/<code>Range</code></td></tr>
+<tr><td><code>std::path</code></td><td><code>Path</code>/<code>PathBuf</code></td></tr>
+<tr><td><code>std::process</code></td><td>进程：<code>Command</code>、<code>exit</code>、<code>stdin/stdout/stderr</code></td></tr>
+<tr><td><code>std::sync</code></td><td><code>Mutex</code>/<code>RwLock</code>/<code>Arc</code>/<code>Barrier</code>/<code>mpsc</code> 通道</td></tr>
+<tr><td><code>std::thread</code></td><td><code>spawn</code>/<code>sleep</code>/<code>JoinHandle</code></td></tr>
+<tr><td><code>std::time</code></td><td><code>Duration</code>/<code>Instant</code>/<code>SystemTime</code></td></tr>
+<tr><td><code>std::net</code></td><td>Tcp/Udp、<code>IpAddr</code></td></tr>
+</tbody>
+</table>
+<h4 id="trait-的设计哲学">trait 的设计哲学</h4>
+<ul>
+<li>消费型：<code>IntoIterator</code>，接收 <code>self</code>；</li>
+<li>借用型：<code>Iterator</code>，总是给 <code>&amp;Self</code>；</li>
+<li>错误型：<code>From</code>、<code>TryFrom</code>，把任意输入转成目标类型；</li>
+<li>类型归约：<code>Default</code>，给&quot;逻辑零值&quot;。</li>
+</ul>
+<blockquote>
+<p>示例：用 <code>IntoIterator</code> 让结构体能 <code>for v in xs</code>：</p>
+</blockquote>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+struct MyVec&lt;T&gt;(Vec&lt;T&gt;);
+impl&lt;T&gt; IntoIterator for MyVec&lt;T&gt; {
+    type Item = T;
+    type IntoIter = std::vec::IntoIter&lt;T&gt;;
+    fn into_iter(self) -&gt; Self::IntoIter { self.0.into_iter() }
+}
+}</code></pre>
+</div>

@@ -1,0 +1,772 @@
+<p>Rust 把&quot;字符串&quot;分成了层次分明的若干类型：理解它们是处理文本的关键。</p>
+<h3 id="1-9-1-字符串切片">1.9.1 字符串切片</h3>
+<p><code>&amp;str</code> 是胖指针 <code>(ptr, len)</code>，永远指向<strong>合法 UTF-8</strong> 的连续字节序列、不可变。</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+let dog = &quot;大智如愚&quot;;                          // &amp;&#x27;static str 指向常量段
+let first: String = dog.chars().take(1).collect();
+let fifth: String = dog.chars().skip(1).collect();
+}</code></pre>
+</div>
+<p>⚠️ <strong>绝不能按字节下标切片</strong>：</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">// ===== 字符串1：原理速记 =====
+// Rust 中&quot;字符串&quot;实际是一组层次不同的类型：
+//   &amp;str                  不可变 UTF-8 切片 (fat pointer: ptr+len)；字符串字面量就是它。
+//   String                可增长、堆分配、可变的 UTF-8 字符串，等价 Vec&lt;u8&gt; 保证合法 UTF-8。
+//   &amp;String               自动 deref 成 &amp;str，惯例上传递只读字符串就用 &amp;str。
+//   CStr / CString        与 C 互操作的、以 &#x27;\0&#x27; 结尾的字节串（不要求 UTF-8）。
+//   OsStr / OsString      与操作系统原生字符串（Windows UTF-16、Unix bytes）互操作。
+//   Path / PathBuf        文件系统路径，OS 无关视图。
+//   b&quot;...&quot; / &amp;[u8] / Vec&lt;u8&gt; 字节视图，不校验 UTF-8，适合二进制协议。
+//   Cow&lt;&#x27;_, str&gt;          &quot;写时复制&quot;：有所有权就保留，没有就分配新 String。
+// 取下标时必须按字符边界：&amp;s[0..2] 以字节为单位，遇到非 ASCII 多字节字符会 panic。
+// 应改用 chars()/bytes() 迭代 + take()/skip()/collect() 来切片。
+
+use std::{
+    borrow::Cow,
+    ffi::{CStr, CString, OsStr, OsString},
+    net::{IpAddr, TcpStream},
+    path::{Path, PathBuf},
+    str::FromStr,
+};
+
+// pub fn connect&lt;A: ToSocketAddrs&gt;(addr: A) -&gt; Result&lt;TcpStream&gt;
+// pub trait ToSocketAddrs {
+//     type Iter: Iterator&lt;Item = SocketAddr&gt;;
+
+//     fn to_socket_addrs(&amp;self) -&gt; Result&lt;Self::Iter&gt;;
+// }
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let _ = TcpStream::connect(&quot;192.168.0.1:6000&quot;);
+    let addr_string = &quot;192.168.0.1:6000&quot;.to_string();
+    // .as_str()是只读、不可变、UTF-8 字符串切片，底层字符不允许直接修改
+    let _h = addr_string.as_str();
+    let _ = TcpStream::connect(addr_string.as_str());
+    let _ = TcpStream::connect(&amp;*addr_string);
+    let _string: String = addr_string.into();
+
+    let dog = &quot;taoism&quot;;
+    let taois = &amp;dog[0..5];
+    println!(&quot;{}&quot;, taois);
+
+    let dog = &quot;大智如愚&quot;;
+    // let hachi = &amp;dog[0..2]; // 大 --- 不是像C++ 直接取
+    // .take(k) 的含义：从迭代器取出前 k 个字符
+    // .collect() 是迭代器通用方法，把迭代器所有元素收集、转换成目标容器。
+    let hachi: String = dog.chars().take(1).collect();
+    println!(&quot;{}&quot;, hachi);
+    // .skip(n) 跳过前 n 个字符
+    let hachi: String = dog.chars().skip(1).collect();
+    println!(&quot;{}&quot;, hachi);
+
+    assert_eq!(&quot;你好&quot;.len(), 6); // 2x3
+    assert_eq!(&quot;王者吃鸡&quot;.chars().count(), 4);
+
+    {
+        let taoism = &quot;大智如愚&quot;;
+        for b in taoism.as_bytes() {
+            // 字节数组 字节偏移量
+            print!(&quot;0x{:x} &quot;, b);
+        }
+        println!(&quot;&quot;);
+        for b in taoism.chars() {
+            print!(&quot;{} &quot;, b);
+        }
+        println!(&quot;&quot;);
+    }
+
+    // &amp;str 类似索引访问 不可修改
+    {
+        let taoism = &quot;大智如愚&quot;;
+        let dog = taoism.chars().nth(1).unwrap();
+        println!(&quot;{}&quot;, dog);
+    }
+    {
+        let hello = &quot;Hello&quot;.to_string();
+        let milly = &quot;Milly!&quot;;
+        let hello_world = hello + milly; // String + &amp;str --&gt; String
+        println!(&quot;{}&quot;, hello_world);
+
+        let hello = &quot;Hello&quot;.to_string();
+        let milly = &quot;Milly!&quot;.to_string();
+        let hello_world = hello + &amp;milly; // String + &amp;String --&gt; String
+        println!(&quot;{}&quot;, hello_world);
+    }
+
+    {
+        let method = b&quot;SET&quot;;
+        println!(&quot;{:?}&quot;, method);
+        println!(&quot;{}&quot;, std::str::from_utf8(method).unwrap());
+        assert_eq!(method, &amp;[b&#x27;S&#x27;, b&#x27;E&#x27;, b&#x27;T&#x27;]);
+    }
+
+    // 字符类型装切片
+    {
+        let s = String::from(&quot;hello&quot;);
+        let os_s = OsString::from(&quot;Foo&quot;);
+        let path_s = PathBuf::from(r&quot;/home/matt/.bashrc&quot;);
+        let c_s = CString::new(&quot;CString !&quot;).unwrap();
+        // let c_s = CString::from(&quot;C sdsd &quot;); // 错误
+
+        let _ref_s: &amp;str = &amp;s; // 默认是 通过推到 为String 指定后 为&amp;str
+        let _ref_os_s: &amp;OsStr = &amp;os_s;
+        let _ref_path_s: &amp;Path = &amp;path_s;
+        let _ref_c_s: &amp;CStr = &amp;c_s;
+    }
+
+    // 写时复制
+    {
+        let s = String::from(&quot;Hello&quot;);
+        let _c1 = Cow::from(s);
+        let _c2 = Cow::from(&quot;Milly&quot;);
+
+        let g1 = greet(Some(&quot;Milly&quot;));
+        let g2 = greet(None);
+
+        println!(&quot;{}{}&quot;, g1, g2);
+    }
+
+    // 字符串相关操作
+    {
+        assert!(&quot; ONE&quot;.to_lowercase() == &quot; one&quot;); // 字符取小 变小写
+        assert!(&quot; peanut&quot;.contains(&quot;nut&quot;));
+        println!(&quot;{}&quot;, &quot; peanut&quot;.contains(&quot;nut&quot;)); // 查找
+        println!(&quot;{}&quot;, &quot; peanut&quot;.find(&quot;nut&quot;).unwrap()); // 查找
+
+        assert_eq!(&quot;哈_哈&quot;.replace(&quot;哈&quot;, &quot;呵&quot;), &quot;呵_呵&quot;); // 替代
+        assert_eq!(&quot;clean\n&quot;.trim(), &quot;clean&quot;);
+        for word in &quot;a,b,c,d,erer,over&quot;.split(&quot;,&quot;)
+        //分割
+        {
+            print!(&quot;{} &quot;, word);
+        }
+        assert!(&quot;123456&quot;.starts_with(&quot;1&quot;));
+        assert!(&quot;123456&quot;.ends_with(&quot;6&quot;));
+    }
+
+    {
+        use std::str::FromStr;
+        // 直接转换为 字符 -&gt; 数据
+        assert_eq!(usize::from_str(&quot;3628800&quot;), Ok(3628800));
+        assert_eq!(f64::from_str(&quot;128.5625&quot;), Ok(128.5625));
+        assert_eq!(bool::from_str(&quot;true&quot;), Ok(true));
+        assert!(f64::from_str(&quot;hdjasjhjd&quot;).is_err());
+        assert!(bool::from_str(&quot;TEUE&quot;).is_err());
+
+        assert_eq!(char::from_str(&quot;)&quot;), Ok(&#x27;)&#x27;));
+        assert!(char::from_str(&quot;jhrdals&quot;).is_err());
+    }
+    // 切片
+    {
+        let address = &quot;fe80::0000:3ea9:f4ff:fe34:7a50&quot;.parse::&lt;IpAddr&gt;()?;
+        println!(&quot;解析IP成功: {}&quot;, address);
+    }
+    Ok(())
+}
+
+fn greet(name: Option&lt;&amp;str&gt;) -&gt; Cow&lt;&#x27;static, str&gt; {
+    match name {
+        Some(name) =&gt; Cow::from(format!(&quot;Hello {}!\r\n&quot;, name)),
+        None =&gt; Cow::from(&quot;Hello Human!\r\n&quot;),
+    }
+}
+
+// trait 是行为接口，用来给不同类型定义共享的能力 / 方法，类似 Java / C++ 的接口、抽象类，但功能更强。核心：描述 “这个类型能做什么”，而非描述 “它是什么”。
+// pub trait FromStr: Sized {
+//     type Err;
+//     fn from_str(s: &amp;str) -&gt; Result&lt;Self, Self::Err&gt;;
+// }
+
+fn parse_pair&lt;T: FromStr&gt;(s: &amp;str, separator: char) -&gt; Option&lt;(T, T)&gt; {
+    match s.find(separator) {
+        None =&gt; None,
+        Some(index) =&gt; match (T::from_str(&amp;s[..index]), T::from_str(&amp;s[index + 1..])) {
+            (Ok(l), Ok(r)) =&gt; Some((l, r)),
+            _ =&gt; None,
+        },
+    }
+}</code></pre>
+</div>
+<p><strong>已编译运行（取自 </strong><code>src/Chapter4/字符串1.rs</code><strong>）。</strong></p>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">taois
+大
+智如愚
+0xe5 0xa4 0xa7 0xe6 0x99 0xba 0xe5 0xa6 0x82 0xe6 0x84 0x9a 
+大 智 如 愚 
+智
+......
+Hello Milly!
+Hello Human!
+
+true
+4
+a b c d erer over 解析IP成功: fe80::3ea9:f4ff:fe34:7a50</code></pre>
+</div>
+<p><code>&quot;你好&quot;.len() == 6</code>（3 字节一个字），<code>&quot;王者吃鸡&quot;.chars().count() == 4</code>。遇到需要按字符切片的情况，用迭代器 + <code>take</code> / <code>skip</code> / <code>collect</code>。</p>
+<h3 id="1-9-2-字符串">1.9.2 字符串</h3>
+<p><code>String</code> = <code>Vec&lt;u8&gt;</code> + UTF-8 校验。</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">use core::slice;
+
+const CONSTANT_STRING: &amp;&#x27;static str = &quot;This is a constant string&quot;;
+fn main()
+{
+    let another_string = &quot;This string is local to string&quot;;
+    println!(&quot;Constant string says: {} &quot;,CONSTANT_STRING);
+    println!(&quot;Another string says: {} &quot;,another_string);
+    {
+        let mut s = &quot;hello&quot;; // &amp;str 类型 是只读、不可变、UTF-8 字符串切片，底层字符不允许直接修改
+        // s[0] = &#x27;c&#x27;; // 错误 非 C/C++ 直接支持索引
+        // s.push(&#x27;\n&#x27;);
+        s = &quot;12345&quot;;
+        println!(&quot;{}&quot;,s);
+
+        let a:String = &quot;Hello&quot;.to_string();
+        println!(&quot;{}&quot;,a);
+        let b = String::from(&quot;你好&quot;);
+        println!(&quot;{}&quot;,b);
+        let c = &quot;Milly&quot;.to_owned();
+        println!(&quot;{}&quot;,c);
+        let d = c.clone(); // 拷贝
+        println!(&quot;{}&quot;,d);
+        let e = format!(&quot;{2} {1} {0}&quot;,&quot;C&quot;,&quot;B&quot;,&quot;A&quot;); // 类似 C的 sprintf
+        println!(&quot;{}&quot;,e);
+        let bits = vec![&quot;veni&quot;,&quot;vidi&quot;,&quot;vivi&quot;];
+        assert_eq!(bits.concat(),&quot;venividivivi&quot;); // concat 拼接/链接
+        assert_eq!(bits.join(&quot;,&quot;),&quot;veni,vidi,vivi&quot;);
+    }
+    {
+        let s = &quot;Hello&quot;.to_string();
+        takes_slice(&amp;s);
+    }
+}
+
+fn takes_slice(slice: &amp;str){
+    println!(&quot;Got: {}&quot;,slice);
+}</code></pre>
+</div>
+<p><strong>已编译运行（取自 </strong><code>src/Chapter4/字符串.rs</code><strong>）。</strong></p>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">Constant string says: This is a constant string 
+Another string says: This string is local to string 
+12345
+Hello
+你好
+Milly
+Milly
+A B C
+Got: Hello</code></pre>
+</div>
+<p>特点：</p>
+<ol>
+<li>可增长：<code>.push_str(...)</code> / <code>.push(char)</code>。</li>
+<li>不会自动截断：<code>.pop()</code> 只在非空合法 UTF-8 边界才返回字符。</li>
+<li>拼接：<code>String + &amp;str</code> → <code>String</code>；<code>String + &amp;String</code> 也行（自动 deref）：</li>
+</ol>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+let hello_world = &quot;Hello&quot;.to_string() + &quot;Milly&quot;; // String + &amp;str -&gt; String
+}</code></pre>
+</div>
+<h4 id="string-的常用成员方法"><code>String</code> 的常用成员方法</h4>
+<table>
+<thead><tr><th>方法</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>String::new()</code></td><td>分配一个空的 <code>String</code> 类型</td></tr>
+<tr><td><code>String::from(s: &amp;str)</code></td><td>分配一个新的 <code>String</code>，并赋初值（传入字符串切片）</td></tr>
+<tr><td><code>String::with_capacity(capacity: usize)</code></td><td>以指定的大小分配一个空的 <code>String</code> 类型</td></tr>
+<tr><td><code>String::from_utf8(vec: Vec&lt;u8&gt;)</code></td><td>通过字节字符串生成一个新的 <code>String</code> 类型。参数必须是合法的 UTF-8 编码，否则会失败。返回 <code>Result</code> 类型</td></tr>
+<tr><td><code>len()</code></td><td>返回 <code>String</code> 类型的长度。是字节计数（书中描述存在笔误，并非 Unicode 字符计数）</td></tr>
+<tr><td><code>push(ch: char)</code></td><td>给字符串增加一个字符</td></tr>
+<tr><td><code>push_str(string: &amp;str)</code></td><td>给字符串增加一个字符串切片</td></tr>
+</tbody>
+</table>
+<blockquote>
+<p>补充：</p>
+<ul>
+<li><code>String::from_utf8(vec)</code> 失败时返回 <code>Err(String::fromUtf8Error)</code>，要拿到原 Vec 就只能 <code>unwrap_or_else(|e| e.into_bytes())</code>。</li>
+<li><code>String</code> 还提供 <code>pop()</code> / <code>remove(idx)</code> / <code>truncate(len)</code> / <code>clear()</code> / <code>split_at(mid)</code> / <code>replace_range(range, replace_with)</code> / <code>drain(range)</code> 等系列可写方法；以及 <code>contains(&amp;str)</code> / <code>starts_with</code> / <code>ends_with</code> / <code>find</code> / <code>trim</code> / <code>chars</code> / <code>bytes</code> 等只读方法。完整列表见 <a href="https://doc.rust-lang.org/std/string/struct.String.html" target="_blank" rel="nofollow noopener">std::string::String</a>。</li>
+</ul>
+</blockquote>
+<h3 id="1-9-3-字节字符串">1.9.3 字节字符串</h3>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+let method = b&quot;SET&quot;;                          // &amp;[u8; 3] 的字节数组
+let s = std::str::from_utf8(method).unwrap(); // &amp;[u8] -&gt; &amp;str，校验失败会 panic
+}</code></pre>
+</div>
+<p>字节串绕过 UTF-8 校验，适合网络协议、二进制字段。但何时都不能被 <code>&amp;str</code> 接住而不校验。</p>
+<h3 id="1-9-4-其他字符串类型">1.9.4 其他字符串类型</h3>
+<table>
+<thead><tr><th>类型</th><th>用途</th></tr></thead>
+<tbody>
+<tr><td><code>&amp;str</code> / <code>String</code></td><td>Rust 内部通用 UTF-8 文本</td></tr>
+<tr><td><code>CStr</code> / <code>CString</code></td><td>与 C 互操作的 <code>\0</code> 结尾字符串</td></tr>
+<tr><td><code>OsStr</code> / <code>OsString</code></td><td>与操作系统原生字符串（Windows UTF-16 / Unix bytes）</td></tr>
+<tr><td><code>Path</code> / <code>PathBuf</code></td><td>文件系统路径</td></tr>
+<tr><td><code>Cow&lt;&#x27;_, str&gt;</code></td><td>写时复制：能在 <code>&amp;str</code> 与 <code>String</code> 间互转而不额外分配</td></tr>
+</tbody>
+</table>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+use std::ffi::{CStr, CString};
+let c = CString::new(&quot;hello&quot;).unwrap();        // 含 \\0 校验
+}</code></pre>
+</div>
+<h3 id="1-9-5-各种字符串类型之间转换">1.9.5 各种字符串类型之间转换</h3>
+<p>由于 <code>String: Deref&lt;Target = str&gt;</code>，所以：</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+let s: String = &quot;hi&quot;.to_string();
+let r: &amp;str = &amp;s;                              // 隐式 deref，无需 as_str()
+let _ = s.as_str();                            // 显式方法，性质相同
+let _h: String = s;                            // &amp;str -&gt; String 也要 .to_string()
+}</code></pre>
+</div>
+<p><code>Cow</code> 的精髓——<strong>避免无为分配</strong>：</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+use std::borrow::Cow;
+fn greet(name: Option&lt;&amp;str&gt;) -&gt; Cow&lt;&#x27;static, str&gt; {
+    match name {
+        Some(n) =&gt; Cow::from(format!(&quot;Hello {}!\r\n&quot;, n)),
+        None    =&gt; Cow::from(&quot;Hello Human!\r\n&quot;),
+    }
+}
+}</code></pre>
+</div>
+<p><code>name == Some</code> 时返回 <code>Cow::Owned(String)</code>，<code>None</code> 时返回 <code>Cow::Borrowed(&amp;&#x27;static str)</code>。调用方按需 <code>.into_owned()</code> 拿到 <code>String</code>。</p>
+<h3 id="1-9-6-写时复制">1.9.6 写时复制</h3>
+<p><code>Cow&lt;&#x27;a, B&gt;</code> = <code>Clone-on-Write</code>，是 <code>Borrowed(&amp;&#x27;a B) | Owned(&lt;B as ToOwned&gt;::Owned)</code> 的枚举：</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">use std::borrow::Cow;
+fn greet(name: Option&lt;&amp;str&gt;) -&gt; Cow&lt;&#x27;static, str&gt; {
+    match name {
+        Some(n) =&gt; Cow::from(format!(&quot;Hello {}!\r\n&quot;, n)),
+        None    =&gt; Cow::from(&quot;Hello Human!\r\n&quot;),
+    }
+}
+
+fn main() {
+let s = String::from(&quot;Hello&quot;);
+let _: Cow&lt;str&gt; = Cow::from(s);                // Owned 分支
+let _: Cow&lt;str&gt; = Cow::from(&quot;Milly&quot;);          // Borrowed 分支，零分配
+}</code></pre>
+</div>
+<p>读时和 <code>&amp;str</code> 相同；若第一次写入则触发分配并切换到 Owned 分支。常用于&quot;既要接收借用，又要可能分配&quot;的双形态 API。</p>
+<h3 id="1-9-7-字符串相关操作">1.9.7 字符串相关操作</h3>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">// ===== 字符串1：原理速记 =====
+// Rust 中&quot;字符串&quot;实际是一组层次不同的类型：
+//   &amp;str                  不可变 UTF-8 切片 (fat pointer: ptr+len)；字符串字面量就是它。
+//   String                可增长、堆分配、可变的 UTF-8 字符串，等价 Vec&lt;u8&gt; 保证合法 UTF-8。
+//   &amp;String               自动 deref 成 &amp;str，惯例上传递只读字符串就用 &amp;str。
+//   CStr / CString        与 C 互操作的、以 &#x27;\0&#x27; 结尾的字节串（不要求 UTF-8）。
+//   OsStr / OsString      与操作系统原生字符串（Windows UTF-16、Unix bytes）互操作。
+//   Path / PathBuf        文件系统路径，OS 无关视图。
+//   b&quot;...&quot; / &amp;[u8] / Vec&lt;u8&gt; 字节视图，不校验 UTF-8，适合二进制协议。
+//   Cow&lt;&#x27;_, str&gt;          &quot;写时复制&quot;：有所有权就保留，没有就分配新 String。
+// 取下标时必须按字符边界：&amp;s[0..2] 以字节为单位，遇到非 ASCII 多字节字符会 panic。
+// 应改用 chars()/bytes() 迭代 + take()/skip()/collect() 来切片。
+
+use std::{
+    borrow::Cow,
+    ffi::{CStr, CString, OsStr, OsString},
+    net::{IpAddr, TcpStream},
+    path::{Path, PathBuf},
+    str::FromStr,
+};
+
+// pub fn connect&lt;A: ToSocketAddrs&gt;(addr: A) -&gt; Result&lt;TcpStream&gt;
+// pub trait ToSocketAddrs {
+//     type Iter: Iterator&lt;Item = SocketAddr&gt;;
+
+//     fn to_socket_addrs(&amp;self) -&gt; Result&lt;Self::Iter&gt;;
+// }
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let _ = TcpStream::connect(&quot;192.168.0.1:6000&quot;);
+    let addr_string = &quot;192.168.0.1:6000&quot;.to_string();
+    // .as_str()是只读、不可变、UTF-8 字符串切片，底层字符不允许直接修改
+    let _h = addr_string.as_str();
+    let _ = TcpStream::connect(addr_string.as_str());
+    let _ = TcpStream::connect(&amp;*addr_string);
+    let _string: String = addr_string.into();
+
+    let dog = &quot;taoism&quot;;
+    let taois = &amp;dog[0..5];
+    println!(&quot;{}&quot;, taois);
+
+    let dog = &quot;大智如愚&quot;;
+    // let hachi = &amp;dog[0..2]; // 大 --- 不是像C++ 直接取
+    // .take(k) 的含义：从迭代器取出前 k 个字符
+    // .collect() 是迭代器通用方法，把迭代器所有元素收集、转换成目标容器。
+    let hachi: String = dog.chars().take(1).collect();
+    println!(&quot;{}&quot;, hachi);
+    // .skip(n) 跳过前 n 个字符
+    let hachi: String = dog.chars().skip(1).collect();
+    println!(&quot;{}&quot;, hachi);
+
+    assert_eq!(&quot;你好&quot;.len(), 6); // 2x3
+    assert_eq!(&quot;王者吃鸡&quot;.chars().count(), 4);
+
+    {
+        let taoism = &quot;大智如愚&quot;;
+        for b in taoism.as_bytes() {
+            // 字节数组 字节偏移量
+            print!(&quot;0x{:x} &quot;, b);
+        }
+        println!(&quot;&quot;);
+        for b in taoism.chars() {
+            print!(&quot;{} &quot;, b);
+        }
+        println!(&quot;&quot;);
+    }
+
+    // &amp;str 类似索引访问 不可修改
+    {
+        let taoism = &quot;大智如愚&quot;;
+        let dog = taoism.chars().nth(1).unwrap();
+        println!(&quot;{}&quot;, dog);
+    }
+    {
+        let hello = &quot;Hello&quot;.to_string();
+        let milly = &quot;Milly!&quot;;
+        let hello_world = hello + milly; // String + &amp;str --&gt; String
+        println!(&quot;{}&quot;, hello_world);
+
+        let hello = &quot;Hello&quot;.to_string();
+        let milly = &quot;Milly!&quot;.to_string();
+        let hello_world = hello + &amp;milly; // String + &amp;String --&gt; String
+        println!(&quot;{}&quot;, hello_world);
+    }
+
+    {
+        let method = b&quot;SET&quot;;
+        println!(&quot;{:?}&quot;, method);
+        println!(&quot;{}&quot;, std::str::from_utf8(method).unwrap());
+        assert_eq!(method, &amp;[b&#x27;S&#x27;, b&#x27;E&#x27;, b&#x27;T&#x27;]);
+    }
+
+    // 字符类型装切片
+    {
+        let s = String::from(&quot;hello&quot;);
+        let os_s = OsString::from(&quot;Foo&quot;);
+        let path_s = PathBuf::from(r&quot;/home/matt/.bashrc&quot;);
+        let c_s = CString::new(&quot;CString !&quot;).unwrap();
+        // let c_s = CString::from(&quot;C sdsd &quot;); // 错误
+
+        let _ref_s: &amp;str = &amp;s; // 默认是 通过推到 为String 指定后 为&amp;str
+        let _ref_os_s: &amp;OsStr = &amp;os_s;
+        let _ref_path_s: &amp;Path = &amp;path_s;
+        let _ref_c_s: &amp;CStr = &amp;c_s;
+    }
+
+    // 写时复制
+    {
+        let s = String::from(&quot;Hello&quot;);
+        let _c1 = Cow::from(s);
+        let _c2 = Cow::from(&quot;Milly&quot;);
+
+        let g1 = greet(Some(&quot;Milly&quot;));
+        let g2 = greet(None);
+
+        println!(&quot;{}{}&quot;, g1, g2);
+    }
+
+    // 字符串相关操作
+    {
+        assert!(&quot; ONE&quot;.to_lowercase() == &quot; one&quot;); // 字符取小 变小写
+        assert!(&quot; peanut&quot;.contains(&quot;nut&quot;));
+        println!(&quot;{}&quot;, &quot; peanut&quot;.contains(&quot;nut&quot;)); // 查找
+        println!(&quot;{}&quot;, &quot; peanut&quot;.find(&quot;nut&quot;).unwrap()); // 查找
+
+        assert_eq!(&quot;哈_哈&quot;.replace(&quot;哈&quot;, &quot;呵&quot;), &quot;呵_呵&quot;); // 替代
+        assert_eq!(&quot;clean\n&quot;.trim(), &quot;clean&quot;);
+        for word in &quot;a,b,c,d,erer,over&quot;.split(&quot;,&quot;)
+        //分割
+        {
+            print!(&quot;{} &quot;, word);
+        }
+        assert!(&quot;123456&quot;.starts_with(&quot;1&quot;));
+        assert!(&quot;123456&quot;.ends_with(&quot;6&quot;));
+    }
+
+    {
+        use std::str::FromStr;
+        // 直接转换为 字符 -&gt; 数据
+        assert_eq!(usize::from_str(&quot;3628800&quot;), Ok(3628800));
+        assert_eq!(f64::from_str(&quot;128.5625&quot;), Ok(128.5625));
+        assert_eq!(bool::from_str(&quot;true&quot;), Ok(true));
+        assert!(f64::from_str(&quot;hdjasjhjd&quot;).is_err());
+        assert!(bool::from_str(&quot;TEUE&quot;).is_err());
+
+        assert_eq!(char::from_str(&quot;)&quot;), Ok(&#x27;)&#x27;));
+        assert!(char::from_str(&quot;jhrdals&quot;).is_err());
+    }
+    // 切片
+    {
+        let address = &quot;fe80::0000:3ea9:f4ff:fe34:7a50&quot;.parse::&lt;IpAddr&gt;()?;
+        println!(&quot;解析IP成功: {}&quot;, address);
+    }
+    Ok(())
+}
+
+fn greet(name: Option&lt;&amp;str&gt;) -&gt; Cow&lt;&#x27;static, str&gt; {
+    match name {
+        Some(name) =&gt; Cow::from(format!(&quot;Hello {}!\r\n&quot;, name)),
+        None =&gt; Cow::from(&quot;Hello Human!\r\n&quot;),
+    }
+}
+
+// trait 是行为接口，用来给不同类型定义共享的能力 / 方法，类似 Java / C++ 的接口、抽象类，但功能更强。核心：描述 “这个类型能做什么”，而非描述 “它是什么”。
+// pub trait FromStr: Sized {
+//     type Err;
+//     fn from_str(s: &amp;str) -&gt; Result&lt;Self, Self::Err&gt;;
+// }
+
+fn parse_pair&lt;T: FromStr&gt;(s: &amp;str, separator: char) -&gt; Option&lt;(T, T)&gt; {
+    match s.find(separator) {
+        None =&gt; None,
+        Some(index) =&gt; match (T::from_str(&amp;s[..index]), T::from_str(&amp;s[index + 1..])) {
+            (Ok(l), Ok(r)) =&gt; Some((l, r)),
+            _ =&gt; None,
+        },
+    }
+}</code></pre>
+</div>
+<p><strong>已编译运行（取自 </strong><code>src/Chapter4/字符串1.rs</code><strong>）。</strong></p>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">taois
+大
+智如愚
+0xe5 0xa4 0xa7 0xe6 0x99 0xba 0xe5 0xa6 0x82 0xe6 0x84 0x9a 
+大 智 如 愚 
+智
+HelloMilly!
+......
+SET
+Hello Milly!
+Hello Human!
+
+true
+4
+a b c d erer over 解析IP成功: fe80::3ea9:f4ff:fe34:7a50</code></pre>
+</div>
+<p>通用解析 <code>FromStr</code>：</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">// ===== 字符串1：原理速记 =====
+// Rust 中&quot;字符串&quot;实际是一组层次不同的类型：
+//   &amp;str                  不可变 UTF-8 切片 (fat pointer: ptr+len)；字符串字面量就是它。
+//   String                可增长、堆分配、可变的 UTF-8 字符串，等价 Vec&lt;u8&gt; 保证合法 UTF-8。
+//   &amp;String               自动 deref 成 &amp;str，惯例上传递只读字符串就用 &amp;str。
+//   CStr / CString        与 C 互操作的、以 &#x27;\0&#x27; 结尾的字节串（不要求 UTF-8）。
+//   OsStr / OsString      与操作系统原生字符串（Windows UTF-16、Unix bytes）互操作。
+//   Path / PathBuf        文件系统路径，OS 无关视图。
+//   b&quot;...&quot; / &amp;[u8] / Vec&lt;u8&gt; 字节视图，不校验 UTF-8，适合二进制协议。
+//   Cow&lt;&#x27;_, str&gt;          &quot;写时复制&quot;：有所有权就保留，没有就分配新 String。
+// 取下标时必须按字符边界：&amp;s[0..2] 以字节为单位，遇到非 ASCII 多字节字符会 panic。
+// 应改用 chars()/bytes() 迭代 + take()/skip()/collect() 来切片。
+
+use std::{
+    borrow::Cow,
+    ffi::{CStr, CString, OsStr, OsString},
+    net::{IpAddr, TcpStream},
+    path::{Path, PathBuf},
+    str::FromStr,
+};
+
+// pub fn connect&lt;A: ToSocketAddrs&gt;(addr: A) -&gt; Result&lt;TcpStream&gt;
+// pub trait ToSocketAddrs {
+//     type Iter: Iterator&lt;Item = SocketAddr&gt;;
+
+//     fn to_socket_addrs(&amp;self) -&gt; Result&lt;Self::Iter&gt;;
+// }
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let _ = TcpStream::connect(&quot;192.168.0.1:6000&quot;);
+    let addr_string = &quot;192.168.0.1:6000&quot;.to_string();
+    // .as_str()是只读、不可变、UTF-8 字符串切片，底层字符不允许直接修改
+    let _h = addr_string.as_str();
+    let _ = TcpStream::connect(addr_string.as_str());
+    let _ = TcpStream::connect(&amp;*addr_string);
+    let _string: String = addr_string.into();
+
+    let dog = &quot;taoism&quot;;
+    let taois = &amp;dog[0..5];
+    println!(&quot;{}&quot;, taois);
+
+    let dog = &quot;大智如愚&quot;;
+    // let hachi = &amp;dog[0..2]; // 大 --- 不是像C++ 直接取
+    // .take(k) 的含义：从迭代器取出前 k 个字符
+    // .collect() 是迭代器通用方法，把迭代器所有元素收集、转换成目标容器。
+    let hachi: String = dog.chars().take(1).collect();
+    println!(&quot;{}&quot;, hachi);
+    // .skip(n) 跳过前 n 个字符
+    let hachi: String = dog.chars().skip(1).collect();
+    println!(&quot;{}&quot;, hachi);
+
+    assert_eq!(&quot;你好&quot;.len(), 6); // 2x3
+    assert_eq!(&quot;王者吃鸡&quot;.chars().count(), 4);
+
+    {
+        let taoism = &quot;大智如愚&quot;;
+        for b in taoism.as_bytes() {
+            // 字节数组 字节偏移量
+            print!(&quot;0x{:x} &quot;, b);
+        }
+        println!(&quot;&quot;);
+        for b in taoism.chars() {
+            print!(&quot;{} &quot;, b);
+        }
+        println!(&quot;&quot;);
+    }
+
+    // &amp;str 类似索引访问 不可修改
+    {
+        let taoism = &quot;大智如愚&quot;;
+        let dog = taoism.chars().nth(1).unwrap();
+        println!(&quot;{}&quot;, dog);
+    }
+    {
+        let hello = &quot;Hello&quot;.to_string();
+        let milly = &quot;Milly!&quot;;
+        let hello_world = hello + milly; // String + &amp;str --&gt; String
+        println!(&quot;{}&quot;, hello_world);
+
+        let hello = &quot;Hello&quot;.to_string();
+        let milly = &quot;Milly!&quot;.to_string();
+        let hello_world = hello + &amp;milly; // String + &amp;String --&gt; String
+        println!(&quot;{}&quot;, hello_world);
+    }
+
+    {
+        let method = b&quot;SET&quot;;
+        println!(&quot;{:?}&quot;, method);
+        println!(&quot;{}&quot;, std::str::from_utf8(method).unwrap());
+        assert_eq!(method, &amp;[b&#x27;S&#x27;, b&#x27;E&#x27;, b&#x27;T&#x27;]);
+    }
+
+    // 字符类型装切片
+    {
+        let s = String::from(&quot;hello&quot;);
+        let os_s = OsString::from(&quot;Foo&quot;);
+        let path_s = PathBuf::from(r&quot;/home/matt/.bashrc&quot;);
+        let c_s = CString::new(&quot;CString !&quot;).unwrap();
+        // let c_s = CString::from(&quot;C sdsd &quot;); // 错误
+
+        let _ref_s: &amp;str = &amp;s; // 默认是 通过推到 为String 指定后 为&amp;str
+        let _ref_os_s: &amp;OsStr = &amp;os_s;
+        let _ref_path_s: &amp;Path = &amp;path_s;
+        let _ref_c_s: &amp;CStr = &amp;c_s;
+    }
+
+    // 写时复制
+    {
+        let s = String::from(&quot;Hello&quot;);
+        let _c1 = Cow::from(s);
+        let _c2 = Cow::from(&quot;Milly&quot;);
+
+        let g1 = greet(Some(&quot;Milly&quot;));
+        let g2 = greet(None);
+
+        println!(&quot;{}{}&quot;, g1, g2);
+    }
+
+    // 字符串相关操作
+    {
+        assert!(&quot; ONE&quot;.to_lowercase() == &quot; one&quot;); // 字符取小 变小写
+        assert!(&quot; peanut&quot;.contains(&quot;nut&quot;));
+        println!(&quot;{}&quot;, &quot; peanut&quot;.contains(&quot;nut&quot;)); // 查找
+        println!(&quot;{}&quot;, &quot; peanut&quot;.find(&quot;nut&quot;).unwrap()); // 查找
+
+        assert_eq!(&quot;哈_哈&quot;.replace(&quot;哈&quot;, &quot;呵&quot;), &quot;呵_呵&quot;); // 替代
+        assert_eq!(&quot;clean\n&quot;.trim(), &quot;clean&quot;);
+        for word in &quot;a,b,c,d,erer,over&quot;.split(&quot;,&quot;)
+        //分割
+        {
+            print!(&quot;{} &quot;, word);
+        }
+        assert!(&quot;123456&quot;.starts_with(&quot;1&quot;));
+        assert!(&quot;123456&quot;.ends_with(&quot;6&quot;));
+    }
+
+    {
+        use std::str::FromStr;
+        // 直接转换为 字符 -&gt; 数据
+        assert_eq!(usize::from_str(&quot;3628800&quot;), Ok(3628800));
+        assert_eq!(f64::from_str(&quot;128.5625&quot;), Ok(128.5625));
+        assert_eq!(bool::from_str(&quot;true&quot;), Ok(true));
+        assert!(f64::from_str(&quot;hdjasjhjd&quot;).is_err());
+        assert!(bool::from_str(&quot;TEUE&quot;).is_err());
+
+        assert_eq!(char::from_str(&quot;)&quot;), Ok(&#x27;)&#x27;));
+        assert!(char::from_str(&quot;jhrdals&quot;).is_err());
+    }
+    // 切片
+    {
+        let address = &quot;fe80::0000:3ea9:f4ff:fe34:7a50&quot;.parse::&lt;IpAddr&gt;()?;
+        println!(&quot;解析IP成功: {}&quot;, address);
+    }
+    Ok(())
+}
+
+fn greet(name: Option&lt;&amp;str&gt;) -&gt; Cow&lt;&#x27;static, str&gt; {
+    match name {
+        Some(name) =&gt; Cow::from(format!(&quot;Hello {}!\r\n&quot;, name)),
+        None =&gt; Cow::from(&quot;Hello Human!\r\n&quot;),
+    }
+}
+
+// trait 是行为接口，用来给不同类型定义共享的能力 / 方法，类似 Java / C++ 的接口、抽象类，但功能更强。核心：描述 “这个类型能做什么”，而非描述 “它是什么”。
+// pub trait FromStr: Sized {
+//     type Err;
+//     fn from_str(s: &amp;str) -&gt; Result&lt;Self, Self::Err&gt;;
+// }
+
+fn parse_pair&lt;T: FromStr&gt;(s: &amp;str, separator: char) -&gt; Option&lt;(T, T)&gt; {
+    match s.find(separator) {
+        None =&gt; None,
+        Some(index) =&gt; match (T::from_str(&amp;s[..index]), T::from_str(&amp;s[index + 1..])) {
+            (Ok(l), Ok(r)) =&gt; Some((l, r)),
+            _ =&gt; None,
+        },
+    }
+}</code></pre>
+</div>
+<p><strong>已编译运行（取自 </strong><code>src/Chapter4/字符串1.rs</code><strong>）。</strong></p>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">taois
+大
+智如愚
+0xe5 0xa4 0xa7 0xe6 0x99 0xba 0xe5 0xa6 0x82 0xe6 0x84 0x9a 
+大 智 如 愚 
+智
+HelloMilly!
+......
+SET
+Hello Milly!
+Hello Human!
+
+true
+4
+a b c d erer over 解析IP成功: fe80::3ea9:f4ff:fe34:7a50</code></pre>
+</div>

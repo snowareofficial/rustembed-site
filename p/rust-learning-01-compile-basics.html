@@ -1,0 +1,52 @@
+<h3 id="创建工程">创建工程</h3>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">cargo new helloworld --bin</code></pre>
+</div>
+<p><img src="assets/posts/rust-learning-01-compile-basics/project-layout.png" alt="项目工程文件结构" loading="lazy"></p>
+<h3 id="单rust编译为可执行">单rust编译为可执行</h3>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+    // println!(&quot;Hello, world!&quot;);
+    if cfg!(sayhello){
+        println!(&quot;Hello Milly!&quot;);
+    }
+}</code></pre>
+</div>
+<p>cfg! 指定编译！ 编译指令</p>
+<div class="code">
+<div class="code-head"><span>bash</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-bash">caixian@CXi-Mac helloworld % cd src
+caixian@CXi-Mac src % rustc --cfg sayhello main.rs 
+caixian@CXi-Mac src % ./main
+Hello Milly!
+caixian@CXi-Mac src % </code></pre>
+</div>
+<h3 id="编译为静态库">编译为静态库</h3>
+<p><img src="assets/posts/rust-learning-01-compile-basics/static-lib.png" alt="静态库项目结构" loading="lazy"></p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">pub fn print_hello()
+{
+    println!(&quot;Hello this is Lib!&quot;);
+}</code></pre>
+</div>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">extern crate myhello;
+
+fn main() {
+    // println!(&quot;Hello, world!&quot;);
+    if cfg!(sayhello){
+        println!(&quot;Hello Milly!&quot;);
+    }
+    myhello::print_hello();
+}</code></pre>
+</div>
+<div class="code">
+<div class="code-head"><span>bash</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-bash">rustc --crate-type lib myhello.rs  # 编译为静态库
+rustc -L. -lmyhello main.rs	# 编译为 可执行程序
+rustc -L. -lmyhello --cfg sayhello main.rs # 添加标志</code></pre>
+</div>

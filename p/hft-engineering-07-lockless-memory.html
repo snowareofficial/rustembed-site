@@ -1,0 +1,170 @@
+<h3 id="7-1-传统锁的致命弱点">7.1 传统锁的致命弱点</h3>
+<blockquote>
+<p>等锁 → sleep → 上下文切换 — mutex 把 μs 路径变成 ms 路径</p>
+</blockquote>
+<p>← 上一章：chapter-05 OS 调优 · 下一节：7.2 无锁 FIFO 队列</p>
+<table>
+<thead><tr><th>问题</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><strong>Lock contention</strong></td><td>多线程 <strong>抢锁</strong> — 串行化</td></tr>
+<tr><td><strong>Deadlock</strong></td><td>循环等待</td></tr>
+<tr><td><strong>Priority inversion</strong></td><td>低优先级 <strong>持锁</strong> → 高优先级 <strong>被挡</strong></td></tr>
+<tr><td><strong>Convoying（护航）</strong></td><td>醒来的线程 <strong>排队抢锁</strong> — 全员慢</td></tr>
+<tr><td><strong>阻塞 + 切换</strong></td><td>等锁 → <strong>sleep</strong> → chapter-05 上下文切换</td></tr>
+</tbody>
+</table>
+<p><strong>HFT 结论：</strong> 关键路径 <strong>不用 mutex</strong> — 用 <strong>无锁环</strong> 或 <strong>SPSC 单写单读</strong>。</p>
+<p>← 下一节：7.2 无锁 FIFO 队列 · 返回：本章索引</p>
+<h3 id="7-2-无锁-fifo-队列">7.2 无锁 FIFO 队列</h3>
+<blockquote>
+<p>预分配固定数组 + 原子索引 — Gateway→Strategy 的主干道</p>
+</blockquote>
+<p>← 上一节：7.1 传统锁的致命弱点 · 下一节：7.3 内存预分配与缓存友好</p>
+<h4 id="spsc-mpmc">SPSC / MPMC</h4>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">[ slot0 | slot1 | … | slotN-1 ]   // 预分配固定数组
+   ^last_write          ^last_read</code></pre>
+</div>
+<table>
+<thead><tr><th>模式</th><th>适用</th></tr></thead>
+<tbody>
+<tr><td><strong>SPSC</strong></td><td>单 Gateway → 单 Strategy — <strong>最简单</strong></td></tr>
+<tr><td><strong>MPMC</strong></td><td>多源行情 · 需 <strong>原子 CAS</strong> 或 <strong>Disruptor 序列号</strong></td></tr>
+</tbody>
+</table>
+<p><strong>实现要点：</strong></p>
+<ul>
+<li><strong>原子操作 / 自旋</strong> — 线程 <strong>busy-wait</strong> 短临界区 · <strong>不 yield</strong>（避免切换）</li>
+<li><strong>release/acquire</strong> 发布 slot 数据 — 见 7.5 C++ 内存序</li>
+</ul>
+<h4 id="应用场景">应用场景</h4>
+<table>
+<thead><tr><th>队列</th><th>作用</th></tr></thead>
+<tbody>
+<tr><td><strong>Gateway → Strategy</strong></td><td>行情 <strong>fan-out</strong></td></tr>
+<tr><td><strong>Strategy → Logger</strong></td><td><strong>移出热点</strong> — 异步落盘/统计</td></tr>
+<tr><td><strong>OMS → 审计</strong></td><td>非关键路径</td></tr>
+</tbody>
+</table>
+<p>→ chapter-29 PipeDescriptor 对照 — 生产可用 <strong>共享内存环</strong> 替代消息队列</p>
+<p>← 下一节：7.3 内存预分配与缓存友好 · 返回：本章索引</p>
+<h3 id="7-3-内存预分配与缓存友好">7.3 内存预分配与缓存友好</h3>
+<blockquote>
+<p>热点数据常驻 L1/L2；malloc 出现在热路径 = 延迟赌博</p>
+</blockquote>
+<p>← 上一节：7.2 无锁 FIFO 队列 · 下一节：7.4 共享内存 IPC</p>
+<h4 id="延迟数量级">延迟数量级</h4>
+<table>
+<thead><tr><th>访问</th><th>约</th></tr></thead>
+<tbody>
+<tr><td><strong>L1</strong></td><td>~0.5 ns</td></tr>
+<tr><td><strong>RAM</strong></td><td>~60 ns</td></tr>
+</tbody>
+</table>
+<p><strong>目标：</strong> 热点数据 <strong>常驻 L1/L2</strong>。</p>
+<h4 id="空间与时间局部性">空间与时间局部性</h4>
+<table>
+<thead><tr><th>原则</th><th>实践</th></tr></thead>
+<tbody>
+<tr><td><strong>Spatial</strong></td><td><strong><code>std::vector</code> / 数组</strong> &gt; <code>std::list</code> 指针追逐</td></tr>
+<tr><td><strong>Temporal</strong></td><td>同一 order/book 结构 <strong>反复访问</strong></td></tr>
+<tr><td><strong>False sharing</strong></td><td><code>read_idx</code> / <code>write_idx</code> <strong>不同 cache line</strong>（<code>alignas(64)</code>）</td></tr>
+</tbody>
+</table>
+<h4 id="消除不可预测分支">消除不可预测分支</h4>
+<table>
+<thead><tr><th>避免</th><th>原因</th></tr></thead>
+<tbody>
+<tr><td><strong>虚函数</strong></td><td>vtable · <strong>阻碍 inline</strong> · 分支预测失败 → <strong>流水线清空</strong></td></tr>
+<tr><td><strong>深 if-else</strong></td><td>misprediction 代价</td></tr>
+</tbody>
+</table>
+<p><strong>替代：</strong> <strong>CRTP / 模板</strong> — chapter-08 §2 消除运行时决策 · chapter-04 §3 静态链接</p>
+<h4 id="禁止热点动态分配">禁止热点动态分配</h4>
+<table>
+<thead><tr><th><code>malloc</code>/<code>new</code> 问题</th><th></th></tr></thead>
+<tbody>
+<tr><td>堆 <strong>遍历找块</strong></td><td>延迟不确定</td></tr>
+<tr><td><strong>Heap fragmentation</strong></td><td>长期运行 <strong>破坏 locality</strong></td></tr>
+</tbody>
+</table>
+<p><strong>终极方案：</strong></p>
+<table>
+<thead><tr><th>策略</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><strong>栈缓冲</strong></td><td>小对象、生命周期短</td></tr>
+<tr><td><strong>Memory Pool</strong></td><td>启动时 <strong>一大块连续内存</strong> · 自定义 <strong>free-list / index stack</strong></td></tr>
+<tr><td><strong>对象复用</strong></td><td>Order/Event <strong>placement new</strong> 回收到池</td></tr>
+</tbody>
+</table>
+<div class="code">
+<div class="code-head"><span>cpp</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-cpp">// 示意：启动时
+pool = mmap_huge(N * sizeof(MarketEvent));
+free_stack = {0..N-1};
+
+MarketEvent* acquire() {
+    int i = free_stack.pop();
+    return &amp;pool[i];
+}</code></pre>
+</div>
+<p>→ chapter-05 Huge Pages</p>
+<p>← 下一节：7.4 共享内存 IPC · 返回：本章索引</p>
+<h3 id="7-4-共享内存-ipc-mmap-无锁环">7.4 共享内存 IPC：mmap + 无锁环</h3>
+<blockquote>
+<p>多进程同看一块物理页 — Gateway 写、Strategy 读，零拷贝</p>
+</blockquote>
+<p>← 上一节：7.3 内存预分配与缓存友好 · 下一节：7.5 C++ 内存序</p>
+<table>
+<thead><tr><th>API</th><th>HFT 用法</th></tr></thead>
+<tbody>
+<tr><td><strong><code>mmap(MAP_SHARED)</code></strong></td><td>文件 / <strong><code>/dev/shm</code></strong> / memfd → <strong>多进程同物理页</strong></td></tr>
+<tr><td><strong>非持久化</strong></td><td>纯 RAM 环 · 不必落盘</td></tr>
+<tr><td><strong>+ FIFO</strong></td><td>Gateway 写 · Strategy 读 — <strong>零拷贝 IPC</strong></td></tr>
+</tbody>
+</table>
+<p>→ 原书 Ch7 §2：chapter-09 §2 mmap 与 IPC</p>
+<p>← 下一节：7.5 C++ 内存序 · 返回：本章索引</p>
+<h3 id="7-5-c-内存序-无锁必备">7.5 C++ 内存序（无锁必备）</h3>
+<blockquote>
+<p>release 发布 / acquire 消费 — 无锁环正确性的全部秘密</p>
+</blockquote>
+<p>← 上一节：7.4 共享内存 IPC · 下一节：7.6 LMAX Disruptor</p>
+<div class="code">
+<div class="code-head"><span>cpp</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-cpp">// 生产者
+slot[i] = event;
+write_idx.store(i + 1, std::memory_order_release);
+
+// 消费者
+while (read_idx.load(std::memory_order_acquire) == write_idx) { /* spin */ }
+consume(slot[read_idx]);</code></pre>
+</div>
+<table>
+<thead><tr><th>顺序</th><th>使用</th></tr></thead>
+<tbody>
+<tr><td><strong>release / acquire</strong></td><td><strong>发布-消费</strong> 同步</td></tr>
+<tr><td><strong>relaxed</strong></td><td>纯统计</td></tr>
+<tr><td><strong>seq_cst</strong></td><td>默认过重</td></tr>
+</tbody>
+</table>
+<p>→ 展开：chapter-08 §1 C++ 内存模型</p>
+<p>← 下一节：7.6 LMAX Disruptor · 返回：本章索引</p>
+<h3 id="7-6-lmax-disruptor-参考架构">7.6 LMAX Disruptor（参考架构）</h3>
+<blockquote>
+<p>Ring buffer + Sequence + Batching — Mechanical Sympathy 的教科书实现</p>
+</blockquote>
+<p>← 上一节：7.5 C++ 内存序 · 返回：本章索引</p>
+<table>
+<thead><tr><th>概念</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><strong>Ring buffer</strong></td><td>预分配 Event <strong>数组</strong></td></tr>
+<tr><td><strong>Sequence</strong></td><td>全局序号 · <strong>无锁 claim</strong></td></tr>
+<tr><td><strong>Batching</strong></td><td>消费者 <strong>批量</strong> 处理降开销</td></tr>
+</tbody>
+</table>
+<p>返回：本章索引</p>
+<aside class="admonition note"><p class="adm-title">来源与许可</p>
+<p>本文整理自 CShonor 的学习笔记仓库 <a href="https://github.com/cshonor/hft-embedded-linux-study" target="_blank" rel="nofollow noopener">hft-embedded-linux-study</a> 的 <code>14-hft-engineering</code> 模块（HFT 工程实践；该模块标注了与原书 Ch1–11 的对应关系，Ch10–13 为仓库自扩展章节），经作者授权以 CC BY 4.0 在本站署名发布。</p>
+</aside>

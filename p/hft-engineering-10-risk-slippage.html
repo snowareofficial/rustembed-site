@@ -1,0 +1,88 @@
+<h3 id="10-1-pre-trade-风控-本地拒单链">10.1 Pre-Trade 风控：本地拒单链</h3>
+<blockquote>
+<p>违规订单在本地杀死，绝不占用到交易所的 RTT；全部检查 &lt; 200ns</p>
+</blockquote>
+<p>← 上一章：chapter-09 测量 · 下一节：10.2 滑点度量</p>
+<table>
+<thead><tr><th>检查项</th><th>防的事故</th><th>热路径实现</th></tr></thead>
+<tbody>
+<tr><td><strong>价格带</strong></td><td>乌龙指（fat finger）：错价单瞬间吃穿盘口</td><td>与参考价（最新成交/中间价）比较，带宽由冷路径下发</td></tr>
+<tr><td><strong>数量上限</strong></td><td>单笔巨量单</td><td>单次 <code>if</code> 比较</td></tr>
+<tr><td><strong>持仓上限</strong></td><td>累计敞口失控</td><td><code>_Atomic</code> 计数器读 + 比较</td></tr>
+<tr><td><strong>累计撤单率</strong></td><td>监管指标（撤单/申报比）</td><td>原子计数，冷线程定期清算</td></tr>
+<tr><td><strong>自成交预防</strong></td><td>自己的单和自己成交（违规/操纵嫌疑）</td><td>本地订单簿 hash 查重</td></tr>
+<tr><td><strong>流速限制</strong></td><td>超过交易所 permit 速率被断连</td><td>令牌桶——冷路径补令牌，热路径只扣</td></tr>
+</tbody>
+</table>
+<p><strong>乌龙指案例（为什么价格带必须硬编码兜底）：</strong> 光大 2013「乌龙指」——订单生成系统缺陷导致巨量市价单瞬间生成，234 亿元申报。教训：<strong>策略层限单不可信，风控层必须有独立于策略的硬检查</strong>——策略 bug 再大，风控这道闸是独立代码路径。</p>
+<h4 id="热路径预算">热路径预算</h4>
+<p>全部检查必须 <strong>&lt; 200ns</strong>：</p>
+<ul>
+<li>无系统调用、无锁、无 malloc</li>
+<li>参数快照用 <strong>seqlock 或 RCU 风格指针切换</strong> 读（冷路径发布新参数 → 原子换指针 → 热路径一次 load）</li>
+<li>失败路径同样要快——拒单回执也走无锁环给冷线程记日志</li>
+</ul>
+<p>← 下一节：10.2 滑点度量 · 返回：本章索引</p>
+<h3 id="10-2-滑点度量-执行质量的标尺">10.2 滑点度量：执行质量的标尺</h3>
+<blockquote>
+<p>滑点 = 延迟的货币化度量 — 向老板解释 1μs 值 10 万的语言</p>
+</blockquote>
+<p>← 上一节：10.1 本地拒单链 · 下一节：10.3 审计日志与合规</p>
+<p><strong>滑点（slippage）= 实际成交价 − 决策基准价。</strong> 关键是&quot;基准&quot;怎么选：</p>
+<table>
+<thead><tr><th>基准</th><th>定义</th><th>适用</th></tr></thead>
+<tbody>
+<tr><td><strong>Arrival Price</strong></td><td>信号触发瞬间的中间价</td><td>HFT 标准——衡量&quot;决策到成交&quot;的全部损耗</td></tr>
+<tr><td><strong>决策时盘口可成交价</strong></td><td>触发时对手价（可吃单深度）</td><td>衡量<strong>排队延迟</strong>损耗</td></tr>
+<tr><td><strong>VWAP / TWAP</strong></td><td>时段成交量加权均价</td><td>低频大单执行</td></tr>
+</tbody>
+</table>
+<h4 id="implementation-shortfall-分解">Implementation Shortfall 分解</h4>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">总滑点 = 信号延迟成本 + 排队成本 + 市场冲击 + 逆向选择
+         ↑ 代码快不快    ↑ 在队首吗    ↑ 自己推动价格  ↑ 被人先跑</code></pre>
+</div>
+<ul>
+<li><strong>信号延迟成本</strong>：决策用旧价格，成交时价格已变——<strong>直接由 T2T 延迟决定</strong>（→ chapter-09 测量）</li>
+<li><strong>排队成本</strong>：限价单排在队尾，成交靠别人吃你——<strong>队列位置 = 延迟的另一面</strong>（→ chapter-03 LOB）</li>
+<li><strong>逆向选择</strong>：总是立刻成交的单，往往是你最不该成交的时候（adverse selection）</li>
+</ul>
+<p><strong>工程含义：滑点是延迟的货币化度量。</strong> 压测时别只看 p99 延迟，把延迟分布换算成&quot;在波动率 σ 下的期望滑点&quot;——这才能向老板解释为什么省 1μs 值得花 10 万。</p>
+<p>← 下一节：10.3 审计日志与合规 · 返回：本章索引</p>
+<h3 id="10-3-合规-审计日志与监管报送">10.3 合规：审计日志与监管报送</h3>
+<blockquote>
+<p>审计日志 ≠ 调试日志 — 定长二进制、单调钟、append-only</p>
+</blockquote>
+<p>← 上一节：10.2 滑点度量 · 下一节：10.4 风控降级</p>
+<table>
+<thead><tr><th>要求</th><th>工程实现</th></tr></thead>
+<tbody>
+<tr><td><strong>全订单生命周期留痕</strong></td><td>每个状态转换（生成/发送/成交/撤销/拒单）打时间戳 + <strong>单调钟</strong>（<code>CLOCK_MONOTONIC</code>，禁用墙钟排序）</td></tr>
+<tr><td><strong>日志不可抵赖</strong></td><td>冷路径消费无锁环 → 追加写（append-only）+ 定期归档校验和</td></tr>
+<tr><td><strong>时钟同步</strong></td><td>PTP 对时（→ chapter-06 §5 PTP）——监管要求订单时间戳误差 ≤ 100μs（MiFID II 类要求）</td></tr>
+<tr><td><strong>可重放</strong></td><td>capture/replay（→ chapter-11 §4）</td></tr>
+<tr><td><strong>熔断合规</strong></td><td>交易所断连/限速 → 自动降频而不是硬扛被禁</td></tr>
+</tbody>
+</table>
+<p><strong>审计日志 ≠ 调试日志：</strong> 审计日志是<strong>结构化定长二进制记录</strong>（每条 ~64B，冷线程落盘），调试日志才允许格式化字符串。两者分开，别混在一个 logger 里。</p>
+<p>← 下一节：10.4 风控降级 · 返回：本章索引</p>
+<h3 id="10-4-风控降级-什么时候故意失效">10.4 风控降级：什么时候故意失效</h3>
+<blockquote>
+<p>极端行情下过严的风控 = 无法平仓 = 更大的风险</p>
+</blockquote>
+<p>← 上一节：10.3 审计日志与合规 · 返回：本章索引</p>
+<p>风控不是越严越好——<strong>极端行情下过严的风控 = 无法平仓 = 更大的风险</strong>：</p>
+<table>
+<thead><tr><th>场景</th><th>动作</th></tr></thead>
+<tbody>
+<tr><td>行情中断</td><td>冻结价格带基准（用最后有效价 + 放宽带宽），不自动撤掉全部报价</td></tr>
+<tr><td>需要紧急清仓</td><td>持仓上限检查让位于<strong>清仓模式</strong>（预置开关，双人授权）</td></tr>
+<tr><td>风控服务超时</td><td><strong>fail-open 还是 fail-close 由策略地位决定</strong>：做市策略 fail-close（停报），套利腿 fail-close（两腿都停）</td></tr>
+</tbody>
+</table>
+<p><strong>Kill Switch 分级</strong> → chapter-11 §3</p>
+<p>返回：本章索引</p>
+<aside class="admonition note"><p class="adm-title">来源与许可</p>
+<p>本文整理自 CShonor 的学习笔记仓库 <a href="https://github.com/cshonor/hft-embedded-linux-study" target="_blank" rel="nofollow noopener">hft-embedded-linux-study</a> 的 <code>14-hft-engineering</code> 模块（HFT 工程实践；该模块标注了与原书 Ch1–11 的对应关系，Ch10–13 为仓库自扩展章节），经作者授权以 CC BY 4.0 在本站署名发布。</p>
+</aside>

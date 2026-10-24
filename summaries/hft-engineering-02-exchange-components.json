@@ -1,0 +1,18 @@
+{
+ "source": "extractive",
+ "one_line": "Gateway、订单簿构建器、策略引擎与 OMS 各自负责什么，订单怎样流过关键路径。",
+ "points": [
+  "2.1 关键路径总览与网关（Gateways）",
+  "关键路径总览",
+  "网关",
+  "Gateway IN",
+  "Gateway OUT",
+  "2.2 订单簿构建器（Book Builder）"
+ ],
+ "keywords": [
+  "hft",
+  "quant",
+  "network"
+ ],
+ "reading": 9
+}

@@ -1,0 +1,111 @@
+<h3 id="3-1-交易所核心功能与订单路径">3.1 交易所核心功能与订单路径</h3>
+<blockquote>
+<p>撮合引擎是心脏；订单经 Router → 按品种/价格档 FIFO 队列进引擎</p>
+</blockquote>
+<p>现代交易所已由 <strong>Open Outcry（大厅喊价）</strong> 转为 <strong>全自动计算机撮合</strong>。</p>
+<table>
+<thead><tr><th>组件</th><th>职责</th></tr></thead>
+<tbody>
+<tr><td><strong>Listings（上市）</strong></td><td>IPO、挂牌</td></tr>
+<tr><td><strong>Matching Engine（撮合引擎）</strong></td><td><strong>心脏</strong> — ns 级发布订单簿、匹配买卖</td></tr>
+<tr><td><strong>Post-trade（盘后）</strong></td><td>付款、结算、对账；<strong>保证金</strong> 防违约</td></tr>
+<tr><td><strong>Market Data（行情）</strong></td><td>海量分发 → 催生 <strong>Co-location（共址）</strong> — 物理最近接 feed</td></tr>
+<tr><td><strong>Regulation（监管）</strong></td><td>操纵监控、透明度</td></tr>
+</tbody>
+</table>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">Your HFT ──order──► Router ──► per-symbol/per-price FIFO queue ──► Matching Engine
+                         ▲
+              Market Data feed (co-located)</code></pre>
+</div>
+<h4 id="订单进入撮合的路径">订单进入撮合的路径</h4>
+<ol>
+<li>交易系统 <strong>Gateway OUT</strong> 发单至交易所</li>
+<li><strong>Router</strong> 按 <strong>symbol（AAPL、MSFT…）</strong> 路由</li>
+<li>按 <strong>价格档位</strong> 进入 <strong>FIFO 队列</strong>（在 FIFO 规则交易所）</li>
+<li><strong>Matching Engine</strong> 消费新单 + 当前 LOB → <strong>Trade</strong> 或 <strong>Resting order</strong></li>
+</ol>
+<p><strong>HFT 含义：</strong> 你看到的 <strong>queue position</strong> 由 <strong>到达时间 + 是否 amend 丢优先级</strong> 决定。</p>
+<h3 id="3-2-撮合引擎三种基础场景">3.2 撮合引擎三种基础场景</h3>
+<blockquote>
+<p>Best Price / Partial Fill / No Match — 本地 Book 必须用相同语义重建 feed</p>
+</blockquote>
+<p><strong>输入：</strong> 新订单 + 当前订单簿 → <strong>输出：</strong> 成交记录和/或 <strong>挂单（Resting）</strong>。</p>
+<h4 id="最佳价格-best-price">最佳价格（Best Price）</h4>
+<ul>
+<li>引擎 <strong>始终为新单找最优价</strong></li>
+<li>例：买 @<span class="math-inline"><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>100</mn><mi>，</mi><mi>簿</mi><mi>上</mi><mi>有</mi><mi>卖</mi></mrow></math></span>99 与 <span class="math-inline"><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>100</mn><mi>→</mi><mo>&#x0002A;</mo><mo>&#x0002A;</mo><mi>先</mi><mi>以</mi></mrow></math></span>99 成交**（价格改善）</li>
+</ul>
+<h4 id="部分成交-partial-fill">部分成交（Partial Fill）</h4>
+<ul>
+<li>买 4 股，最优卖单仅 1 股 → <strong>先成交 1</strong></li>
+<li>剩余 3 股：<strong>继续吃下一档</strong> 或 <strong>挂入簿中</strong></li>
+</ul>
+<h4 id="无匹配-no-match">无匹配（No Match）</h4>
+<ul>
+<li>买 @<span class="math-inline"><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>98</mn><mi>，</mi><mi>最</mi><mi>低</mi><mi>卖</mi></mrow></math></span>99 → <strong>不成交</strong>，整单 <strong>Rest</strong> 在簿中提供流动性</li>
+</ul>
+<p><strong>本地 Book Builder</strong> 必须用 <strong>相同语义</strong> 重建 feed，策略才能 <strong>模拟 queue / fill</strong>。</p>
+<h3 id="3-3-同价匹配算法-核心">3.3 同价匹配算法（核心）</h3>
+<blockquote>
+<p>FIFO vs Pro-rata 决定策略：抢 1ns 还是堆量</p>
+</blockquote>
+<p>多笔订单 <strong>同价</strong> 时，「谁先成交」<strong>决定 HFT 生死</strong>：</p>
+<table>
+<thead><tr><th>算法</th><th>规则</th><th>HFT 策略</th></tr></thead>
+<tbody>
+<tr><td><strong>FIFO（Time-Price）</strong></td><td><strong>时间戳最早</strong> 优先；<strong>改价</strong>（部分所 <strong>改量也</strong>）→ <strong>丢队尾</strong></td><td><strong>抢 1 ns</strong> 排前；少 <strong>amend</strong></td></tr>
+<tr><td><strong>Pure Pro-rata</strong></td><td>按 <strong>挂单量比例</strong> 分新单；<strong>不看</strong> 先后</td><td><strong>加大 size</strong> 换份额；速度次要</td></tr>
+<tr><td><strong>Pro-rata + Top-order</strong></td><td><strong>队首老单 100% 满额</strong> → 余量 <strong>按比例</strong></td><td><strong>速度 + 量</strong> 混合博弈</td></tr>
+</tbody>
+</table>
+<h4 id="fifo-的致命细节">FIFO 的致命细节</h4>
+<blockquote>
+<p>修改价格（甚至数量）→ <strong>失去原队列优先级</strong> → 重新排到 <strong>队尾</strong>。</p>
+</blockquote>
+<p><strong>推论：</strong></p>
+<ul>
+<li>优化 <strong>T2T / 共址</strong> 在 FIFO 市场 <strong>ROI 极高</strong></li>
+<li><strong>Cancel-Replace 策略</strong> 需计 <strong>re-queue 成本</strong></li>
+</ul>
+<h4 id="算法选择-系统设计">算法选择 → 系统设计</h4>
+<table>
+<thead><tr><th>若交易所是…</th><th>你应该…</th></tr></thead>
+<tbody>
+<tr><td><strong>FIFO</strong></td><td>疯狂优化 <strong>网络延迟</strong>、「抢排头」</td></tr>
+<tr><td><strong>Pro-rata</strong></td><td><strong>加大挂单尺寸</strong>、算 <strong>份额公式</strong></td></tr>
+<tr><td><strong>Top-order Pro-rata</strong></td><td><strong>既要快又要大</strong> — 双轨优化</td></tr>
+</tbody>
+</table>
+<p>→ chapter-12 策略 · chapter-04 共址/硬件</p>
+<h3 id="3-4-共址与市场数据">3.4 共址与市场数据</h3>
+<blockquote>
+<p>Co-location：机柜与撮合/行情源同机房；1 ns 也能形成执行优势</p>
+</blockquote>
+<table>
+<thead><tr><th>概念</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><strong>Co-location</strong></td><td>机柜与 <strong>撮合/行情源</strong> 同机房 — <strong>减传播延迟</strong></td></tr>
+<tr><td><strong>Market Data</strong></td><td>增量 feed 驱动 <strong>本地 LOB</strong> — 与引擎 <strong>逻辑一致</strong></td></tr>
+</tbody>
+</table>
+<p><strong>1 ns</strong> 在 FIFO 中即可形成 <strong>执行优势</strong> — 与 chapter-09 T2T 测量目标一致。</p>
+<h3 id="3-5-本地-book-builder-与行情解析">3.5 本地 Book Builder 与行情解析</h3>
+<blockquote>
+<p>O(1) 更新 · 预分配数组 · gap 恢复 · 多所归一化</p>
+</blockquote>
+<p>理解交易所动态后，<strong>Gateway IN + Book Builder</strong> 必须：</p>
+<table>
+<thead><tr><th>工程要点</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><strong>O(1) 更新</strong></td><td>add/modify/delete/trade</td></tr>
+<tr><td><strong>Vector / 预分配</strong></td><td>高 <strong>cache hit</strong> — 见 chapter-02 Book Builder</td></tr>
+<tr><td><strong>Feed 解析</strong></td><td>Wire → struct；<strong>gap → snapshot recovery</strong></td></tr>
+<tr><td><strong>Normalize</strong></td><td>多交易所 <strong>统一内部 Event</strong></td></tr>
+</tbody>
+</table>
+<p>→ 实现：chapter-08 引擎 · chapter-06 协议</p>
+<aside class="admonition note"><p class="adm-title">来源与许可</p>
+<p>本文整理自 CShonor 的学习笔记仓库 <a href="https://github.com/cshonor/hft-embedded-linux-study" target="_blank" rel="nofollow noopener">hft-embedded-linux-study</a> 的 <code>14-hft-engineering</code> 模块（HFT 工程实践；该模块标注了与原书 Ch1–11 的对应关系，Ch10–13 为仓库自扩展章节），经作者授权以 CC BY 4.0 在本站署名发布。</p>
+</aside>

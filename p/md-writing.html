@@ -1,0 +1,57 @@
+<h3 id="为什么不用逼你学-sml">为什么不用逼你学 SML</h3>
+<p>站点底层是 SML，但<strong>投稿不要求写 SML</strong>：<code>posts/&lt;年份&gt;/&lt;短名&gt;/index.md</code> 走 Markdown，
+<code>index.sml</code> 走 SML，两者渲染出来的样式、章节树、搜索索引完全一样。</p>
+<p>需要 SML 的场景只有两种：想要<strong>严格契约校验</strong>（<code>@contract</code> 钉字段类型），或者要写<strong>定理/证明</strong>这类结构化内容。</p>
+<h3 id="文件长什么样">文件长什么样</h3>
+<p>目录结构就两个文件的事：</p>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">posts/2026/md-writing/
+├─ index.md          ← 正文 + front matter
+└─ assets/           ← 图片放这里（可不存在）</code></pre>
+</div>
+<p>front matter 只要 5 个必填字段：</p>
+<table>
+<thead><tr><th>字段</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>title</td><td>标题</td></tr>
+<tr><td>author</td><td>成员 id（对应 <code>members/&lt;id&gt;.sml</code>，没有档案也能发，只是不会链接到个人页）</td></tr>
+<tr><td>date</td><td>发布日期 <code>YYYY-MM-DD</code></td></tr>
+<tr><td>tags</td><td>标签数组，如 <code>[ rust embedded ]</code></td></tr>
+<tr><td>summary</td><td>一两句摘要，列表页与分享卡片用</td></tr>
+</tbody>
+</table>
+<h3 id="正文能写什么">正文能写什么</h3>
+<p>标题、段落、<strong>粗体</strong>、<em>斜体</em>、<del>删除线</del>、<code>行内代码</code>、<a href="https://rec-blog.swebase.cn" target="_blank" rel="nofollow noopener">链接</a>、
+列表、表格、引用、围栏代码块、图片，都支持。</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">#[entry]
+fn main() -&gt; ! {
+    let dp = pac::Peripherals::take().unwrap();
+    loop { cortex_m::asm::wfi(); }
+}</code></pre>
+</div>
+<blockquote>
+<p>引用也可以嵌套列表和代码。</p>
+</blockquote>
+<p>单独一行放 B 站视频号就会自动嵌入：</p>
+<div class="video" data-embed="https://player.bilibili.com/player.html?bvid=BV1GJ411x7h7&amp;high_quality=1"><a class="video-face" href="https://www.bilibili.com/video/BV1GJ411x7h7" rel="noopener"><span class="video-play" aria-hidden="true">▶</span><span class="video-label">在 B 站观看 BV1GJ411x7h7（点击加载播放器）</span></a></div>
+<p>图片放同目录 <code>assets/</code>，正文里写相对路径 <code>![说明](assets/xxx.png)</code>，可加 <code>&quot;图注&quot;</code>：</p>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">![接线图](assets/wiring.png &quot;USART1 接线&quot;)</code></pre>
+</div>
+<p>构建会检查这类本地图片是否真的存在，路径写错会直接报错。</p>
+<h3 id="附件">附件</h3>
+<p>图片入库；PDF / 压缩包 / 固件一律走外链，写在 front matter 里：</p>
+<div class="code">
+<div class="code-head"><span>yaml</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-yaml">attachments:
+  - name: 示例工程
+    kind: link
+    url: https://gitee.com/rustembed/site
+    size: 1.2 MB</code></pre>
+</div>
+<h3 id="最后">最后</h3>
+<p>提 PR，或者把稿子丢给有仓库权限的群管理代投。格式问题构建脚本会直接报出来，不用你自己猜。</p>

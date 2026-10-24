@@ -1,0 +1,46 @@
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">/// 把字节切片转成十六进制字符串（演示 ///）。
+pub fn to_hex(bytes: &amp;[u8]) -&gt; String {
+    bytes.iter().map(|b| format!(&quot;{:02X}&quot;, b)).collect()
+}
+
+fn main() {
+    // 行注释
+    let x = 5;  // 行尾注释
+    /* 块注释
+       多行也行 */
+    let s = String::from(&quot;hi&quot;);
+    println!(&quot;{} {}&quot;, x, s);
+    println!(&quot;{}&quot;, to_hex(&amp;[0xAB, 0xCD]));
+    println!(&quot;{}&quot;, to_hex(b&quot;hi&quot;));
+}</code></pre>
+</div>
+<p><strong>（教学片段，直接复制 src/Chapter4/ 对应文件即可运行。）</strong></p>
+<p><code>///</code> 与 <code>//!</code> 的本质差别是作用对象：</p>
+<table>
+<thead><tr><th>注释</th><th>写在</th><th>rustdoc 生成</th></tr></thead>
+<tbody>
+<tr><td><code>///</code></td><td>项（fn / struct / trait 等）之上</td><td>该项的&quot;详情页&quot;</td></tr>
+<tr><td><code>//!</code></td><td>模块或 crate 的最顶（紧跟 <code>{</code> 之前）</td><td>模块首页</td></tr>
+</tbody>
+</table>
+<p>doc 注释支持 Markdown；常见的代码示例围栏用 <code> </code>`<code>rust </code>，会被 rustdoc 视为可执行示例：</p>
+<div class="code">
+<div class="code-head"><span>markdown</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-markdown">/// 把一组字节以十六进制形式拼接成字符串。
+///
+/// # 示例
+///
+/// ```
+/// use my_crate::to_hex;
+/// assert_eq!(to_hex(&amp;[0xAB, 0xCD]), &quot;ABCD&quot;.to_string());
+/// ```
+pub fn to_hex(bytes: &amp;[u8]) -&gt; String { /* ... */ }</code></pre>
+</div>
+<p>推荐：</p>
+<ol>
+<li>公开 API 的 <code>///</code> 文档应当包含示例（rustdoc 会运行示例）。</li>
+<li><code>// TODO(...)</code> 与 <code>// FIXME(...)</code> 方便 IDE 与 git 检索。</li>
+<li>复杂算法或反直觉的代码上方放 2–3 行块注释解释&quot;为什么&quot;，比&quot;是什么&quot;对读者更有价值。</li>
+</ol>

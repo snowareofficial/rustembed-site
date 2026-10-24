@@ -1,0 +1,4685 @@
+{
+ "site": {
+  "title": "Rust嵌入式探讨",
+  "tagline": "一个 QQ 群的技术共建博客：嵌入式、Rust，以及把想法做出来的过程",
+  "url": "https://rustembed.swebase.cn",
+  "domains": [
+   "rustembed.swebase.cn"
+  ],
+  "repo_url": "https://gitee.com/rustembed/site",
+  "repo_mirror": "https://gitee.com/snoware/sml-sitegen",
+  "license": "CC BY-NC-SA 4.0",
+  "announcement": "投稿请提 PR，或把稿子交给有仓库权限的群管理代投。讨论回 QQ 群。",
+  "nav": [
+   "library",
+   "knowledge",
+   "topics",
+   "projects",
+   "resources",
+   "members",
+   "services",
+   "weekly",
+   "pages",
+   "join"
+  ],
+  "avatar": "p.qlogo.jpg",
+  "code_collapse_lines": 20,
+  "group": {
+   "name": "Rust嵌入式探讨",
+   "qq": "947963288",
+   "join": "加群验证：说出你最近在啃的一块板子",
+   "join_url": "https://qm.qq.com/q/uo06W0c7Is",
+   "intro": "面向嵌入式与 Rust 的学习/实践群。这里存放群友写的技术文章、做过的项目、整理的资源，以及这个群本身的故事。",
+   "rules": [
+    "不讨论与技术和学习无关的内容",
+    "提问前先说清目标、现象、已尝试过的办法",
+    "转载与引用他人内容必须标注出处与许可",
+    "投稿即视为同意按站点默认许可公开发布"
+   ],
+   "features": [
+    "群文件：资料、原理图、固件镜像索引",
+    "每周分享：一人一个正在做/刚做完的东西",
+    "答疑：embedded-hal / no_std / 调试工具链",
+    "共建博客：文章与项目走 PR 投稿、群管理审核"
+   ],
+   "timeline": [
+    {
+     "date": "2026-09-19",
+     "text": "群博客立项，仓库与构建流水线定型"
+    }
+   ]
+  }
+ },
+ "posts": [
+  {
+   "slug": "rust-learning-20-misc",
+   "year": "2026",
+   "title": "1.19 其他",
+   "author": "cxi",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "rust",
+    "基础"
+   ],
+   "summary": "下画线、格式化输出、类型清单与保留字等杂项。",
+   "license": "",
+   "series": "rust-learning",
+   "series_title": "Rust 学习",
+   "order": 20,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "1-19-1-下画线",
+     "text": "1.19.1 下画线",
+     "level": 3
+    },
+    {
+     "id": "1-19-2-字符串格式化输出",
+     "text": "1.19.2 字符串格式化输出",
+     "level": 3
+    },
+    {
+     "id": "宽度-填充字符-对齐-ten-ws-形态-基础end-rs",
+     "text": "宽度、填充字符、对齐：`{ten:>ws$}` 形态（`基础end.rs`）",
+     "level": 4
+    },
+    {
+     "id": "同一类型-三种打印-基础end-rs",
+     "text": "同一类型，三种打印（`基础end.rs`）",
+     "level": 4
+    },
+    {
+     "id": "整数后缀打印-基础end-rs",
+     "text": "整数后缀打印（`基础end.rs`）",
+     "level": 4
+    },
+    {
+     "id": "1-19-3-rust-类型清单",
+     "text": "1.19.3 Rust 类型清单",
+     "level": 3
+    },
+    {
+     "id": "1-19-4-rust-保留字",
+     "text": "1.19.4 Rust 保留字",
+     "level": 3
+    },
+    {
+     "id": "1-19-5-其他",
+     "text": "1.19.5 其他",
+     "level": 3
+    },
+    {
+     "id": "类型擦除-box-dyn-trait",
+     "text": "类型擦除：`Box<dyn Trait>`",
+     "level": 4
+    },
+    {
+     "id": "闭包与-trait",
+     "text": "闭包与 trait",
+     "level": 4
+    },
+    {
+     "id": "类型推导",
+     "text": "类型推导",
+     "level": 4
+    },
+    {
+     "id": "协程-async",
+     "text": "协程 / async",
+     "level": 4
+    }
+   ],
+   "words": 13995,
+   "file": "content/posts/2026/rust-learning-20-misc/index.md",
+   "html": "p/rust-learning-20-misc.html",
+   "map": "p/rust-learning-20-misc.map.svg",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "下画线、格式化输出、类型清单与保留字等杂项。",
+    "points": [
+     "1.19.1 下画线",
+     "1.19.2 字符串格式化输出",
+     "宽度、填充字符、对齐：`{ten:>ws$}` 形态（`基础end.rs`）",
+     "同一类型，三种打印（`基础end.rs`）",
+     "整数后缀打印（`基础end.rs`）",
+     "1.19.3 Rust 类型清单"
+    ],
+    "keywords": [
+     "rust",
+     "基础"
+    ],
+    "reading": 47
+   }
+  },
+  {
+   "slug": "rust-learning-19-std-library",
+   "year": "2026",
+   "title": "1.18 Rust 标准库",
+   "author": "cxi",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "rust",
+    "标准库"
+   ],
+   "summary": "Rust 标准库的特点与常用模块速查。",
+   "license": "",
+   "series": "rust-learning",
+   "series_title": "Rust 学习",
+   "order": 19,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "1-18-1-rust-标准库的特点",
+     "text": "1.18.1 Rust 标准库的特点",
+     "level": 3
+    },
+    {
+     "id": "1-18-2-rust-标准库模块-速查",
+     "text": "1.18.2 Rust 标准库模块（速查）",
+     "level": 3
+    },
+    {
+     "id": "trait-的设计哲学",
+     "text": "trait 的设计哲学",
+     "level": 4
+    }
+   ],
+   "words": 1499,
+   "file": "content/posts/2026/rust-learning-19-std-library/index.md",
+   "html": "p/rust-learning-19-std-library.html",
+   "map": "",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "Rust 标准库的特点与常用模块速查。",
+    "points": [
+     "1.18.1 Rust 标准库的特点",
+     "1.18.2 Rust 标准库模块（速查）",
+     "trait 的设计哲学"
+    ],
+    "keywords": [
+     "rust",
+     "标准库"
+    ],
+    "reading": 5
+   }
+  },
+  {
+   "slug": "rust-learning-18-file-io",
+   "year": "2026",
+   "title": "1.17 文件操作",
+   "author": "cxi",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "rust",
+    "文件",
+    "标准库"
+   ],
+   "summary": "文本/二进制文件、文件路径、扩展名搜索与压缩文件。",
+   "license": "",
+   "series": "rust-learning",
+   "series_title": "Rust 学习",
+   "order": 18,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "1-17-1-文本文件",
+     "text": "1.17.1 文本文件",
+     "level": 3
+    },
+    {
+     "id": "1-17-2-二进制文件",
+     "text": "1.17.2 二进制文件",
+     "level": 3
+    },
+    {
+     "id": "1-17-3-文件路径",
+     "text": "1.17.3 文件路径",
+     "level": 3
+    },
+    {
+     "id": "1-17-4-搜索指定扩展名的文件",
+     "text": "1.17.4 搜索指定扩展名的文件",
+     "level": 3
+    },
+    {
+     "id": "1-17-5-压缩文件",
+     "text": "1.17.5 压缩文件",
+     "level": 3
+    }
+   ],
+   "words": 8128,
+   "file": "content/posts/2026/rust-learning-18-file-io/index.md",
+   "html": "p/rust-learning-18-file-io.html",
+   "map": "p/rust-learning-18-file-io.map.svg",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "文本/二进制文件、文件路径、扩展名搜索与压缩文件。",
+    "points": [
+     "1.17.1 文本文件",
+     "1.17.2 二进制文件",
+     "1.17.3 文件路径",
+     "1.17.4 搜索指定扩展名的文件",
+     "1.17.5 压缩文件"
+    ],
+    "keywords": [
+     "rust",
+     "文件",
+     "标准库"
+    ],
+    "reading": 27
+   }
+  },
+  {
+   "slug": "rust-learning-17-memory-layout",
+   "year": "2026",
+   "title": "1.16 程序的内存表现",
+   "author": "cxi",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "rust",
+    "内存"
+   ],
+   "summary": "程序运行时的内存布局。",
+   "license": "",
+   "series": "rust-learning",
+   "series_title": "Rust 学习",
+   "order": 17,
+   "video": "",
+   "attachments": [],
+   "toc": [],
+   "words": 376,
+   "file": "content/posts/2026/rust-learning-17-memory-layout/index.md",
+   "html": "p/rust-learning-17-memory-layout.html",
+   "map": "",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "程序运行时的内存布局。",
+    "points": [],
+    "keywords": [
+     "rust",
+     "内存"
+    ],
+    "reading": 1
+   }
+  },
+  {
+   "slug": "rust-learning-16-impl-blocks",
+   "year": "2026",
+   "title": "1.15 impl 代码块",
+   "author": "cxi",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "rust",
+    "trait"
+   ],
+   "summary": "固有实现、trait 实现与关联函数/方法。",
+   "license": "",
+   "series": "rust-learning",
+   "series_title": "Rust 学习",
+   "order": 16,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "三种-receiver",
+     "text": "三种 receiver",
+     "level": 4
+    },
+    {
+     "id": "给运算符实现-trait",
+     "text": "给运算符实现 trait",
+     "level": 4
+    },
+    {
+     "id": "给枚举实现方法",
+     "text": "给枚举实现方法",
+     "level": 4
+    }
+   ],
+   "words": 2538,
+   "file": "content/posts/2026/rust-learning-16-impl-blocks/index.md",
+   "html": "p/rust-learning-16-impl-blocks.html",
+   "map": "",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "固有实现、trait 实现与关联函数/方法。",
+    "points": [
+     "三种 receiver",
+     "给运算符实现 trait",
+     "给枚举实现方法"
+    ],
+    "keywords": [
+     "rust",
+     "trait"
+    ],
+    "reading": 8
+   }
+  },
+  {
+   "slug": "rust-learning-15-operators",
+   "year": "2026",
+   "title": "1.14 运算符",
+   "author": "cxi",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "rust",
+    "运算符"
+   ],
+   "summary": "算术、比较、逻辑、位运算符以及运算符重载。",
+   "license": "",
+   "series": "rust-learning",
+   "series_title": "Rust 学习",
+   "order": 15,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "一元操作符详表",
+     "text": "一元操作符详表",
+     "level": 4
+    },
+    {
+     "id": "二元算术操作符",
+     "text": "二元算术操作符",
+     "level": 4
+    },
+    {
+     "id": "位运算操作符",
+     "text": "位运算操作符",
+     "level": 4
+    },
+    {
+     "id": "比较运算符",
+     "text": "比较运算符",
+     "level": 4
+    },
+    {
+     "id": "运算符对应的-trait-实现-trait-即可重载",
+     "text": "运算符对应的 trait（实现 trait 即可重载）",
+     "level": 4
+    },
+    {
+     "id": "运算符优先级-高-低",
+     "text": "运算符优先级（高 → 低）",
+     "level": 4
+    }
+   ],
+   "words": 3683,
+   "file": "content/posts/2026/rust-learning-15-operators/index.md",
+   "html": "p/rust-learning-15-operators.html",
+   "map": "",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "算术、比较、逻辑、位运算符以及运算符重载。",
+    "points": [
+     "一元操作符详表",
+     "二元算术操作符",
+     "位运算操作符",
+     "比较运算符",
+     "运算符对应的 trait（实现 trait 即可重载）",
+     "运算符优先级（高 → 低）"
+    ],
+    "keywords": [
+     "rust",
+     "运算符"
+    ],
+    "reading": 12
+   }
+  },
+  {
+   "slug": "rust-learning-14-comments",
+   "year": "2026",
+   "title": "1.13 注释",
+   "author": "cxi",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "rust",
+    "基础"
+   ],
+   "summary": "行注释、块注释与文档注释。",
+   "license": "",
+   "series": "rust-learning",
+   "series_title": "Rust 学习",
+   "order": 14,
+   "video": "",
+   "attachments": [],
+   "toc": [],
+   "words": 852,
+   "file": "content/posts/2026/rust-learning-14-comments/index.md",
+   "html": "p/rust-learning-14-comments.html",
+   "map": "",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "行注释、块注释与文档注释。",
+    "points": [],
+    "keywords": [
+     "rust",
+     "基础"
+    ],
+    "reading": 3
+   }
+  },
+  {
+   "slug": "rust-learning-13-functions",
+   "year": "2026",
+   "title": "1.12 函数",
+   "author": "cxi",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "rust",
+    "函数"
+   ],
+   "summary": "函数定义与返回、const fn、参数模式解构与提前返回。",
+   "license": "",
+   "series": "rust-learning",
+   "series_title": "Rust 学习",
+   "order": 13,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "提早返回",
+     "text": "提早返回",
+     "level": 3
+    },
+    {
+     "id": "函数作为返回值",
+     "text": "函数作为返回值",
+     "level": 3
+    },
+    {
+     "id": "常量函数-const-fn",
+     "text": "常量函数（`const fn`）",
+     "level": 3
+    },
+    {
+     "id": "模式解构参数",
+     "text": "模式解构参数",
+     "level": 3
+    }
+   ],
+   "words": 3523,
+   "file": "content/posts/2026/rust-learning-13-functions/index.md",
+   "html": "p/rust-learning-13-functions.html",
+   "map": "p/rust-learning-13-functions.map.svg",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "函数定义与返回、const fn、参数模式解构与提前返回。",
+    "points": [
+     "提早返回",
+     "函数作为返回值",
+     "常量函数（`const fn`）",
+     "模式解构参数"
+    ],
+    "keywords": [
+     "rust",
+     "函数"
+    ],
+    "reading": 12
+   }
+  },
+  {
+   "slug": "rust-learning-12-control-flow",
+   "year": "2026",
+   "title": "1.11 控制语句",
+   "author": "cxi",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "rust",
+    "控制流"
+   ],
+   "summary": "match、if、循环、if let / while let 的写法与匹配规则。",
+   "license": "",
+   "series": "rust-learning",
+   "series_title": "Rust 学习",
+   "order": 12,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "1-11-1-match",
+     "text": "1.11.1 match",
+     "level": 3
+    },
+    {
+     "id": "表达性-vs-语句性",
+     "text": "表达性 vs 语句性",
+     "level": 4
+    },
+    {
+     "id": "1-11-2-if",
+     "text": "1.11.2 if",
+     "level": 3
+    },
+    {
+     "id": "1-11-3-循环语句",
+     "text": "1.11.3 循环语句",
+     "level": 3
+    },
+    {
+     "id": "loop-无限循环",
+     "text": "`loop`：无限循环",
+     "level": 4
+    },
+    {
+     "id": "while-条件循环",
+     "text": "`while`：条件循环",
+     "level": 4
+    },
+    {
+     "id": "for-迭代循环",
+     "text": "`for`：迭代循环",
+     "level": 4
+    },
+    {
+     "id": "for-in-的三种语义",
+     "text": "`for ... in` 的三种语义",
+     "level": 4
+    },
+    {
+     "id": "1-11-4-if-let-while-let",
+     "text": "1.11.4 if let / while let",
+     "level": 3
+    },
+    {
+     "id": "loop-break-值-表达式-循环1-rs-演示",
+     "text": "`loop { break 值; }` 表达式（`循环1.rs` 演示）",
+     "level": 4
+    },
+    {
+     "id": "链式-while-let-some-i-optional",
+     "text": "链式 `while let Some(i) = optional`",
+     "level": 4
+    }
+   ],
+   "words": 14074,
+   "file": "content/posts/2026/rust-learning-12-control-flow/index.md",
+   "html": "p/rust-learning-12-control-flow.html",
+   "map": "p/rust-learning-12-control-flow.map.svg",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "match、if、循环、if let / while let 的写法与匹配规则。",
+    "points": [
+     "1.11.1 match",
+     "表达性 vs 语句性",
+     "1.11.2 if",
+     "1.11.3 循环语句",
+     "`loop`：无限循环",
+     "`while`：条件循环"
+    ],
+    "keywords": [
+     "rust",
+     "控制流"
+    ],
+    "reading": 47
+   }
+  },
+  {
+   "slug": "rust-learning-11-variables-mutability",
+   "year": "2026",
+   "title": "1.10 变量和可变性",
+   "author": "cxi",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "rust",
+    "基础"
+   ],
+   "summary": "变量绑定、可变性、作用域与遮蔽、常量/静态、类型转换和零长度类型。",
+   "license": "",
+   "series": "rust-learning",
+   "series_title": "Rust 学习",
+   "order": 11,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "1-10-1-变量绑定",
+     "text": "1.10.1 变量绑定",
+     "level": 3
+    },
+    {
+     "id": "1-10-2-变量",
+     "text": "1.10.2 变量",
+     "level": 3
+    },
+    {
+     "id": "1-10-3-可变性",
+     "text": "1.10.3 可变性",
+     "level": 3
+    },
+    {
+     "id": "1-10-4-变量的作用域和遮蔽",
+     "text": "1.10.4 变量的作用域和遮蔽",
+     "level": 3
+    },
+    {
+     "id": "1-10-5-常量和静态全局变量",
+     "text": "1.10.5 常量和静态全局变量",
+     "level": 3
+    },
+    {
+     "id": "1-10-6-别名",
+     "text": "1.10.6 别名",
+     "level": 3
+    },
+    {
+     "id": "1-10-7-类型转换",
+     "text": "1.10.7 类型转换",
+     "level": 3
+    },
+    {
+     "id": "数值强转-as",
+     "text": "数值强转 (`as`)",
+     "level": 4
+    },
+    {
+     "id": "数值转型-tryfrom-from",
+     "text": "数值转型 (`TryFrom` / `From`)",
+     "level": 4
+    },
+    {
+     "id": "1-10-8-零长度类型",
+     "text": "1.10.8 零长度类型",
+     "level": 3
+    }
+   ],
+   "words": 4125,
+   "file": "content/posts/2026/rust-learning-11-variables-mutability/index.md",
+   "html": "p/rust-learning-11-variables-mutability.html",
+   "map": "p/rust-learning-11-variables-mutability.map.svg",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "变量绑定、可变性、作用域与遮蔽、常量/静态、类型转换和零长度类型。",
+    "points": [
+     "1.10.1 变量绑定",
+     "1.10.2 变量",
+     "1.10.3 可变性",
+     "1.10.4 变量的作用域和遮蔽",
+     "1.10.5 常量和静态全局变量",
+     "1.10.6 别名"
+    ],
+    "keywords": [
+     "rust",
+     "基础"
+    ],
+    "reading": 14
+   }
+  },
+  {
+   "slug": "rust-learning-10-strings",
+   "year": "2026",
+   "title": "1.9 字符串",
+   "author": "cxi",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "rust",
+    "字符串"
+   ],
+   "summary": "字符串切片、String、字节字符串、Cow 以及各种字符串转换与操作。",
+   "license": "",
+   "series": "rust-learning",
+   "series_title": "Rust 学习",
+   "order": 10,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "1-9-1-字符串切片",
+     "text": "1.9.1 字符串切片",
+     "level": 3
+    },
+    {
+     "id": "1-9-2-字符串",
+     "text": "1.9.2 字符串",
+     "level": 3
+    },
+    {
+     "id": "string-的常用成员方法",
+     "text": "`String` 的常用成员方法",
+     "level": 4
+    },
+    {
+     "id": "1-9-3-字节字符串",
+     "text": "1.9.3 字节字符串",
+     "level": 3
+    },
+    {
+     "id": "1-9-4-其他字符串类型",
+     "text": "1.9.4 其他字符串类型",
+     "level": 3
+    },
+    {
+     "id": "1-9-5-各种字符串类型之间转换",
+     "text": "1.9.5 各种字符串类型之间转换",
+     "level": 3
+    },
+    {
+     "id": "1-9-6-写时复制",
+     "text": "1.9.6 写时复制",
+     "level": 3
+    },
+    {
+     "id": "1-9-7-字符串相关操作",
+     "text": "1.9.7 字符串相关操作",
+     "level": 3
+    }
+   ],
+   "words": 18332,
+   "file": "content/posts/2026/rust-learning-10-strings/index.md",
+   "html": "p/rust-learning-10-strings.html",
+   "map": "p/rust-learning-10-strings.map.svg",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "字符串切片、String、字节字符串、Cow 以及各种字符串转换与操作。",
+    "points": [
+     "1.9.1 字符串切片",
+     "1.9.2 字符串",
+     "`String` 的常用成员方法",
+     "1.9.3 字节字符串",
+     "1.9.4 其他字符串类型",
+     "1.9.5 各种字符串类型之间转换"
+    ],
+    "keywords": [
+     "rust",
+     "字符串"
+    ],
+    "reading": 61
+   }
+  },
+  {
+   "slug": "rust-learning-09-arrays-slices-vectors",
+   "year": "2026",
+   "title": "1.8 数组、切片和向量",
+   "author": "cxi",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "rust",
+    "集合"
+   ],
+   "summary": "数组、Vec 与切片的区别、内存布局和常用操作。",
+   "license": "",
+   "series": "rust-learning",
+   "series_title": "Rust 学习",
+   "order": 9,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "1-8-1-数组",
+     "text": "1.8.1 数组",
+     "level": 3
+    },
+    {
+     "id": "1-8-2-向量",
+     "text": "1.8.2 向量",
+     "level": 3
+    },
+    {
+     "id": "向量-与切片-的访问方式",
+     "text": "向量（与切片）的访问方式",
+     "level": 4
+    },
+    {
+     "id": "向量的常用成员方法",
+     "text": "向量的常用成员方法",
+     "level": 4
+    },
+    {
+     "id": "1-8-3-切片",
+     "text": "1.8.3 切片",
+     "level": 3
+    }
+   ],
+   "words": 5509,
+   "file": "content/posts/2026/rust-learning-09-arrays-slices-vectors/index.md",
+   "html": "p/rust-learning-09-arrays-slices-vectors.html",
+   "map": "p/rust-learning-09-arrays-slices-vectors.map.svg",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "数组、Vec 与切片的区别、内存布局和常用操作。",
+    "points": [
+     "1.8.1 数组",
+     "1.8.2 向量",
+     "向量（与切片）的访问方式",
+     "向量的常用成员方法",
+     "1.8.3 切片"
+    ],
+    "keywords": [
+     "rust",
+     "集合"
+    ],
+    "reading": 18
+   }
+  },
+  {
+   "slug": "rust-learning-08-enums",
+   "year": "2026",
+   "title": "1.7 枚举",
+   "author": "cxi",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "rust",
+    "枚举",
+    "类型"
+   ],
+   "summary": "C 风格枚举、带数据枚举、混合枚举，内存布局与代数数据类型。",
+   "license": "",
+   "series": "rust-learning",
+   "series_title": "Rust 学习",
+   "order": 8,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "1-7-1-c-风格的枚举类型",
+     "text": "1.7.1 C 风格的枚举类型",
+     "level": 3
+    },
+    {
+     "id": "1-7-2-带数据的枚举类型",
+     "text": "1.7.2 带数据的枚举类型",
+     "level": 3
+    },
+    {
+     "id": "1-7-3-混合类型的枚举类型",
+     "text": "1.7.3 混合类型的枚举类型",
+     "level": 3
+    },
+    {
+     "id": "1-7-4-枚举的内存布局",
+     "text": "1.7.4 枚举的内存布局",
+     "level": 3
+    },
+    {
+     "id": "1-7-5-代数数据类型",
+     "text": "1.7.5 代数数据类型",
+     "level": 3
+    }
+   ],
+   "words": 8886,
+   "file": "content/posts/2026/rust-learning-08-enums/index.md",
+   "html": "p/rust-learning-08-enums.html",
+   "map": "p/rust-learning-08-enums.map.svg",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "C 风格枚举、带数据枚举、混合枚举，内存布局与代数数据类型。",
+    "points": [
+     "1.7.1 C 风格的枚举类型",
+     "1.7.2 带数据的枚举类型",
+     "1.7.3 混合类型的枚举类型",
+     "1.7.4 枚举的内存布局",
+     "1.7.5 代数数据类型"
+    ],
+    "keywords": [
+     "rust",
+     "枚举",
+     "类型"
+    ],
+    "reading": 30
+   }
+  },
+  {
+   "slug": "rust-learning-07-structs",
+   "year": "2026",
+   "title": "1.6 结构",
+   "author": "cxi",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "rust",
+    "类型",
+    "结构体"
+   ],
+   "summary": "具名结构体、元组结构体、空结构体、可见性与可变性。",
+   "license": "",
+   "series": "rust-learning",
+   "series_title": "Rust 学习",
+   "order": 7,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "1-6-1-具名结构体-named-field-struct",
+     "text": "1.6.1 具名结构体（named-field struct）",
+     "level": 3
+    },
+    {
+     "id": "1-6-2-元组类型结构体-tuple-struct",
+     "text": "1.6.2 元组类型结构体（tuple struct）",
+     "level": 3
+    },
+    {
+     "id": "1-6-3-空结构体",
+     "text": "1.6.3 空结构体",
+     "level": 3
+    },
+    {
+     "id": "1-6-4-结构可见性",
+     "text": "1.6.4 结构可见性",
+     "level": 3
+    },
+    {
+     "id": "1-6-5-结构-字段的可变性",
+     "text": "1.6.5 结构/字段的可变性",
+     "level": 3
+    },
+    {
+     "id": "1-6-6-其他",
+     "text": "1.6.6 其他",
+     "level": 3
+    }
+   ],
+   "words": 3706,
+   "file": "content/posts/2026/rust-learning-07-structs/index.md",
+   "html": "p/rust-learning-07-structs.html",
+   "map": "p/rust-learning-07-structs.map.svg",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "具名结构体、元组结构体、空结构体、可见性与可变性。",
+    "points": [
+     "1.6.1 具名结构体（named-field struct）",
+     "1.6.2 元组类型结构体（tuple struct）",
+     "1.6.3 空结构体",
+     "1.6.4 结构可见性",
+     "1.6.5 结构/字段的可变性",
+     "1.6.6 其他"
+    ],
+    "keywords": [
+     "rust",
+     "类型",
+     "结构体"
+    ],
+    "reading": 12
+   }
+  },
+  {
+   "slug": "rust-learning-06-ranges",
+   "year": "2026",
+   "title": "1.5 范围类型",
+   "author": "cxi",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "rust",
+    "类型"
+   ],
+   "summary": "Range 系列的写法，以及在循环和切片中的用法。",
+   "license": "",
+   "series": "rust-learning",
+   "series_title": "Rust 学习",
+   "order": 6,
+   "video": "",
+   "attachments": [],
+   "toc": [],
+   "words": 579,
+   "file": "content/posts/2026/rust-learning-06-ranges/index.md",
+   "html": "p/rust-learning-06-ranges.html",
+   "map": "",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "Range 系列的写法，以及在循环和切片中的用法。",
+    "points": [],
+    "keywords": [
+     "rust",
+     "类型"
+    ],
+    "reading": 2
+   }
+  },
+  {
+   "slug": "rust-learning-05-tuples",
+   "year": "2026",
+   "title": "1.4 元组",
+   "author": "cxi",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "rust",
+    "类型"
+   ],
+   "summary": "元组的声明、解构、索引与常见使用方式。",
+   "license": "",
+   "series": "rust-learning",
+   "series_title": "Rust 学习",
+   "order": 5,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "1-4-1-元组声明",
+     "text": "1.4.1 元组声明",
+     "level": 3
+    },
+    {
+     "id": "1-4-2-元组解构",
+     "text": "1.4.2 元组解构",
+     "level": 3
+    },
+    {
+     "id": "1-4-3-元组索引",
+     "text": "1.4.3 元组索引",
+     "level": 3
+    },
+    {
+     "id": "1-4-4-元组使用",
+     "text": "1.4.4 元组使用",
+     "level": 3
+    },
+    {
+     "id": "1-4-5-特殊情况",
+     "text": "1.4.5 特殊情况",
+     "level": 3
+    }
+   ],
+   "words": 1519,
+   "file": "content/posts/2026/rust-learning-05-tuples/index.md",
+   "html": "p/rust-learning-05-tuples.html",
+   "map": "",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "元组的声明、解构、索引与常见使用方式。",
+    "points": [
+     "1.4.1 元组声明",
+     "1.4.2 元组解构",
+     "1.4.3 元组索引",
+     "1.4.4 元组使用",
+     "1.4.5 特殊情况"
+    ],
+    "keywords": [
+     "rust",
+     "类型"
+    ],
+    "reading": 5
+   }
+  },
+  {
+   "slug": "rust-learning-04-literals",
+   "year": "2026",
+   "title": "1.3 字面量",
+   "author": "cxi",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "rust",
+    "类型"
+   ],
+   "summary": "数字、字符串、字符字面量的写法、进制、下划线分隔与转义。",
+   "license": "",
+   "series": "rust-learning",
+   "series_title": "Rust 学习",
+   "order": 4,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "1-3-1-数字字面量",
+     "text": "1.3.1 数字字面量",
+     "level": 3
+    },
+    {
+     "id": "字面量进制前缀与下划线分隔",
+     "text": "字面量进制前缀与下划线分隔",
+     "level": 4
+    },
+    {
+     "id": "1-3-2-字符串字面量",
+     "text": "1.3.2 字符串字面量",
+     "level": 3
+    },
+    {
+     "id": "1-3-3-字符字面量",
+     "text": "1.3.3 字符字面量",
+     "level": 3
+    },
+    {
+     "id": "常见转义字符",
+     "text": "常见转义字符",
+     "level": 4
+    }
+   ],
+   "words": 1812,
+   "file": "content/posts/2026/rust-learning-04-literals/index.md",
+   "html": "p/rust-learning-04-literals.html",
+   "map": "",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "数字、字符串、字符字面量的写法、进制、下划线分隔与转义。",
+    "points": [
+     "1.3.1 数字字面量",
+     "字面量进制前缀与下划线分隔",
+     "1.3.2 字符串字面量",
+     "1.3.3 字符字面量",
+     "常见转义字符"
+    ],
+    "keywords": [
+     "rust",
+     "类型"
+    ],
+    "reading": 6
+   }
+  },
+  {
+   "slug": "rust-learning-03-basic-types",
+   "year": "2026",
+   "title": "1.2 基本数据类型",
+   "author": "cxi",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "rust",
+    "类型",
+    "基础"
+   ],
+   "summary": "整型、布尔、字符、浮点类型的取值范围与内存表示。",
+   "license": "",
+   "series": "rust-learning",
+   "series_title": "Rust 学习",
+   "order": 3,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "1-2-1-整型",
+     "text": "1.2.1 整型",
+     "level": 3
+    },
+    {
+     "id": "整数类型的范围",
+     "text": "整数类型的范围",
+     "level": 4
+    },
+    {
+     "id": "整数溢出策略",
+     "text": "整数溢出策略",
+     "level": 4
+    },
+    {
+     "id": "各运算的命名后缀与样例",
+     "text": "各运算的命名后缀与样例",
+     "level": 4
+    },
+    {
+     "id": "1-2-2-布尔类型",
+     "text": "1.2.2 布尔类型",
+     "level": 3
+    },
+    {
+     "id": "1-2-3-字符类型",
+     "text": "1.2.3 字符类型",
+     "level": 3
+    },
+    {
+     "id": "1-2-4-浮点类型",
+     "text": "1.2.4 浮点类型",
+     "level": 3
+    }
+   ],
+   "words": 3076,
+   "file": "content/posts/2026/rust-learning-03-basic-types/index.md",
+   "html": "p/rust-learning-03-basic-types.html",
+   "map": "",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "整型、布尔、字符、浮点类型的取值范围与内存表示。",
+    "points": [
+     "1.2.1 整型",
+     "整数类型的范围",
+     "整数溢出策略",
+     "各运算的命名后缀与样例",
+     "1.2.2 布尔类型",
+     "1.2.3 字符类型"
+    ],
+    "keywords": [
+     "rust",
+     "类型",
+     "基础"
+    ],
+    "reading": 10
+   }
+  },
+  {
+   "slug": "rust-learning-02-stack-heap",
+   "year": "2026",
+   "title": "1.1 堆和栈",
+   "author": "cxi",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "rust",
+    "基础",
+    "内存"
+   ],
+   "summary": "栈与堆的区别、栈帧布局，以及 String 与切片的存储方式。",
+   "license": "",
+   "series": "rust-learning",
+   "series_title": "Rust 学习",
+   "order": 2,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "关键规律",
+     "text": "关键规律",
+     "level": 3
+    },
+    {
+     "id": "栈帧示意",
+     "text": "栈帧示意",
+     "level": 3
+    },
+    {
+     "id": "字符串-vs-切片",
+     "text": "字符串 vs 切片",
+     "level": 3
+    }
+   ],
+   "words": 792,
+   "file": "content/posts/2026/rust-learning-02-stack-heap/index.md",
+   "html": "p/rust-learning-02-stack-heap.html",
+   "map": "",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "栈与堆的区别、栈帧布局，以及 String 与切片的存储方式。",
+    "points": [
+     "关键规律",
+     "栈帧示意",
+     "字符串 vs 切片"
+    ],
+    "keywords": [
+     "rust",
+     "基础",
+     "内存"
+    ],
+    "reading": 3
+   }
+  },
+  {
+   "slug": "rust-learning-01-compile-basics",
+   "year": "2026",
+   "title": "编译教学",
+   "author": "cxi",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "rust",
+    "编译",
+    "入门"
+   ],
+   "summary": "从 cargo new 到 rustc 编译可执行文件和静态库，快速过一遍 Rust 工程与编译流程。",
+   "license": "",
+   "series": "rust-learning",
+   "series_title": "Rust 学习",
+   "order": 1,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "创建工程",
+     "text": "创建工程",
+     "level": 3
+    },
+    {
+     "id": "单rust编译为可执行",
+     "text": "单rust编译为可执行",
+     "level": 3
+    },
+    {
+     "id": "编译为静态库",
+     "text": "编译为静态库",
+     "level": 3
+    }
+   ],
+   "words": 683,
+   "file": "content/posts/2026/rust-learning-01-compile-basics/index.md",
+   "html": "p/rust-learning-01-compile-basics.html",
+   "map": "",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "从 cargo new 到 rustc 编译可执行文件和静态库，快速过一遍 Rust 工程与编译流程。",
+    "points": [
+     "创建工程",
+     "单rust编译为可执行",
+     "编译为静态库"
+    ],
+    "keywords": [
+     "rust",
+     "编译",
+     "入门"
+    ],
+    "reading": 2
+   }
+  },
+  {
+   "slug": "hft-engineering-13-fpga-crypto",
+   "year": "2026",
+   "title": "高频 FPGA 与加密货币",
+   "author": "cshonor",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "hft",
+    "quant",
+    "performance"
+   ],
+   "summary": "FPGA 如何突破微秒极限、加密货币高频的新战场，以及云环境里的共址竞速。",
+   "license": "CC BY 4.0",
+   "series": "hft-embedded-linux-14",
+   "series_title": "HFT 工程实践",
+   "order": 13,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "13-1-突破微秒极限-fpga-硬件加速",
+     "text": "13.1 突破微秒极限：FPGA 硬件加速",
+     "level": 3
+    },
+    {
+     "id": "cpu-fpga-asic-演进",
+     "text": "CPU → FPGA → ASIC 演进",
+     "level": 4
+    },
+    {
+     "id": "什么是-fpga",
+     "text": "什么是 FPGA？",
+     "level": 4
+    },
+    {
+     "id": "极致优势",
+     "text": "极致优势",
+     "level": 4
+    },
+    {
+     "id": "系统中的应用",
+     "text": "系统中的应用",
+     "level": 4
+    },
+    {
+     "id": "代价与风险",
+     "text": "代价与风险",
+     "level": 4
+    },
+    {
+     "id": "13-2-拥抱新战场-加密货币高频交易",
+     "text": "13.2 拥抱新战场：加密货币高频交易",
+     "level": 3
+    },
+    {
+     "id": "加密市场属性",
+     "text": "加密市场属性",
+     "level": 4
+    },
+    {
+     "id": "永续合约与资金费率",
+     "text": "永续合约与资金费率",
+     "level": 4
+    },
+    {
+     "id": "cex-vs-dex",
+     "text": "CEX vs DEX",
+     "level": 4
+    },
+    {
+     "id": "13-3-云端竞速-云环境中的-hft",
+     "text": "13.3 云端竞速：云环境中的 HFT",
+     "level": 3
+    },
+    {
+     "id": "空间换时间",
+     "text": "空间换时间",
+     "level": 4
+    },
+    {
+     "id": "架构选项",
+     "text": "架构选项",
+     "level": 4
+    },
+    {
+     "id": "对比传统共址",
+     "text": "对比传统共址",
+     "level": 4
+    },
+    {
+     "id": "13-4-原书技术栈总览-ch1-11",
+     "text": "13.4 原书技术栈总览（Ch1–11）",
+     "level": 3
+    },
+    {
+     "id": "完整链路-从零到-ns",
+     "text": "完整链路（从零到 ns）",
+     "level": 4
+    }
+   ],
+   "words": 2748,
+   "file": "content/posts/2026/hft-engineering-13-fpga-crypto/index.md",
+   "html": "p/hft-engineering-13-fpga-crypto.html",
+   "map": "",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "FPGA 如何突破微秒极限、加密货币高频的新战场，以及云环境里的共址竞速。",
+    "points": [
+     "13.1 突破微秒极限：FPGA 硬件加速",
+     "CPU → FPGA → ASIC 演进",
+     "什么是 FPGA？",
+     "极致优势",
+     "系统中的应用",
+     "代价与风险"
+    ],
+    "keywords": [
+     "hft",
+     "quant",
+     "performance"
+    ],
+    "reading": 9
+   }
+  },
+  {
+   "slug": "hft-engineering-12-market-making",
+   "year": "2026",
+   "title": "高频做市与套利策略",
+   "author": "cshonor",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "hft",
+    "quant"
+   ],
+   "summary": "做市核心等式与逆向选择、库存风险的 AS 模型、排队位置经济学与延迟套利。",
+   "license": "CC BY 4.0",
+   "series": "hft-embedded-linux-14",
+   "series_title": "HFT 工程实践",
+   "order": 12,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "12-1-做市核心等式与逆向选择",
+     "text": "12.1 做市核心等式与逆向选择",
+     "level": 3
+    },
+    {
+     "id": "核心等式",
+     "text": "核心等式",
+     "level": 4
+    },
+    {
+     "id": "逆向选择-为什么成交太快不是好事",
+     "text": "逆向选择：为什么成交太快不是好事",
+     "level": 4
+    },
+    {
+     "id": "对抗手段",
+     "text": "对抗手段",
+     "level": 4
+    },
+    {
+     "id": "12-2-库存风险管理-avellaneda-stoikov-直觉",
+     "text": "12.2 库存风险管理（Avellaneda-Stoikov 直觉）",
+     "level": 3
+    },
+    {
+     "id": "12-3-排队位置经济学",
+     "text": "12.3 排队位置经济学",
+     "level": 3
+    },
+    {
+     "id": "12-4-延迟套利-latency-arbitrage",
+     "text": "12.4 延迟套利 (Latency Arbitrage)",
+     "level": 3
+    },
+    {
+     "id": "原理-慢交易所上的陈旧报价",
+     "text": "原理：慢交易所上的陈旧报价",
+     "level": 4
+    },
+    {
+     "id": "延迟决定可行性",
+     "text": "延迟决定可行性",
+     "level": 4
+    },
+    {
+     "id": "12-5-跨所套利与腿风险管理",
+     "text": "12.5 跨所套利与腿风险管理",
+     "level": 3
+    },
+    {
+     "id": "跨所套利-vs-延迟套利",
+     "text": "跨所套利 vs 延迟套利",
+     "level": 4
+    },
+    {
+     "id": "腿风险管理",
+     "text": "腿风险管理",
+     "level": 4
+    },
+    {
+     "id": "12-6-策略与工程的接口约定",
+     "text": "12.6 策略与工程的接口约定",
+     "level": 3
+    },
+    {
+     "id": "三条纪律",
+     "text": "三条纪律",
+     "level": 4
+    }
+   ],
+   "words": 2868,
+   "file": "content/posts/2026/hft-engineering-12-market-making/index.md",
+   "html": "p/hft-engineering-12-market-making.html",
+   "map": "",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "做市核心等式与逆向选择、库存风险的 AS 模型、排队位置经济学与延迟套利。",
+    "points": [
+     "12.1 做市核心等式与逆向选择",
+     "核心等式",
+     "逆向选择：为什么成交太快不是好事",
+     "对抗手段",
+     "12.2 库存风险管理（Avellaneda-Stoikov 直觉）",
+     "12.3 排队位置经济学"
+    ],
+    "keywords": [
+     "hft",
+     "quant"
+    ],
+    "reading": 10
+   }
+  },
+  {
+   "slug": "hft-engineering-11-production-ops",
+   "year": "2026",
+   "title": "实盘上线与运维进阶",
+   "author": "cshonor",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "hft",
+    "performance"
+   ],
+   "summary": "上线门禁清单、监控与报警怎么看、Kill Switch 分级、Capture/Replay 与故障降级矩阵。",
+   "license": "CC BY 4.0",
+   "series": "hft-embedded-linux-14",
+   "series_title": "HFT 工程实践",
+   "order": 11,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "11-1-上线前检查清单-门禁",
+     "text": "11.1 上线前检查清单（门禁）",
+     "level": 3
+    },
+    {
+     "id": "11-2-监控-看什么-怎么报警",
+     "text": "11.2 监控：看什么、怎么报警",
+     "level": 3
+    },
+    {
+     "id": "监控分层",
+     "text": "监控分层",
+     "level": 4
+    },
+    {
+     "id": "报警哲学",
+     "text": "报警哲学",
+     "level": 4
+    },
+    {
+     "id": "关键盲区-静默失败",
+     "text": "关键盲区：静默失败",
+     "level": 4
+    },
+    {
+     "id": "11-3-kill-switch-分级",
+     "text": "11.3 Kill Switch 分级",
+     "level": 3
+    },
+    {
+     "id": "工程要点",
+     "text": "工程要点",
+     "level": 4
+    },
+    {
+     "id": "11-4-capture-replay-复盘的基础",
+     "text": "11.4 Capture / Replay：复盘的基础",
+     "level": 3
+    },
+    {
+     "id": "11-5-故障降级矩阵与双机热备",
+     "text": "11.5 故障降级矩阵与双机热备",
+     "level": 3
+    },
+    {
+     "id": "故障降级矩阵",
+     "text": "故障降级矩阵",
+     "level": 4
+    },
+    {
+     "id": "灾备双机模式",
+     "text": "灾备双机模式",
+     "level": 4
+    },
+    {
+     "id": "11-6-运维日常",
+     "text": "11.6 运维日常",
+     "level": 3
+    }
+   ],
+   "words": 2806,
+   "file": "content/posts/2026/hft-engineering-11-production-ops/index.md",
+   "html": "p/hft-engineering-11-production-ops.html",
+   "map": "",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "上线门禁清单、监控与报警怎么看、Kill Switch 分级、Capture/Replay 与故障降级矩阵。",
+    "points": [
+     "11.1 上线前检查清单（门禁）",
+     "11.2 监控：看什么、怎么报警",
+     "监控分层",
+     "报警哲学",
+     "关键盲区：静默失败",
+     "11.3 Kill Switch 分级"
+    ],
+    "keywords": [
+     "hft",
+     "performance"
+    ],
+    "reading": 9
+   }
+  },
+  {
+   "slug": "hft-engineering-10-risk-slippage",
+   "year": "2026",
+   "title": "风控合规与滑点控制",
+   "author": "cshonor",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "hft",
+    "quant"
+   ],
+   "summary": "Pre-Trade 本地拒单链、滑点怎么度量、审计日志与监管报送，以及风控什么时候该故意失效。",
+   "license": "CC BY 4.0",
+   "series": "hft-embedded-linux-14",
+   "series_title": "HFT 工程实践",
+   "order": 10,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "10-1-pre-trade-风控-本地拒单链",
+     "text": "10.1 Pre-Trade 风控：本地拒单链",
+     "level": 3
+    },
+    {
+     "id": "热路径预算",
+     "text": "热路径预算",
+     "level": 4
+    },
+    {
+     "id": "10-2-滑点度量-执行质量的标尺",
+     "text": "10.2 滑点度量：执行质量的标尺",
+     "level": 3
+    },
+    {
+     "id": "implementation-shortfall-分解",
+     "text": "Implementation Shortfall 分解",
+     "level": 4
+    },
+    {
+     "id": "10-3-合规-审计日志与监管报送",
+     "text": "10.3 合规：审计日志与监管报送",
+     "level": 3
+    },
+    {
+     "id": "10-4-风控降级-什么时候故意失效",
+     "text": "10.4 风控降级：什么时候故意失效",
+     "level": 3
+    }
+   ],
+   "words": 2141,
+   "file": "content/posts/2026/hft-engineering-10-risk-slippage/index.md",
+   "html": "p/hft-engineering-10-risk-slippage.html",
+   "map": "",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "Pre-Trade 本地拒单链、滑点怎么度量、审计日志与监管报送，以及风控什么时候该故意失效。",
+    "points": [
+     "10.1 Pre-Trade 风控：本地拒单链",
+     "热路径预算",
+     "10.2 滑点度量：执行质量的标尺",
+     "Implementation Shortfall 分解",
+     "10.3 合规：审计日志与监管报送",
+     "10.4 风控降级：什么时候故意失效"
+    ],
+    "keywords": [
+     "hft",
+     "quant"
+    ],
+    "reading": 7
+   }
+  },
+  {
+   "slug": "hft-engineering-09-latency-benchmark",
+   "year": "2026",
+   "title": "延迟测量与基准压测",
+   "author": "cshonor",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "hft",
+    "performance",
+    "linux"
+   ],
+   "summary": "内核旁路与 mmap、跨数据中心链路、异步日志，以及怎样把延迟测准而不是测出漂亮数字。",
+   "license": "CC BY 4.0",
+   "series": "hft-embedded-linux-14",
+   "series_title": "HFT 工程实践",
+   "order": 9,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "9-1-内核旁路-kernel-bypass",
+     "text": "9.1 内核旁路 (Kernel Bypass)",
+     "level": 3
+    },
+    {
+     "id": "传统路径的代价",
+     "text": "传统路径的代价",
+     "level": 4
+    },
+    {
+     "id": "bypass-核心",
+     "text": "Bypass 核心",
+     "level": 4
+    },
+    {
+     "id": "9-2-内存映射文件-mmap-与-ipc",
+     "text": "9.2 内存映射文件 (mmap) 与 IPC",
+     "level": 3
+    },
+    {
+     "id": "9-3-跨数据中心-微波与空芯光纤",
+     "text": "9.3 跨数据中心：微波与空芯光纤",
+     "level": 3
+    },
+    {
+     "id": "9-4-移出关键路径-异步日志",
+     "text": "9.4 移出关键路径：异步日志",
+     "level": 3
+    },
+    {
+     "id": "为何同步日志致命",
+     "text": "为何同步日志致命",
+     "level": 4
+    },
+    {
+     "id": "异步架构",
+     "text": "异步架构",
+     "level": 4
+    },
+    {
+     "id": "9-5-精确性能测量与基准测试",
+     "text": "9.5 精确性能测量与基准测试",
+     "level": 3
+    },
+    {
+     "id": "消除非确定性-测前必做",
+     "text": "消除非确定性（测前必做）",
+     "level": 4
+    },
+    {
+     "id": "时间戳工具",
+     "text": "时间戳工具",
+     "level": 4
+    },
+    {
+     "id": "端到端-tick-to-trade-ttt-t2t",
+     "text": "端到端 Tick-to-Trade (TTT / T2T)",
+     "level": 4
+    }
+   ],
+   "words": 2848,
+   "file": "content/posts/2026/hft-engineering-09-latency-benchmark/index.md",
+   "html": "p/hft-engineering-09-latency-benchmark.html",
+   "map": "",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "内核旁路与 mmap、跨数据中心链路、异步日志，以及怎样把延迟测准而不是测出漂亮数字。",
+    "points": [
+     "9.1 内核旁路 (Kernel Bypass)",
+     "传统路径的代价",
+     "Bypass 核心",
+     "9.2 内存映射文件 (mmap) 与 IPC",
+     "9.3 跨数据中心：微波与空芯光纤",
+     "9.4 移出关键路径：异步日志"
+    ],
+    "keywords": [
+     "hft",
+     "performance",
+     "linux"
+    ],
+    "reading": 9
+   }
+  },
+  {
+   "slug": "hft-engineering-08-engine-dev",
+   "year": "2026",
+   "title": "超低延迟核心引擎开发",
+   "author": "cshonor",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "hft",
+    "cpp",
+    "performance"
+   ],
+   "summary": "C++ 内存模型、消除运行时决策、动态内存与异常的禁区，以及一份 FX 高频架构清单。",
+   "license": "CC BY 4.0",
+   "series": "hft-embedded-linux-14",
+   "series_title": "HFT 工程实践",
+   "order": 8,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "8-1-c-内存模型-memory-model",
+     "text": "8.1 C++ 内存模型 (Memory Model)",
+     "level": 3
+    },
+    {
+     "id": "作用",
+     "text": "作用",
+     "level": 4
+    },
+    {
+     "id": "内存顺序层级",
+     "text": "内存顺序层级",
+     "level": 4
+    },
+    {
+     "id": "8-2-消除运行时决策",
+     "text": "8.2 消除运行时决策",
+     "level": 3
+    },
+    {
+     "id": "虚函数的代价",
+     "text": "虚函数的代价",
+     "level": 4
+    },
+    {
+     "id": "crtp-静态多态",
+     "text": "CRTP：静态多态",
+     "level": 4
+    },
+    {
+     "id": "禁止-rtti",
+     "text": "禁止 RTTI",
+     "level": 4
+    },
+    {
+     "id": "8-3-动态内存分配与异常",
+     "text": "8.3 动态内存分配与异常",
+     "level": 3
+    },
+    {
+     "id": "堆分配的问题",
+     "text": "堆分配的问题",
+     "level": 4
+    },
+    {
+     "id": "解决方案",
+     "text": "解决方案",
+     "level": 4
+    },
+    {
+     "id": "异常的惩罚",
+     "text": "异常的惩罚",
+     "level": 4
+    },
+    {
+     "id": "8-4-模板与-stl-容器",
+     "text": "8.4 模板与 STL 容器",
+     "level": 3
+    },
+    {
+     "id": "编译期多态",
+     "text": "编译期多态",
+     "level": 4
+    },
+    {
+     "id": "stl-容器选择",
+     "text": "STL 容器选择",
+     "level": 4
+    },
+    {
+     "id": "8-5-静态分析",
+     "text": "8.5 静态分析",
+     "level": 3
+    },
+    {
+     "id": "8-6-实战-fx-高频交易系统架构清单",
+     "text": "8.6 实战：FX 高频交易系统架构清单",
+     "level": 3
+    },
+    {
+     "id": "8-7-关键路径组件-应用层",
+     "text": "8.7 关键路径组件（应用层）",
+     "level": 3
+    }
+   ],
+   "words": 4142,
+   "file": "content/posts/2026/hft-engineering-08-engine-dev/index.md",
+   "html": "p/hft-engineering-08-engine-dev.html",
+   "map": "",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "C++ 内存模型、消除运行时决策、动态内存与异常的禁区，以及一份 FX 高频架构清单。",
+    "points": [
+     "8.1 C++ 内存模型 (Memory Model)",
+     "作用",
+     "内存顺序层级",
+     "8.2 消除运行时决策",
+     "虚函数的代价",
+     "CRTP：静态多态"
+    ],
+    "keywords": [
+     "hft",
+     "cpp",
+     "performance"
+    ],
+    "reading": 14
+   }
+  },
+  {
+   "slug": "hft-engineering-07-lockless-memory",
+   "year": "2026",
+   "title": "无锁数据结构与内存布局",
+   "author": "cshonor",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "hft",
+    "cpp",
+    "performance"
+   ],
+   "summary": "锁为什么不能用、无锁 FIFO 队列怎么写、内存预分配与缓存友好布局的工程手段。",
+   "license": "CC BY 4.0",
+   "series": "hft-embedded-linux-14",
+   "series_title": "HFT 工程实践",
+   "order": 7,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "7-1-传统锁的致命弱点",
+     "text": "7.1 传统锁的致命弱点",
+     "level": 3
+    },
+    {
+     "id": "7-2-无锁-fifo-队列",
+     "text": "7.2 无锁 FIFO 队列",
+     "level": 3
+    },
+    {
+     "id": "spsc-mpmc",
+     "text": "SPSC / MPMC",
+     "level": 4
+    },
+    {
+     "id": "应用场景",
+     "text": "应用场景",
+     "level": 4
+    },
+    {
+     "id": "7-3-内存预分配与缓存友好",
+     "text": "7.3 内存预分配与缓存友好",
+     "level": 3
+    },
+    {
+     "id": "延迟数量级",
+     "text": "延迟数量级",
+     "level": 4
+    },
+    {
+     "id": "空间与时间局部性",
+     "text": "空间与时间局部性",
+     "level": 4
+    },
+    {
+     "id": "消除不可预测分支",
+     "text": "消除不可预测分支",
+     "level": 4
+    },
+    {
+     "id": "禁止热点动态分配",
+     "text": "禁止热点动态分配",
+     "level": 4
+    },
+    {
+     "id": "7-4-共享内存-ipc-mmap-无锁环",
+     "text": "7.4 共享内存 IPC：mmap + 无锁环",
+     "level": 3
+    },
+    {
+     "id": "7-5-c-内存序-无锁必备",
+     "text": "7.5 C++ 内存序（无锁必备）",
+     "level": 3
+    },
+    {
+     "id": "7-6-lmax-disruptor-参考架构",
+     "text": "7.6 LMAX Disruptor（参考架构）",
+     "level": 3
+    }
+   ],
+   "words": 2738,
+   "file": "content/posts/2026/hft-engineering-07-lockless-memory/index.md",
+   "html": "p/hft-engineering-07-lockless-memory.html",
+   "map": "",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "锁为什么不能用、无锁 FIFO 队列怎么写、内存预分配与缓存友好布局的工程手段。",
+    "points": [
+     "7.1 传统锁的致命弱点",
+     "7.2 无锁 FIFO 队列",
+     "SPSC / MPMC",
+     "应用场景",
+     "7.3 内存预分配与缓存友好",
+     "延迟数量级"
+    ],
+    "keywords": [
+     "hft",
+     "cpp",
+     "performance"
+    ],
+    "reading": 9
+   }
+  },
+  {
+   "slug": "hft-engineering-06-network",
+   "year": "2026",
+   "title": "低延迟网络与协议优化",
+   "author": "cshonor",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "hft",
+    "network",
+    "performance"
+   ],
+   "summary": "交换机与网卡硬件、TCP 与 UDP 的取舍、金融应用层协议与数据包的内核路径。",
+   "license": "CC BY 4.0",
+   "series": "hft-embedded-linux-14",
+   "series_title": "HFT 工程实践",
+   "order": 6,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "6-1-网络硬件与交换机",
+     "text": "6.1 网络硬件与交换机",
+     "level": 3
+    },
+    {
+     "id": "网络基础与硬件",
+     "text": "网络基础与硬件",
+     "level": 4
+    },
+    {
+     "id": "交换机转发模式-延迟关键",
+     "text": "交换机转发模式（延迟关键）",
+     "level": 4
+    },
+    {
+     "id": "6-2-tcp-与-udp",
+     "text": "6.2 TCP 与 UDP",
+     "level": 3
+    },
+    {
+     "id": "6-3-金融应用层协议",
+     "text": "6.3 金融应用层协议",
+     "level": 3
+    },
+    {
+     "id": "协议演进",
+     "text": "协议演进",
+     "level": 4
+    },
+    {
+     "id": "gateway-in-解码",
+     "text": "Gateway IN 解码",
+     "level": 4
+    },
+    {
+     "id": "6-4-数据包生命周期-kernel-路径",
+     "text": "6.4 数据包生命周期（Kernel 路径）",
+     "level": 3
+    },
+    {
+     "id": "这就是为什么需要-kernel-bypass",
+     "text": "这就是为什么需要 Kernel Bypass",
+     "level": 4
+    },
+    {
+     "id": "6-5-监控与时间同步",
+     "text": "6.5 监控与时间同步",
+     "level": 3
+    },
+    {
+     "id": "抓包-tap",
+     "text": "抓包：TAP",
+     "level": 4
+    },
+    {
+     "id": "ptp-精确时间协议",
+     "text": "PTP（精确时间协议）",
+     "level": 4
+    },
+    {
+     "id": "6-6-广域链路",
+     "text": "6.6 广域链路",
+     "level": 3
+    }
+   ],
+   "words": 2570,
+   "file": "content/posts/2026/hft-engineering-06-network/index.md",
+   "html": "p/hft-engineering-06-network.html",
+   "map": "",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "交换机与网卡硬件、TCP 与 UDP 的取舍、金融应用层协议与数据包的内核路径。",
+    "points": [
+     "6.1 网络硬件与交换机",
+     "网络基础与硬件",
+     "交换机转发模式（延迟关键）",
+     "6.2 TCP 与 UDP",
+     "6.3 金融应用层协议",
+     "协议演进"
+    ],
+    "keywords": [
+     "hft",
+     "network",
+     "performance"
+    ],
+    "reading": 9
+   }
+  },
+  {
+   "slug": "hft-engineering-05-kernel-tuning",
+   "year": "2026",
+   "title": "操作系统内核极致调优",
+   "author": "cshonor",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "hft",
+    "linux",
+    "kernel"
+   ],
+   "summary": "上下文切换代价、CPU 隔离与绑核、Kernel Bypass、BIOS 电源与 HugePage 的实操口径。",
+   "license": "CC BY 4.0",
+   "series": "hft-embedded-linux-14",
+   "series_title": "HFT 工程实践",
+   "order": 5,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "5-1-上下文切换的代价",
+     "text": "5.1 上下文切换的代价",
+     "level": 3
+    },
+    {
+     "id": "5-2-cpu-隔离与核心绑定",
+     "text": "5.2 CPU 隔离与核心绑定",
+     "level": 3
+    },
+    {
+     "id": "5-3-kernel-bypass",
+     "text": "5.3 Kernel Bypass",
+     "level": 3
+    },
+    {
+     "id": "5-4-bios-电源-降低-jitter",
+     "text": "5.4 BIOS / 电源：降低 Jitter",
+     "level": 3
+    },
+    {
+     "id": "5-5-huge-pages-与-tlb",
+     "text": "5.5 Huge Pages 与 TLB",
+     "level": 3
+    }
+   ],
+   "words": 1618,
+   "file": "content/posts/2026/hft-engineering-05-kernel-tuning/index.md",
+   "html": "p/hft-engineering-05-kernel-tuning.html",
+   "map": "",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "上下文切换代价、CPU 隔离与绑核、Kernel Bypass、BIOS 电源与 HugePage 的实操口径。",
+    "points": [
+     "5.1 上下文切换的代价",
+     "5.2 CPU 隔离与核心绑定",
+     "5.3 Kernel Bypass",
+     "5.4 BIOS / 电源：降低 Jitter",
+     "5.5 Huge Pages 与 TLB"
+    ],
+    "keywords": [
+     "hft",
+     "linux",
+     "kernel"
+    ],
+    "reading": 5
+   }
+  },
+  {
+   "slug": "hft-engineering-04-hardware-os",
+   "year": "2026",
+   "title": "HFT 系统基础：硬件到操作系统",
+   "author": "cshonor",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "hft",
+    "linux",
+    "performance"
+   ],
+   "summary": "NUMA、超线程与缓存金字塔对延迟的影响，以及操作系统抽象与编译器链接的代价。",
+   "license": "CC BY 4.0",
+   "series": "hft-embedded-linux-14",
+   "series_title": "HFT 工程实践",
+   "order": 4,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "4-1-numa-超线程与缓存金字塔",
+     "text": "4.1 NUMA、超线程与缓存金字塔",
+     "level": 3
+    },
+    {
+     "id": "numa-非统一内存访问",
+     "text": "NUMA（非统一内存访问）",
+     "level": 4
+    },
+    {
+     "id": "超线程-hyper-threading-陷阱",
+     "text": "超线程（Hyper-threading）陷阱",
+     "level": 4
+    },
+    {
+     "id": "缓存金字塔-cache-hierarchy",
+     "text": "缓存金字塔（Cache Hierarchy）",
+     "level": 4
+    },
+    {
+     "id": "4-2-操作系统抽象的代价",
+     "text": "4.2 操作系统抽象的代价",
+     "level": 3
+    },
+    {
+     "id": "user-space-vs-kernel-space",
+     "text": "User Space vs Kernel Space",
+     "level": 4
+    },
+    {
+     "id": "上下文切换-context-switch",
+     "text": "上下文切换（Context Switch）",
+     "level": 4
+    },
+    {
+     "id": "内存管理与大页-huge-pages",
+     "text": "内存管理与大页（Huge Pages）",
+     "level": 4
+    },
+    {
+     "id": "中断-interruption",
+     "text": "中断（Interruption）",
+     "level": 4
+    },
+    {
+     "id": "4-3-编译器与链接",
+     "text": "4.3 编译器与链接",
+     "level": 3
+    },
+    {
+     "id": "编译期优化",
+     "text": "编译期优化",
+     "level": 4
+    },
+    {
+     "id": "静态链接-vs-动态链接",
+     "text": "静态链接 vs 动态链接",
+     "level": 4
+    },
+    {
+     "id": "4-4-硬件选型速查-工程",
+     "text": "4.4 硬件选型速查（工程）",
+     "level": 3
+    },
+    {
+     "id": "fpga-纳秒级",
+     "text": "FPGA（纳秒级）",
+     "level": 4
+    }
+   ],
+   "words": 2116,
+   "file": "content/posts/2026/hft-engineering-04-hardware-os/index.md",
+   "html": "p/hft-engineering-04-hardware-os.html",
+   "map": "",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "NUMA、超线程与缓存金字塔对延迟的影响，以及操作系统抽象与编译器链接的代价。",
+    "points": [
+     "4.1 NUMA、超线程与缓存金字塔",
+     "NUMA（非统一内存访问）",
+     "超线程（Hyper-threading）陷阱",
+     "缓存金字塔（Cache Hierarchy）",
+     "4.2 操作系统抽象的代价",
+     "User Space vs Kernel Space"
+    ],
+    "keywords": [
+     "hft",
+     "linux",
+     "performance"
+    ],
+    "reading": 7
+   }
+  },
+  {
+   "slug": "hft-engineering-03-orderbook-matching",
+   "year": "2026",
+   "title": "交易所动态与订单簿",
+   "author": "cshonor",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "hft",
+    "quant"
+   ],
+   "summary": "订单进入交易所后的路径、撮合引擎的三种场景与同价匹配算法，以及本地 Book Builder。",
+   "license": "CC BY 4.0",
+   "series": "hft-embedded-linux-14",
+   "series_title": "HFT 工程实践",
+   "order": 3,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "3-1-交易所核心功能与订单路径",
+     "text": "3.1 交易所核心功能与订单路径",
+     "level": 3
+    },
+    {
+     "id": "订单进入撮合的路径",
+     "text": "订单进入撮合的路径",
+     "level": 4
+    },
+    {
+     "id": "3-2-撮合引擎三种基础场景",
+     "text": "3.2 撮合引擎三种基础场景",
+     "level": 3
+    },
+    {
+     "id": "最佳价格-best-price",
+     "text": "最佳价格（Best Price）",
+     "level": 4
+    },
+    {
+     "id": "部分成交-partial-fill",
+     "text": "部分成交（Partial Fill）",
+     "level": 4
+    },
+    {
+     "id": "无匹配-no-match",
+     "text": "无匹配（No Match）",
+     "level": 4
+    },
+    {
+     "id": "3-3-同价匹配算法-核心",
+     "text": "3.3 同价匹配算法（核心）",
+     "level": 3
+    },
+    {
+     "id": "fifo-的致命细节",
+     "text": "FIFO 的致命细节",
+     "level": 4
+    },
+    {
+     "id": "算法选择-系统设计",
+     "text": "算法选择 → 系统设计",
+     "level": 4
+    },
+    {
+     "id": "3-4-共址与市场数据",
+     "text": "3.4 共址与市场数据",
+     "level": 3
+    },
+    {
+     "id": "3-5-本地-book-builder-与行情解析",
+     "text": "3.5 本地 Book Builder 与行情解析",
+     "level": 3
+    }
+   ],
+   "words": 2130,
+   "file": "content/posts/2026/hft-engineering-03-orderbook-matching/index.md",
+   "html": "p/hft-engineering-03-orderbook-matching.html",
+   "map": "",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "订单进入交易所后的路径、撮合引擎的三种场景与同价匹配算法，以及本地 Book Builder。",
+    "points": [
+     "3.1 交易所核心功能与订单路径",
+     "订单进入撮合的路径",
+     "3.2 撮合引擎三种基础场景",
+     "最佳价格（Best Price）",
+     "部分成交（Partial Fill）",
+     "无匹配（No Match）"
+    ],
+    "keywords": [
+     "hft",
+     "quant"
+    ],
+    "reading": 7
+   }
+  },
+  {
+   "slug": "hft-engineering-02-exchange-components",
+   "year": "2026",
+   "title": "交易系统关键组件",
+   "author": "cshonor",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "hft",
+    "quant",
+    "network"
+   ],
+   "summary": "Gateway、订单簿构建器、策略引擎与 OMS 各自负责什么，订单怎样流过关键路径。",
+   "license": "CC BY 4.0",
+   "series": "hft-embedded-linux-14",
+   "series_title": "HFT 工程实践",
+   "order": 2,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "2-1-关键路径总览与网关-gateways",
+     "text": "2.1 关键路径总览与网关（Gateways）",
+     "level": 3
+    },
+    {
+     "id": "关键路径总览",
+     "text": "关键路径总览",
+     "level": 4
+    },
+    {
+     "id": "网关",
+     "text": "网关",
+     "level": 4
+    },
+    {
+     "id": "gateway-in",
+     "text": "Gateway IN",
+     "level": 5
+    },
+    {
+     "id": "gateway-out",
+     "text": "Gateway OUT",
+     "level": 5
+    },
+    {
+     "id": "2-2-订单簿构建器-book-builder",
+     "text": "2.2 订单簿构建器（Book Builder）",
+     "level": 3
+    },
+    {
+     "id": "与交易所-lob-的关系",
+     "text": "与交易所 LOB 的关系",
+     "level": 4
+    },
+    {
+     "id": "2-3-策略引擎与-oms",
+     "text": "2.3 策略引擎与 OMS",
+     "level": 3
+    },
+    {
+     "id": "策略引擎-strategy",
+     "text": "策略引擎（Strategy）",
+     "level": 4
+    },
+    {
+     "id": "signal-信号",
+     "text": "Signal（信号）",
+     "level": 5
+    },
+    {
+     "id": "execution-执行",
+     "text": "Execution（执行）",
+     "level": 5
+    },
+    {
+     "id": "订单管理系统-oms",
+     "text": "订单管理系统（OMS）",
+     "level": 4
+    },
+    {
+     "id": "2-4-网络通信与-api",
+     "text": "2.4 网络通信与 API",
+     "level": 3
+    },
+    {
+     "id": "2-5-非关键路径组件",
+     "text": "2.5 非关键路径组件",
+     "level": 3
+    },
+    {
+     "id": "2-6-撮合原理-策略视角",
+     "text": "2.6 撮合原理（策略视角）",
+     "level": 3
+    }
+   ],
+   "words": 2730,
+   "file": "content/posts/2026/hft-engineering-02-exchange-components/index.md",
+   "html": "p/hft-engineering-02-exchange-components.html",
+   "map": "",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "Gateway、订单簿构建器、策略引擎与 OMS 各自负责什么，订单怎样流过关键路径。",
+    "points": [
+     "2.1 关键路径总览与网关（Gateways）",
+     "关键路径总览",
+     "网关",
+     "Gateway IN",
+     "Gateway OUT",
+     "2.2 订单簿构建器（Book Builder）"
+    ],
+    "keywords": [
+     "hft",
+     "quant",
+     "network"
+    ],
+    "reading": 9
+   }
+  },
+  {
+   "slug": "hft-engineering-01-fundamentals",
+   "year": "2026",
+   "title": "高频交易基础与生态",
+   "author": "cshonor",
+   "co_authors": [],
+   "date": "2026-10-20",
+   "updated": "2026-10-20",
+   "tags": [
+    "hft",
+    "quant",
+    "performance"
+   ],
+   "summary": "Tick-to-Trade 延迟是什么量级，热路径与冷路径如何划分，语言栈怎么选。",
+   "license": "CC BY 4.0",
+   "series": "hft-embedded-linux-14",
+   "series_title": "HFT 工程实践",
+   "order": 1,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "1-1-系统核心架构-关键路径",
+     "text": "1.1 系统核心架构（关键路径）",
+     "level": 3
+    },
+    {
+     "id": "1-2-热路径与冷路径-tick-to-trade-生命线",
+     "text": "1.2 热路径与冷路径（Tick-to-Trade 生命线）",
+     "level": 3
+    },
+    {
+     "id": "热路径工程硬性约束",
+     "text": "热路径工程硬性约束",
+     "level": 4
+    },
+    {
+     "id": "1-3-硬件与操作系统优化-概览",
+     "text": "1.3 硬件与操作系统优化（概览）",
+     "level": 3
+    },
+    {
+     "id": "1-4-无锁数据结构与-ipc-概览",
+     "text": "1.4 无锁数据结构与 IPC（概览）",
+     "level": 3
+    },
+    {
+     "id": "1-5-编程语言选择",
+     "text": "1.5 编程语言选择",
+     "level": 3
+    },
+    {
+     "id": "c-关键路径首选",
+     "text": "C++（关键路径首选）",
+     "level": 4
+    },
+    {
+     "id": "java",
+     "text": "Java",
+     "level": 4
+    },
+    {
+     "id": "python",
+     "text": "Python",
+     "level": 4
+    },
+    {
+     "id": "1-6-网络协议与物理传输",
+     "text": "1.6 网络协议与物理传输",
+     "level": 3
+    },
+    {
+     "id": "1-7-fpga-纳秒级",
+     "text": "1.7 FPGA（纳秒级）",
+     "level": 3
+    },
+    {
+     "id": "1-8-实战启动建议",
+     "text": "1.8 实战启动建议",
+     "level": 3
+    }
+   ],
+   "words": 3827,
+   "file": "content/posts/2026/hft-engineering-01-fundamentals/index.md",
+   "html": "p/hft-engineering-01-fundamentals.html",
+   "map": "",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "Tick-to-Trade 延迟是什么量级，热路径与冷路径如何划分，语言栈怎么选。",
+    "points": [
+     "1.1 系统核心架构（关键路径）",
+     "1.2 热路径与冷路径（Tick-to-Trade 生命线）",
+     "热路径工程硬性约束",
+     "1.3 硬件与操作系统优化（概览）",
+     "1.4 无锁数据结构与 IPC（概览）",
+     "1.5 编程语言选择"
+    ],
+    "keywords": [
+     "hft",
+     "quant",
+     "performance"
+    ],
+    "reading": 13
+   }
+  },
+  {
+   "slug": "cortex-m-bringup",
+   "year": "2026",
+   "title": "From a Blank Board to RTT: A Cortex-M Bring-Up Field Note",
+   "author": "sal",
+   "co_authors": [],
+   "date": "2026-10-19",
+   "updated": "2026-10-19",
+   "tags": [
+    "rust",
+    "embedded",
+    "probe-rs",
+    "walkthrough"
+   ],
+   "summary": "A weekend bring-up log: toolchain, wiring, first flash, RTT, and the checks that save an afternoon.",
+   "license": "",
+   "series": null,
+   "series_title": "",
+   "order": null,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "what-you-actually-need",
+     "text": "What you actually need",
+     "level": 3
+    },
+    {
+     "id": "toolchain-in-three-commands",
+     "text": "Toolchain in three commands",
+     "level": 3
+    },
+    {
+     "id": "wiring-slowly",
+     "text": "Wiring, slowly",
+     "level": 3
+    },
+    {
+     "id": "first-contact",
+     "text": "First contact",
+     "level": 3
+    },
+    {
+     "id": "flash-and-run",
+     "text": "Flash and run",
+     "level": 3
+    },
+    {
+     "id": "rtt-instead-of-a-serial-port",
+     "text": "RTT instead of a serial port",
+     "level": 3
+    },
+    {
+     "id": "when-nothing-works",
+     "text": "When nothing works",
+     "level": 3
+    },
+    {
+     "id": "what-i-would-do-differently",
+     "text": "What I would do differently",
+     "level": 3
+    },
+    {
+     "id": "中文备注",
+     "text": "中文备注",
+     "level": 3
+    }
+   ],
+   "words": 5097,
+   "file": "content/posts/2026/cortex-m-bringup/index.md",
+   "html": "p/cortex-m-bringup.html",
+   "map": "p/cortex-m-bringup.map.svg",
+   "default_lang": "zh",
+   "langs": {
+    "en": {
+     "html": "p/cortex-m-bringup.en.html",
+     "title": "From a Blank Board to RTT: A Cortex-M Bring-Up Field Note",
+     "summary": "A weekend bring-up log: toolchain, wiring, first flash, RTT, and the checks that save an afternoon.",
+     "tags": [
+      "rust",
+      "embedded",
+      "probe-rs",
+      "walkthrough"
+     ],
+     "words": 5099
+    },
+    "zh": {
+     "html": "p/cortex-m-bringup.html",
+     "title": "From a Blank Board to RTT: A Cortex-M Bring-Up Field Note",
+     "summary": "A weekend bring-up log: toolchain, wiring, first flash, RTT, and the checks that save an afternoon.",
+     "tags": [
+      "rust",
+      "embedded",
+      "probe-rs",
+      "walkthrough"
+     ],
+     "words": 5097
+    }
+   },
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "A weekend bring-up log: toolchain, wiring, first flash, RTT, and the checks that save an afternoon.",
+    "points": [
+     "What you actually need",
+     "Toolchain in three commands",
+     "Wiring, slowly",
+     "First contact",
+     "Flash and run",
+     "RTT instead of a serial port"
+    ],
+    "keywords": [
+     "rust",
+     "embedded",
+     "probe-rs",
+     "walkthrough"
+    ],
+    "reading": 17
+   },
+   "topics": [
+    "probe-rs"
+   ]
+  },
+  {
+   "slug": "md-writing",
+   "year": "2026",
+   "title": "投稿其实很简单：写 Markdown 就行",
+   "author": "sal",
+   "co_authors": [],
+   "date": "2026-09-20",
+   "updated": "2026-09-20",
+   "tags": [
+    "指南",
+    "markdown",
+    "投稿"
+   ],
+   "summary": "不用学 SML。文章用 Markdown 写，front matter 填几个字段，提 PR 即可；SML 只是给需要更强结构的人准备的。",
+   "license": "CC BY-NC-SA 4.0",
+   "series": "rust-embedded-101",
+   "series_title": "Rust 嵌入式入门",
+   "order": 2,
+   "video": "",
+   "attachments": [],
+   "toc": [
+    {
+     "id": "为什么不用逼你学-sml",
+     "text": "为什么不用逼你学 SML",
+     "level": 3
+    },
+    {
+     "id": "文件长什么样",
+     "text": "文件长什么样",
+     "level": 3
+    },
+    {
+     "id": "正文能写什么",
+     "text": "正文能写什么",
+     "level": 3
+    },
+    {
+     "id": "附件",
+     "text": "附件",
+     "level": 3
+    },
+    {
+     "id": "最后",
+     "text": "最后",
+     "level": 3
+    }
+   ],
+   "words": 1023,
+   "file": "content/posts/2026/md-writing/index.md",
+   "html": "p/md-writing.html",
+   "map": "p/md-writing.map.svg",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "不用学 SML。文章用 Markdown 写，front matter 填几个字段，提 PR 即可；SML 只是给需要更强结构的人准备的。",
+    "points": [
+     "为什么不用逼你学 SML",
+     "文件长什么样",
+     "正文能写什么",
+     "附件",
+     "最后"
+    ],
+    "keywords": [
+     "指南",
+     "markdown",
+     "投稿"
+    ],
+    "reading": 3
+   }
+  },
+  {
+   "slug": "hello-rec",
+   "year": "2026",
+   "title": "从零点亮一块板子：probe-rs + Rust 的第一步",
+   "author": "sal",
+   "co_authors": [],
+   "date": "2026-09-19",
+   "updated": "2026-09-19",
+   "tags": [
+    "rust",
+    "embedded",
+    "probe-rs"
+   ],
+   "summary": "不讲大道理，先把程序烧进去：probe-rs 安装、连接、烧录、打日志的完整最小路径。",
+   "license": "CC BY-NC-SA 4.0",
+   "series": "rust-embedded-101",
+   "series_title": "",
+   "order": 1,
+   "video": "BV1GJ411x7h7",
+   "attachments": [
+    {
+     "name": "示例工程",
+     "kind": "link",
+     "url": "https://gitee.com/rustembed/site",
+     "size": "—",
+     "code": ""
+    }
+   ],
+   "toc": [
+    {
+     "id": "为什么从工具链讲起",
+     "text": "为什么从工具链讲起",
+     "level": 2
+    },
+    {
+     "id": "setup",
+     "text": "安装",
+     "level": 2
+    },
+    {
+     "id": "flash",
+     "text": "烧录与日志",
+     "level": 2
+    },
+    {
+     "id": "pitfalls",
+     "text": "常见坑",
+     "level": 2
+    }
+   ],
+   "words": 569,
+   "file": "content/posts/2026/hello-rec/index.sml",
+   "html": "p/hello-rec.html",
+   "map": "p/hello-rec.map.svg",
+   "ai_summary": {
+    "source": "extractive",
+    "one_line": "不讲大道理，先把程序烧进去：probe-rs 安装、连接、烧录、打日志的完整最小路径。",
+    "points": [
+     "为什么从工具链讲起",
+     "安装",
+     "烧录与日志",
+     "常见坑"
+    ],
+    "keywords": [
+     "rust",
+     "embedded",
+     "probe-rs"
+    ],
+    "reading": 2
+   },
+   "topics": [
+    "probe-rs"
+   ]
+  }
+ ],
+ "quotes": [
+  {
+   "member": "anonymous",
+   "name": "暂时匿名的群友",
+   "text": "好看的皮囊经不起扫黄打非，有趣的灵魂又涉嫌账号违规",
+   "source": "暂时匿名的群友"
+  },
+  {
+   "member": "sal",
+   "name": "Sal",
+   "text": "为你而来，有你我在",
+   "source": "Sal"
+  }
+ ],
+ "projects": [
+  {
+   "id": "rec-blog",
+   "name": "rec-blog",
+   "one_liner": "群博客：SML 写内容，构建期预渲染，静态托管。",
+   "repo": "https://gitee.com/rustembed/site",
+   "homepage": "",
+   "languages": [
+    "python",
+    "javascript"
+   ],
+   "platforms": [
+    "web"
+   ],
+   "tags": [
+    "活跃开发"
+   ],
+   "status": "active",
+   "license": "MulanPSL-2",
+   "owner": "sal",
+   "contributors": [
+    "sal"
+   ],
+   "related_series": [],
+   "related_posts": [
+    "md-writing"
+   ],
+   "featured": true,
+   "meta": {
+    "host": "gitee",
+    "url": "https://gitee.com/rustembed/site",
+    "stars": 3,
+    "forks": 3,
+    "language": null,
+    "license": null,
+    "updated_at": "2026-10-23T19:19:38+08:00",
+    "description": "群页面",
+    "archived": false,
+    "fetched_at": "2026-10-24T13:28:08+00:00",
+    "stale": false
+   }
+  },
+  {
+   "id": "bfxh-bshsq",
+   "name": "BSHSQ",
+   "one_liner": "Rust 自研物理引擎，覆盖刚体、碰撞与仿真。",
+   "repo": "https://github.com/bfxh/BSHSQ",
+   "homepage": "",
+   "languages": [],
+   "platforms": [],
+   "tags": [
+    "Rust",
+    "物理引擎",
+    "图形与仿真",
+    "活跃开发"
+   ],
+   "status": "active",
+   "license": "",
+   "owner": "",
+   "contributors": [],
+   "related_series": [],
+   "related_posts": [],
+   "featured": false,
+   "meta": {
+    "host": "github",
+    "url": "https://github.com/bfxh/BSHSQ",
+    "stars": 2,
+    "forks": 1,
+    "language": "Rust",
+    "license": "Apache-2.0",
+    "updated_at": "2026-10-22T20:32:10Z",
+    "description": "BSHSQ ——  自研 Rust 物理引擎",
+    "archived": false,
+    "fetched_at": "2026-10-24T13:28:01+00:00",
+    "stale": false,
+    "languages_pct": {
+     "Rust": 91.4,
+     "Python": 3.9,
+     "WGSL": 2.6,
+     "Shell": 2.1
+    }
+   }
+  },
+  {
+   "id": "cshonor-hft-embedded-linux",
+   "name": "HFT / 嵌入式 Linux 学习笔记",
+   "one_liner": "HFT 低延迟 Linux 与嵌入式飞控的体系化笔记。",
+   "repo": "https://github.com/cshonor/hft-embedded-linux-study",
+   "homepage": "",
+   "languages": [
+    "c",
+    "rust",
+    "cpp"
+   ],
+   "platforms": [],
+   "tags": [
+    "活跃开发"
+   ],
+   "status": "active",
+   "license": "",
+   "owner": "cshonor",
+   "contributors": [],
+   "related_series": [
+    "hft-embedded-linux-14"
+   ],
+   "related_posts": [],
+   "featured": false,
+   "meta": {
+    "host": "github",
+    "url": "https://github.com/cshonor/hft-embedded-linux-study",
+    "stars": 11,
+    "forks": 3,
+    "language": "HTML",
+    "license": null,
+    "updated_at": "2026-10-24T12:26:32Z",
+    "description": "Low-level Linux systems deep-dive: HFT low-latency, kernel/memory/concurrency, with a parallel track on embedded UAV flight control.",
+    "archived": false,
+    "fetched_at": "2026-10-24T13:28:03+00:00",
+    "stale": false,
+    "languages_pct": {
+     "HTML": 95.1,
+     "C": 3.0,
+     "Rust": 0.9,
+     "C++": 0.4,
+     "Shell": 0.2,
+     "Python": 0.1,
+     "Makefile": 0.1,
+     "PowerShell": 0.1,
+     "LLVM": 0.1
+    }
+   }
+  },
+  {
+   "id": "cshonor-ldd",
+   "name": "Linux 驱动开发",
+   "one_liner": "内核模块与设备驱动开发笔记。",
+   "repo": "https://github.com/cshonor/LDD-",
+   "homepage": "",
+   "languages": [
+    "c"
+   ],
+   "platforms": [],
+   "tags": [
+    "活跃开发"
+   ],
+   "status": "active",
+   "license": "",
+   "owner": "cshonor",
+   "contributors": [],
+   "related_series": [],
+   "related_posts": [],
+   "featured": false,
+   "meta": {
+    "host": "github",
+    "url": "https://github.com/cshonor/LDD-",
+    "stars": 1,
+    "forks": 0,
+    "language": "C",
+    "license": null,
+    "updated_at": "2026-10-08T06:10:25Z",
+    "description": " Linux 内核模块（Kernel Module）和设备驱动（Device Driver）的开发",
+    "archived": false,
+    "fetched_at": "2026-10-24T13:28:03+00:00",
+    "stale": false,
+    "languages_pct": {
+     "C": 82.6,
+     "Python": 10.9,
+     "Makefile": 5.9,
+     "Shell": 0.6
+    }
+   }
+  },
+  {
+   "id": "cshonor-rust-concurrency",
+   "name": "Rust 并发与异步",
+   "one_liner": "Rust 并发、异步与无锁实践，面向高性能场景。",
+   "repo": "https://github.com/cshonor/rust-concurrency-async-practice",
+   "homepage": "",
+   "languages": [
+    "rust"
+   ],
+   "platforms": [],
+   "tags": [
+    "活跃开发"
+   ],
+   "status": "active",
+   "license": "",
+   "owner": "cshonor",
+   "contributors": [],
+   "related_series": [],
+   "related_posts": [],
+   "featured": false,
+   "meta": {
+    "host": "github",
+    "url": "https://github.com/cshonor/rust-concurrency-async-practice",
+    "stars": 2,
+    "forks": 0,
+    "language": "Rust",
+    "license": null,
+    "updated_at": "2026-06-09T08:13:50Z",
+    "description": "个人 Rust 并发与异步编程专属学习仓库，记录从入门到进阶的完整学习全过程。 专门针对： 原生多线程、作用域线程、Send/Sync 线程安全 原子操作、内存排序、锁与无锁并发原理 crossbeam 无锁队列与高级并发工具 Tokio 异步 Runtime、TCP/UDP/WebSocket 异步 IO Rayon 极简并行化批量数据处理 每一个主题都配有可直接运行的示例代码与个人学习笔记，一步步吃透 Rust 高性能高并发核心能力，为 Rust 后端、量化高频开发求职做技术储备。",
+    "archived": false,
+    "fetched_at": "2026-10-24T13:28:04+00:00",
+    "stale": false,
+    "languages_pct": {
+     "Rust": 70.7,
+     "Python": 17.6,
+     "PowerShell": 11.7
+    }
+   }
+  },
+  {
+   "id": "sal-sml",
+   "name": "SML标记语言",
+   "one_liner": "介于JSON和YML之间的优秀替代品，gitee推荐项目",
+   "repo": "https://gitee.com/snoware/sml",
+   "homepage": "",
+   "languages": [
+    "rust"
+   ],
+   "platforms": [],
+   "tags": [
+    "活跃开发"
+   ],
+   "status": "active",
+   "license": "MulanPSL2",
+   "owner": "sal",
+   "contributors": [],
+   "related_series": [],
+   "related_posts": [],
+   "featured": false,
+   "meta": {
+    "host": "gitee",
+    "url": "https://gitee.com/snoware/sml",
+    "stars": 4,
+    "forks": 6,
+    "language": null,
+    "license": null,
+    "updated_at": "2026-10-16T01:15:26+08:00",
+    "description": "居于json和yaml之间的标记语言",
+    "archived": false,
+    "fetched_at": "2026-10-24T13:28:18+00:00",
+    "stale": false
+   }
+  },
+  {
+   "id": "cshonor-stm32-rtos",
+   "name": "STM32 + RTOS",
+   "one_liner": "STM32 与 RTOS 的嵌入式练习。",
+   "repo": "https://github.com/cshonor/stm32-rtos",
+   "homepage": "",
+   "languages": [
+    "c"
+   ],
+   "platforms": [],
+   "tags": [
+    "活跃开发"
+   ],
+   "status": "active",
+   "license": "",
+   "owner": "cshonor",
+   "contributors": [],
+   "related_series": [],
+   "related_posts": [],
+   "featured": false,
+   "meta": {
+    "host": "github",
+    "url": "https://github.com/cshonor/stm32-rtos",
+    "stars": 3,
+    "forks": 0,
+    "language": "C",
+    "license": null,
+    "updated_at": "2026-10-23T15:26:54Z",
+    "description": null,
+    "archived": false,
+    "fetched_at": "2026-10-24T13:28:05+00:00",
+    "stale": false,
+    "languages_pct": {
+     "C": 27.3,
+     "Makefile": 21.5,
+     "Shell": 20.9,
+     "Python": 11.5,
+     "Assembly": 9.4,
+     "Linker Script": 9.4
+    }
+   }
+  },
+  {
+   "id": "bfxh-trit",
+   "name": "trit",
+   "one_liner": "Rust 原生三值推理工具箱：K3 / Ł3 / B3、SAT、BDD、网表 X 传播。",
+   "repo": "https://github.com/bfxh/trit",
+   "homepage": "",
+   "languages": [],
+   "platforms": [],
+   "tags": [
+    "Rust",
+    "逻辑与形式化",
+    "社区精选",
+    "活跃开发"
+   ],
+   "status": "active",
+   "license": "",
+   "owner": "",
+   "contributors": [],
+   "related_series": [],
+   "related_posts": [],
+   "featured": false,
+   "meta": {
+    "host": "github",
+    "url": "https://github.com/bfxh/trit",
+    "stars": 1,
+    "forks": 1,
+    "language": "Rust",
+    "license": "Apache-2.0",
+    "updated_at": "2026-10-24T12:16:41Z",
+    "description": "三值逻辑：Kleene / Łukasiewicz / Bochvar 三套语义的求值、真值表、等价判定、代数化简与网表故障分析（Rust）",
+    "archived": false,
+    "fetched_at": "2026-10-24T13:28:01+00:00",
+    "stale": false,
+    "languages_pct": {
+     "Rust": 91.9,
+     "Python": 6.4,
+     "WGSL": 1.2,
+     "HTML": 0.5
+    }
+   }
+  },
+  {
+   "id": "cshonor-computer-networking",
+   "name": "计算机网络",
+   "one_liner": "后端网络原理、Socket、TCP/IP 与排查实践。",
+   "repo": "https://github.com/cshonor/Computer-Networking",
+   "homepage": "",
+   "languages": [
+    "python"
+   ],
+   "platforms": [],
+   "tags": [
+    "活跃开发"
+   ],
+   "status": "active",
+   "license": "",
+   "owner": "cshonor",
+   "contributors": [],
+   "related_series": [],
+   "related_posts": [],
+   "featured": false,
+   "meta": {
+    "host": "github",
+    "url": "https://github.com/cshonor/Computer-Networking",
+    "stars": 8,
+    "forks": 0,
+    "language": "Python",
+    "license": null,
+    "updated_at": "2026-06-11T14:22:37Z",
+    "description": "专为后端开发打造，聚焦：网络原理、Socket 编程、TCP/IP 底层、服务端网络问题排查。",
+    "archived": false,
+    "fetched_at": "2026-10-24T13:28:02+00:00",
+    "stale": false,
+    "languages_pct": {
+     "Python": 56.9,
+     "C": 35.7,
+     "Rust": 7.4
+    }
+   }
+  },
+  {
+   "id": "cshonor-quant-ai",
+   "name": "量化与 AI 基础",
+   "one_liner": "量化、智能体、期权期货所需的数学与计算机基础。",
+   "repo": "https://github.com/cshonor/Quant-AI-Foundations",
+   "homepage": "",
+   "languages": [
+    "python"
+   ],
+   "platforms": [],
+   "tags": [
+    "活跃开发"
+   ],
+   "status": "active",
+   "license": "",
+   "owner": "cshonor",
+   "contributors": [],
+   "related_series": [],
+   "related_posts": [],
+   "featured": false,
+   "meta": {
+    "host": "github",
+    "url": "https://github.com/cshonor/Quant-AI-Foundations",
+    "stars": 7,
+    "forks": 0,
+    "language": "Python",
+    "license": null,
+    "updated_at": "2026-09-29T12:47:40Z",
+    "description": "本仓库包含三大主要方向所需的数学与计算机科学基础知识： 1. 股票多因子量化 2. 智能体开发 3. 期权期货量化（随机金融）",
+    "archived": false,
+    "fetched_at": "2026-10-24T13:28:04+00:00",
+    "stale": false,
+    "languages_pct": {
+     "Python": 56.9,
+     "HTML": 36.4,
+     "Jupyter Notebook": 6.7
+    }
+   }
+  }
+ ],
+ "members": [
+  {
+   "id": "anonymous",
+   "name": "暂时匿名的群友",
+   "avatar": "",
+   "_avatar_src": "",
+   "signature": "",
+   "role": "群友",
+   "skills": [],
+   "links": {},
+   "joined": "",
+   "file": "content/members/anonymous.sml"
+  },
+  {
+   "id": "bfxh",
+   "name": "bfxh",
+   "avatar": "assets/members/bfxh.jpg",
+   "_avatar_src": "/home/runner/work/rustembed-site/rustembed-site/site/content/avatars/bfxh.jpg",
+   "signature": "",
+   "role": "群友",
+   "skills": [
+    "Rust",
+    "形式化",
+    "物理引擎",
+    "图形",
+    "输入法",
+    "Python"
+   ],
+   "links": {
+    "github": "https://github.com/bfxh",
+    "email": "lb139c@qq.com"
+   },
+   "joined": "",
+   "file": "content/members/bfxh.sml"
+  },
+  {
+   "id": "cshonor",
+   "name": "CShonor",
+   "avatar": "assets/members/cshonor.jpg",
+   "_avatar_src": "/home/runner/work/rustembed-site/rustembed-site/site/content/avatars/cshonor.jpg",
+   "signature": "HFT 低延迟系统 / Linux 内核 / Rust · C · C++ / 量化金融",
+   "role": "群友",
+   "skills": [
+    "rust",
+    "c",
+    "cpp",
+    "linux",
+    "hft",
+    "kernel",
+    "quant"
+   ],
+   "links": {
+    "github": "https://github.com/cshonor"
+   },
+   "joined": "",
+   "file": "content/members/cshonor.sml"
+  },
+  {
+   "id": "cxi",
+   "name": "CXi",
+   "avatar": "assets/members/cxi.jpg",
+   "_avatar_src": "/home/runner/work/rustembed-site/rustembed-site/site/content/avatars/cxi.jpg",
+   "signature": "大道所至之处天下安宁",
+   "role": "群主",
+   "skills": [],
+   "links": {
+    "github": "https://github.com/cx693"
+   },
+   "joined": "",
+   "file": "content/members/cxi.sml"
+  },
+  {
+   "id": "sal",
+   "name": "Sal",
+   "avatar": "assets/members/sal.jpg",
+   "_avatar_src": "/home/runner/work/rustembed-site/rustembed-site/site/content/avatars/sal.jpg",
+   "signature": "为你而来，有你我在",
+   "role": "管理员",
+   "skills": [
+    "rust",
+    "embedded",
+    "sml",
+    "python",
+    "linux",
+    "server"
+   ],
+   "links": {
+    "blog": "https://sml.swebase.cn",
+    "gitee": "https://gitee.com/Ironbayberry",
+    "gitee_org": "https://gitee.com/snoware/",
+    "email": "sal@mail.swebase.cn"
+   },
+   "joined": "2026-01-01",
+   "file": "content/members/sal.sml"
+  }
+ ],
+ "services": [
+  {
+   "id": "pcb-emc-review",
+   "name": "PCB 布局与 EMC 走线复查",
+   "owner": "sal",
+   "skills": [
+    "pcb",
+    "emc",
+    "altium",
+    "stm32"
+   ],
+   "wants": [
+    "小批量硬件一起做",
+    "固件移植交流"
+   ],
+   "contact": [
+    "email",
+    "gitee"
+   ],
+   "rate": "远程评审；需要寄样板时走快递；时间与方式私聊，不谈价格",
+   "status": "active",
+   "updated": "2026-10-16",
+   "html": "services/pcb-emc-review.html",
+   "map": "services/pcb-emc-review.map.svg",
+   "toc": [
+    {
+     "id": "能做什么",
+     "text": "能做什么",
+     "level": 2
+    },
+    {
+     "id": "协作方式",
+     "text": "协作方式",
+     "level": 2
+    }
+   ],
+   "text": "两层改四层、开关电源布局、USB / CAN 的 EMI 问题都可以发过来看。按「走线 + 回流路径 + 接口保护」三件事给结论，附修改建议。 能做什么 布局与分层评审：电源入口、时钟线、敏感模拟区 EMC 预扫：贴片后不过认证的常见原因（回流路径、共地、线束） 小批量打样跟线：嘉立创 / 捷配都可，出了问题协助定位 协作方式 先发 Gerber 与原理图，一小时内回复能不能接；时间与方式双方自行约定，走你自己的渠道结算。本站只展示这条信息，不担保结果、不抽成、不介入纠纷。",
+   "file": "content/services/pcb-emc-review.sml"
+  }
+ ],
+ "resources": [
+  {
+   "id": "probe-rs",
+   "title": "probe-rs",
+   "file": "content/resources/probe-rs.sml",
+   "kind": "tool",
+   "url": "https://github.com/probe-rs/probe-rs",
+   "tags": [
+    "debug",
+    "flashing",
+    "tool"
+   ],
+   "note": "Rust 生态的调试探针驱动与工具集，全平台可用；本站文章《从零点亮一块板子》用的就是它。",
+   "folder": "",
+   "code": "",
+   "meta": {
+    "host": "github",
+    "url": "https://github.com/probe-rs/probe-rs",
+    "stars": 2982,
+    "forks": 673,
+    "language": "Rust",
+    "license": "Apache-2.0",
+    "updated_at": "2026-10-24T13:15:01Z",
+    "description": "A debugging toolset and library for debugging embedded ARM and RISC-V targets on a separate host",
+    "archived": false,
+    "fetched_at": "2026-10-24T13:28:20+00:00",
+    "stale": false,
+    "languages_pct": {
+     "Rust": 100.0
+    }
+   }
+  },
+  {
+   "id": "rust-embedded-book",
+   "title": "The Embedded Rust Book",
+   "file": "content/resources/rust-embedded-book.sml",
+   "kind": "book",
+   "url": "https://docs.rust-embedded.org/book/",
+   "tags": [
+    "rust",
+    "embedded",
+    "book"
+   ],
+   "note": "官方入门书，no_std 与外设访问的基础概念都在这里。",
+   "folder": "",
+   "code": "",
+   "meta": null
+  },
+  {
+   "id": "rust-from-noob-to-master",
+   "title": "Rust从入门到入土",
+   "file": "content/resources/rust-from-noob-to-master.sml",
+   "kind": "tutorial",
+   "url": "https://snowcloud.lanzouc.com/i9f0w4cyuhgj",
+   "tags": [
+    "rust",
+    "book",
+    "入门",
+    "群主推荐"
+   ],
+   "note": "一本群主推荐的Rust入门书",
+   "folder": "",
+   "code": "",
+   "meta": null
+  }
+ ],
+ "weekly": [
+  {
+   "id": "2026-W38",
+   "title": "站点搭起来了",
+   "file": "content/weekly/2026-W38.sml",
+   "period": "2026-W38",
+   "highlights": [
+    "仓库与构建流水线定型：SML 写内容，构建期预渲染",
+    "投稿走 PR，也可交给群管理代投"
+   ],
+   "merged": [
+    "hello-rec"
+   ],
+   "contributors": [
+    "sal"
+   ],
+   "html": "w/2026-W38.html",
+   "toc": [],
+   "text": "本周把群博客的骨架立起来了：内容写 SML，构建脚本产出 manifest 与预渲染页面，托管侧只放静态文件。 下一步是收稿。欢迎把你的板子、你的坑、你的项目写成一篇。",
+   "map": "w/2026-W38.map.svg"
+  }
+ ],
+ "topics": [
+  {
+   "id": "embedded-rust-toolchain",
+   "title": "嵌入式 Rust 工具链",
+   "summary": "从宿主机到目标板的一整套工具：rustup target、cargo runner、probe-rs / defmt、以及它们的取舍。",
+   "tags": [
+    "toolchain"
+   ],
+   "posts": [],
+   "related": [
+    "probe-rs"
+   ],
+   "html": "topics/embedded-rust-toolchain.html",
+   "map": "topics/embedded-rust-toolchain.map.svg",
+   "toc": [
+    {
+     "id": "定义",
+     "text": "定义",
+     "level": 3
+    },
+    {
+     "id": "组成",
+     "text": "组成",
+     "level": 3
+    },
+    {
+     "id": "判断原则",
+     "text": "判断原则",
+     "level": 3
+    }
+   ],
+   "text": "定义 指把 Rust 代码变成能在 MCU 上跑起来的一整条链路：交叉编译目标三元组、链接脚本与内存布局、 烧录与调试后端、日志与追踪（defmt / RTT / ITM）、以及包管理与构建配置。 组成 rustup target add thumbv7em-none-eabihf 之类的目标三元组 .cargo/config.toml ：runner、linker、target 默认值 memory.x + build.rs ：告诉链接器 Flash/RAM 布局 烧录/调试：probe-rs（推荐）、OpenOCD、pyOCD 日志：defmt + RTT（低开销、不阻塞），串口 core::fmt 作为兜底 判断原则 工具链越短越好：能用一个命令跑通就别写脚本；能靠配置解决的别靠记忆。",
+   "file": "content/topics/embedded-rust-toolchain.md",
+   "resolved": []
+  },
+  {
+   "id": "probe-rs",
+   "title": "probe-rs",
+   "summary": "Rust 生态里的调试/烧录工具链：一条命令连上探针、烧录、看 RTT 日志，替代 OpenOCD + gdb 的组合。",
+   "tags": [
+    "probe-rs"
+   ],
+   "posts": [],
+   "related": [
+    "embedded-rust-toolchain"
+   ],
+   "html": "topics/probe-rs.html",
+   "map": "topics/probe-rs.map.svg",
+   "toc": [
+    {
+     "id": "定义",
+     "text": "定义",
+     "level": 3
+    },
+    {
+     "id": "为什么用它",
+     "text": "为什么用它",
+     "level": 3
+    },
+    {
+     "id": "常见坑",
+     "text": "常见坑",
+     "level": 3
+    }
+   ],
+   "text": "定义 probe-rs 是一套用 Rust 写的调试探针驱动与工具集，覆盖 CMSIS-DAP、ST-Link、J-Link 等常见探针， 提供 probe-rs run / probe-rs list 等命令，并通过 RTT（Real-Time Transfer）在不停机的情况下看日志。 为什么用它 一条命令完成烧录 + 复位 + 日志，不需要维护 OpenOCD 配置文件 与 cargo run 集成（ .cargo/config.toml 里设 runner），日常开发只按一次 跨平台，Windows 上不需要装额外驱动包（除探针自身驱动） 常见坑 探针固件过旧会连不上，先升级固件 芯片读保护状态下烧录失败，先解除保护 --chip 型号写错时报的是「找不到目标」，不是「连接失败」",
+   "file": "content/topics/probe-rs.md",
+   "resolved": [
+    "cortex-m-bringup",
+    "hello-rec"
+   ]
+  }
+ ],
+ "pages": [
+  {
+   "id": "join",
+   "title": "加入我们 / 合作与内推",
+   "file": "content/pages/join.sml",
+   "html": "pages/join.html",
+   "group": "关于",
+   "order": 1,
+   "group_link": "https://qm.qq.com/q/uo06W0c7Is",
+   "toc": [
+    {
+     "id": "怎么加入",
+     "text": "怎么加入",
+     "level": 2
+    },
+    {
+     "id": "合作与内推",
+     "text": "合作与内推",
+     "level": 2
+    },
+    {
+     "id": "本站由",
+     "text": "本站由",
+     "level": 2
+    }
+   ],
+   "text": "怎么加入 加 QQ 群即可参与共建：写文章、做项目、整理资源，任选一种。 会写：投稿技术文章（PR 或交给群管理代投） 会做：把你的项目挂上项目墙 会整理：往资源库里加书、教程、工具链 合作与内推 群里会不定期放出实习、项目合作与内推信息。有需要的在群里直接说，或让群管理代发。 本站不收集任何个人隐私信息；公开在成员页上的联系方式均为本人自愿提供。 本站由 站点内容用 SML （或 Markdown）书写，构建期预渲染为静态页面；契约校验、导图目录、AI 可读索引都由同一条流水线产出。 想了解这门格式： sml.swebase.cn 。",
+   "map": "pages/join.map.svg"
+  },
+  {
+   "id": "privacy",
+   "title": "隐私与数据",
+   "file": "content/pages/privacy.md",
+   "html": "pages/privacy.html",
+   "group": "关于",
+   "order": 2,
+   "group_link": "",
+   "toc": [
+    {
+     "id": "我们不做的事",
+     "text": "我们不做的事",
+     "level": 3
+    },
+    {
+     "id": "我们会处理的少量数据",
+     "text": "我们会处理的少量数据",
+     "level": 3
+    },
+    {
+     "id": "图片与个人信息",
+     "text": "图片与个人信息",
+     "level": 3
+    },
+    {
+     "id": "密钥",
+     "text": "密钥",
+     "level": 3
+    },
+    {
+     "id": "安全问题的报告",
+     "text": "安全问题的报告",
+     "level": 3
+    }
+   ],
+   "text": "我们不做的事 不接入第三方统计、广告、社交脚本 （没有 Google Analytics、百度统计、埋点 SDK）； 不设 Cookie 用于追踪（站点是纯静态页面，构建期生成，运行时只读自己的 manifest.json ）； 字体与静态资源全部自托管 （若使用 MiSans，也是子集化后放在本站，不请求第三方 CDN）； 不收集 访客的姓名、手机号、邮箱、位置； 不做用户账号体系 ：站点没有登录、没有评论（讨论回 QQ 群）。 我们会处理的少量数据 数据 用途 位置 成员联系方式（博客/Gitee/邮箱） 成员页展示 由本人在 site/content/members/<id>.sml 自愿提供并授权展示 文章与附件 内容发布 公开仓库（Gitee），随站点构建 访问日志（IP、UA、时间） 服务商侧的运维与防滥用 Cloudflare 侧，站点代码不读取、不存储 成员若想隐藏邮箱：把 links 里的 email 一行删掉即可，下次构建后生效（历史提交仍可从 Git 记录看到，介意的话请一开始就不要写）。 图片与个人信息 投稿前请自查：截图中是否含密钥、内部地址、手机号、真实姓名、身份证件、他人肖像。 附件规则要求清除照片 EXIF（含地理信息）。发现遗漏请立即提 PR 修正或联系管理员下架。 密钥 CF Pages Token、Gitee Token 只放在 GitHub Secrets 与管理员本地，不进仓库、不进群聊、不贴截图。 一旦怀疑泄露：立即通知管理员，当天轮换（见「仓库与分支制度」）。 安全问题的报告 发现站点被篡改、被挂马、内容被恶意替换，或有其它安全问题时： 不要在群里公开细节（避免被利用）； 私信任一管理员，说明 现象 / 时间 / 可能影响范围 ； 管理员按 docs/DEPLOY.md 的流程处理：先止损（回滚 / 下架）、再定位、最后公开说明。 我们承诺：善意报告安全问题不会被视为找麻烦；处理结果会以「发生了什么、怎么修的、以后怎么防」三段式说明。",
+   "map": "pages/privacy.map.svg"
+  },
+  {
+   "id": "write-markdown",
+   "title": "Markdown 写作速查",
+   "file": "content/pages/write-markdown.sml",
+   "html": "pages/write-markdown.html",
+   "group": "写作",
+   "order": 1,
+   "group_link": "",
+   "toc": [
+    {
+     "id": "最小可用模板",
+     "text": "最小可用模板",
+     "level": 2
+    },
+    {
+     "id": "正文语法",
+     "text": "正文语法",
+     "level": 2
+    },
+    {
+     "id": "进阶",
+     "text": "进阶",
+     "level": 2
+    },
+    {
+     "id": "加资源",
+     "text": "加资源",
+     "level": 2
+    },
+    {
+     "id": "不会",
+     "text": "不会",
+     "level": 2
+    }
+   ],
+   "text": "最小可用模板 新建 content/posts/<年份>/<英文短名>/index.md，粘贴下面这段就能开工。 markdown 复制 --- title: \"文章标题\" author: 你的成员id date: 2026-09-20 tags: [ rust embedded ] summary: \"一两句摘要\" --- ## 第一个小节 正文…… 作者 id 与 content/members/<id>.sml 对应；没有档案也能发，只是不会链接到个人页。 正文语法 写法 效果 ## 标题 小节标题（会进侧栏章节树与导图） **粗体** / *斜体* / ~~删除线~~ 行内样式 `行内代码` 等宽高亮 [文字](https://…) 链接 ![说明](assets/x.png) 图片（图放同目录 assets/） ![说明](assets/x.png \"图注\") 带图注的图 > 引用 引用块 - 列表 / 1. 列表 无序 / 有序，缩进两格可嵌套 | a | b | 表格（第二行写 |---|） 单独一行 BV 号 自动嵌入 B 站视频 进阶 系列文章：front matter 里写 series: {id, title, order}，会自动进侧栏树并生成上一章/下一章 视频：也可以写在 front matter 的 video 字段 附件：图片入库（同目录 assets/），其余外链，写在 front matter 的 attachments 里 内联角色： 文字 、 术语 、 公 式 、 文字 在 Markdown 里同样可用 字段写错会被内容契约拦下，报错形如 [E-CONTRACT-003] 缺少必填字段 summary（字符串） 契约清单与字段说明见「文档 → 规范 → 内容契约」（由 content/contracts/*.sml 自动生成） 构建会校验必填字段、图片是否存在、附件类型与体积；写错会直接报错，不用自己猜。 加资源 文章用 Markdown；资源、项目、成员、互助是结构化条目，用 SML。SML 不是编程，只是「字段: 值」列表。 sml 复制 title: \"The Embedded Rust Book\" kind: book url: \"https://docs.rust-embedded.org/book/\" tags: [ rust embedded book ] note: \"官方入门书，no_std 与外设访问的基础概念都在这里。\" 复制模板到 content/resources/<英文短名>.sml；引擎按目录自动套 Resource 契约，不需要写契约名。 字段表用 python engine/cli.py contracts 查看；完整模板在仓库 templates/ 与 docs/CONTRIBUTING.md。 不会 把 Markdown / SML 文件和图片打包发到群里，说明作者署名用哪个 id。 有仓库权限的管理员代投，PR 里注明原作者；预览链接发回给你确认。 不需要注册 Gitee、不需要配 SSH。",
+   "map": "pages/write-markdown.map.svg"
+  },
+  {
+   "id": "write-sml",
+   "title": "SML 写作速查（可选格式）",
+   "file": "content/pages/write-sml.sml",
+   "html": "pages/write-sml.html",
+   "group": "写作",
+   "order": 2,
+   "group_link": "",
+   "toc": [
+    {
+     "id": "什么时候值得用",
+     "text": "什么时候值得用",
+     "level": 2
+    },
+    {
+     "id": "让人觉得舒服的四个点",
+     "text": "让人觉得舒服的四个点",
+     "level": 2
+    },
+    {
+     "id": "多行文本直接写",
+     "text": "多行文本直接写",
+     "level": 3
+    },
+    {
+     "id": "裸词即字符串",
+     "text": "裸词即字符串",
+     "level": 3
+    },
+    {
+     "id": "块冒号可省",
+     "text": "块冒号可省",
+     "level": 3
+    },
+    {
+     "id": "片段复用",
+     "text": "片段复用",
+     "level": 3
+    },
+    {
+     "id": "本站支持的块",
+     "text": "本站支持的块",
+     "level": 2
+    }
+   ],
+   "text": "什么时候值得用 Markdown 够用的场合就用 Markdown。下面这些情况 SML 更顺手： 需要严格字段校验（错字段名会直接报错，而不是被静默忽略） 要写定理 / 证明 / 公式这类结构化内容 同一段内容要在多处复用（片段 &引用） 希望正文与元数据在同一个文件里都是结构化数据 让人觉得舒服的四个点 多行文本直接写 引号里的换行就是换行，不用 转义。段落里想怎么写就怎么写—— 第二行照样是同一段文字，缩进也不影响解析（SML 不依赖缩进定界）。 空行也在字符串里原样保留。 裸词即字符串 中文、邮箱、路径都不用加引号，只有含空格或特殊符号时才需要。 sml 复制 state: NY to: a@b.c path: /api/v1/health contain_space: \"才需要引号\" 含中文的裸词: 也可以 块冒号可省 address { } 与 address: { } 等价；数组里逗号可选、可换行、可混着写。 sml 复制 server { host: db1.internal port: 5432 } tags: [ urgent internal q3 ] ports: [ 80, 443, 8080 ] 片段复用 把重复的部分定义成 @名字，用 &名字 以值的形式引用。本站的成员档案就是这么写的。 sml 复制 @链接 { repo: \"https://gitee.com/rustembed/site\" sml: \"https://sml.swebase.cn\" } 档案 { name: Sal links: &链接 } 参考： 本仓库 、 SML 官网 。 本站支持的块 块 用途 topic / section 标题，自动进章节树与导图；带 label 生成锚点 para 段落（text 字段支持内联角色） code { lang text } 代码块 quote 引用 ul / ol { items: [ … ] } 列表 table { head rows } 表格 img { src alt caption } 图片 video { bvid } B 站视频（只接受 BV 号） note / tip / warn 提示框 theorem / proof / math 定理、证明、公式 内联角色： 文字 、 术语 、 强调 、 E = m c 2 、 文字 。",
+   "map": "pages/write-sml.map.svg"
+  },
+  {
+   "id": "roles",
+   "title": "角色与权限制度",
+   "file": "content/pages/roles.md",
+   "html": "pages/roles.html",
+   "group": "制度",
+   "order": 1,
+   "group_link": "",
+   "toc": [
+    {
+     "id": "三层权限-互不相干",
+     "text": "三层权限，互不相干",
+     "level": 3
+    },
+    {
+     "id": "谁可以做什么",
+     "text": "谁可以做什么",
+     "level": 3
+    },
+    {
+     "id": "成为贡献者-拿写权限",
+     "text": "成为贡献者（拿写权限）",
+     "level": 3
+    },
+    {
+     "id": "权限回收",
+     "text": "权限回收",
+     "level": 3
+    },
+    {
+     "id": "代投与署名",
+     "text": "代投与署名",
+     "level": 3
+    },
+    {
+     "id": "决策方式",
+     "text": "决策方式",
+     "level": 3
+    }
+   ],
+   "text": "三层权限，互不相干 这个站点有三处权限， 互相独立 ：群里的身份（QQ 群管理）不等于仓库权限，仓库权限不等于 CF Pages 发布权限。 角色 Gitee 仓库（权威源） GitHub（只读镜像 + 构建） Cloudflare Pages（发布） 群主 CXi Owner：可改一切、可任免管理员 — — 管理员（多名） Developer：可合并 PR、建分支、改契约与配置 — 发布权限（持有 API Token 者） 贡献者 Developer（累计 3 篇通过后授予） — — 群友 无写权限：fork + PR，或交给管理员代投 — — 机器人 / CI — Actions 用仓库自带 GITHUB_TOKEN 由 Actions 用 Token 发布 原则： 给最小够用的权限 。GitHub 侧原则上不给人写权限——它是镜像，只由 CI 更新；CF Pages 的 Token 只放在 GitHub Secrets 与管理员本地。 谁可以做什么 改内容 （文章、文档页、词条、成员档案、资源、周报）：所有人走 PR；贡献者可直接建分支提 PR；管理员可直接合并。 改制度与规范 ：只有管理员。制度改动必须在 PR 描述里写明「改了哪条、为什么」。 改契约 （ site/content/contracts/*.sml ）：只有管理员。契约一改，所有人的校验规则与站文档会同时变，必须单开 PR。 改引擎 （ engine/ ）与站点配置（ site/content/site.sml ）：只有管理员。 发布与回滚 ：管理员。回滚步骤见 docs/DEPLOY.md 。 成为贡献者（拿写权限） 以 PR 形式提交并通过 ≥ 3 篇内容（文章或文档页）； 在群里向任意管理员提出申请，说明想长期参与的方向； 管理员两人以上无异议即授予仓库 Developer 权限； 记录在案（成员档案里 role 字段更新）。 权限回收 出现下列情形之一即回收写权限，并在群里说明理由：连续 6 个月无有效贡献且本人同意回收、恶意提交、绕过审核直推 master、泄露站点密钥、严重违反内容边界。 代投与署名 管理员代投时必须保留原作者署名（ author / co_authors 字段），并在 PR 描述里注明「代投，原作者 @某群成员」。代投不改变版权归属。 决策方式 日常事务：任一管理员可决定。 制度变更、权限授予/回收、下架争议： 两名以上管理员同意 。 分歧无法收敛时，在群里公开说明两方理由，由群主裁决。",
+   "map": "pages/roles.map.svg"
+  },
+  {
+   "id": "repo-policy",
+   "title": "仓库与分支制度",
+   "file": "content/pages/repo-policy.md",
+   "html": "pages/repo-policy.html",
+   "group": "制度",
+   "order": 2,
+   "group_link": "",
+   "toc": [
+    {
+     "id": "分支模型-保持极简",
+     "text": "分支模型（保持极简）",
+     "level": 3
+    },
+    {
+     "id": "提交信息",
+     "text": "提交信息",
+     "level": 3
+    },
+    {
+     "id": "pr-要求",
+     "text": "PR 要求",
+     "level": 3
+    },
+    {
+     "id": "内容与文件的放置约定",
+     "text": "内容与文件的放置约定",
+     "level": 3
+    },
+    {
+     "id": "标签与流程状态",
+     "text": "标签与流程状态",
+     "level": 3
+    },
+    {
+     "id": "密钥与安全",
+     "text": "密钥与安全",
+     "level": 3
+    },
+    {
+     "id": "发布与回滚",
+     "text": "发布与回滚",
+     "level": 3
+    }
+   ],
+   "text": "分支模型（保持极简） 只有一个长期分支 master 。 所有改动都经 PR ，包括管理员自己的改动——例外只有：修正错别字、修失效链接、紧急下架。 个人改动： feat/<简短说明> 、 fix/<简短说明> 、 content/<文章短名> 禁止： git push --force 到 master 、直接删除他人提交、把 dist/ 提交进仓库 一次 PR 只做一件事：一篇文章 / 一处制度改动 / 一个功能点 提交信息 格式： 类型: 说明 ，类型用 feat / fix / docs / content / chore / refactor 。 text 复制 content: 新增文章《probe-rs 上手》 docs: 角色与权限制度补充权限回收条款 fix: 修正附件体积上限描述错误 chore: 更新仓库元数据缓存 说明用中文写清楚「做了什么」，不要写「update」「修改」这类无信息量的内容。 PR 要求 PR 描述里必须有： 改了什么 （一句话）； 为什么 （制度类改动必填）； 自检结果 ：本地跑过 python engine/cli.py test && python engine/cli.py build && python engine/cli.py check ； 涉及新字段时：说明是否同步改了契约（ site/content/contracts/ ）。 审核：至少 1 名管理员通过；机械性改动（错字、链接）可由 1 人快速合并。目标响应时间 3 个工作日 。 内容与文件的放置约定 内容 位置 文章 site/content/posts/<年>/<英文短名>/index.md （或 .sml ），图片同目录 assets/ 站文档 / 制度 site/content/pages/*.md （ group + order 决定归组与顺序） 主题词条 site/content/topics/*.md 成员档案 site/content/members/<id>.sml （头像同名 <id>.jpg ） 项目 / 资源 / 周报 `site/content/projects resources weekly/` 契约 site/content/contracts/*.sml （只有管理员改） 引擎与主题 engine/ 、 site/theme/ （只有管理员改） 命名：目录与文件名一律 小写英文 + 连字符 ，不用中文与空格（中文标题写在 title 字段里）。 标签与流程状态 Issue 标签： 内容投稿 / 制度建议 / 站点故障 / 附件问题 / 待讨论 。 状态流转： 待处理 → 审核中 → 已合并 / 需修改 / 不采纳 ；「不采纳」必须写理由。 密钥与安全 CF Pages Token、Gitee Token 只存在于 GitHub Secrets 与管理员的本地环境， 不进仓库、不进群聊、不贴截图 ； 任何人发现密钥可能泄露，立即在群里通知管理员，管理员当天轮换； 站点不接入第三方统计与广告脚本（见「隐私与数据」）。 发布与回滚 发布链路：Gitee master →（每 6 小时单向镜像）→ GitHub → Actions 构建 → Cloudflare Pages。 回滚、紧急下架、故障处理步骤见 docs/DEPLOY.md （仓库内 docs/ ，仅面向开发者）。",
+   "map": "pages/repo-policy.map.svg"
+  },
+  {
+   "id": "editorial",
+   "title": "创作与审稿制度",
+   "file": "content/pages/editorial.md",
+   "html": "pages/editorial.html",
+   "group": "制度",
+   "order": 3,
+   "group_link": "",
+   "toc": [
+    {
+     "id": "投稿流程与时限",
+     "text": "投稿流程与时限",
+     "level": 3
+    },
+    {
+     "id": "审稿标准-按顺序看",
+     "text": "审稿标准（按顺序看）",
+     "level": 3
+    },
+    {
+     "id": "署名-版权与许可",
+     "text": "署名、版权与许可",
+     "level": 3
+    },
+    {
+     "id": "退稿与修改",
+     "text": "退稿与修改",
+     "level": 3
+    },
+    {
+     "id": "更新与纠错",
+     "text": "更新与纠错",
+     "level": 3
+    },
+    {
+     "id": "内容边界",
+     "text": "内容边界",
+     "level": 3
+    },
+    {
+     "id": "纠纷与异议",
+     "text": "纠纷与异议",
+     "level": 3
+    }
+   ],
+   "text": "投稿流程与时限 作者新建 site/content/posts/<年份>/<英文短名>/index.md （也可用 .sml ），本地跑一遍 python engine/cli.py build 与 check ； 提 PR（或在群里把稿子发给管理员代投，署名归作者）； 自动检查 + 管理员审阅： 3 个工作日内 给出结论； 通过即合并，下一次构建后上线；需要修改会写明原因与建议。 超时未回复可在群里 @ 任意管理员催办。没有回复不等于通过，不要自行合并。 审稿标准（按顺序看） 维度 要求 事实 命令、参数、代码能跑通；版本、平台、型号写清楚 可读 有摘要与章节结构，长文有小标题；不堆砌无关输出 合规 引用标出处；不含未授权转载与内部资料；截图抹掉密钥与个人信息 附件 图片入库、其它走外链，符合「附件规则」 格式 字段按契约填全（构建会自动校验，报错带 E-CONTRACT-xxx 与人话说明） 署名、版权与许可 署名默认写 author: <成员 id> ；多人合作用 co_authors ； 默认许可 CC BY-NC-SA 4.0 ，可在文章里用 license 字段覆盖；商用需作者另行授权； 翻译与转载他人内容必须标注来源与原作者，并确认对方许可； 代投不改变作者身份与版权归属。 退稿与修改 退稿会写明原因（事实错误 / 格式 / 许可 / 附件问题），可按意见修改后重提。 同一作者连续两篇因同类问题被退，管理员会在群里说明规则要点，避免反复返工。 更新与纠错 已上线文章发现错误：任何人均可提 PR 修正；文章会显示更新日期； 重大修订（结论变化、删改大段）需要原作者知情，管理员在 PR 里 @ 作者； 作者本人可随时要求更新或下架自己的文章。 内容边界 只谈技术与学习；不做商业推广（内推走「加入我们」页）； 不涉及违反法律法规、侵犯他人权益、危害他人的内容； 立场性争论不进入站点正文；可以写技术取舍，但不做人身评价。 纠纷与异议 对审稿结论有异议，可在群里提出，管理员 必须给出书面理由 ； 涉及下架与申诉的，按「下架与申诉制度」处理。",
+   "map": "pages/editorial.map.svg"
+  },
+  {
+   "id": "moderation",
+   "title": "下架与申诉制度",
+   "file": "content/pages/moderation.md",
+   "html": "pages/moderation.html",
+   "group": "制度",
+   "order": 4,
+   "group_link": "",
+   "toc": [
+    {
+     "id": "可以先下架-后说明的情形",
+     "text": "可以先下架、后说明的情形",
+     "level": 3
+    },
+    {
+     "id": "作者主动下架",
+     "text": "作者主动下架",
+     "level": 3
+    },
+    {
+     "id": "申诉",
+     "text": "申诉",
+     "level": 3
+    },
+    {
+     "id": "记录",
+     "text": "记录",
+     "level": 3
+    }
+   ],
+   "text": "可以先下架、后说明的情形 管理员可 先行下架 （把文章 draft: true 或撤下链接），再与作者沟通，仅限： 涉及未授权转载、版权投诉； 泄露密钥、个人信息、内部资料； 内容存在严重事实错误且可能误导他人； 附件含恶意文件或不可控风险。 下架时管理员必须在 PR / 群里写明： 哪篇、为什么、谁决定的 。 作者主动下架 作者本人可随时要求下架自己的文章：提 PR 改 draft: true ，或在群里告知任一管理员。 无需理由，管理员不得拖延；下架后如需恢复，作者说一声即可。 申诉 申诉渠道：群里 @ 任意管理员，或提 Issue（标签 制度建议 ）； 时限：管理员 2 个工作日内 回应； 处理：由未参与原决定的管理员复核；分歧时按「角色与权限制度」的决策方式处理（两名以上管理员同意，必要时群主裁决）； 结果与理由必须公开写明，不得只回复结论。 记录 每次下架与申诉都在 Issue 里留档：时间、文章、理由、决定人、结果。这些记录不删除，供以后核对。",
+   "map": "pages/moderation.map.svg"
+  },
+  {
+   "id": "yellow-pages",
+   "title": "能力与合作黄页制度",
+   "file": "content/pages/yellow-pages.md",
+   "html": "pages/yellow-pages.html",
+   "group": "制度",
+   "order": 5,
+   "group_link": "",
+   "toc": [
+    {
+     "id": "这是什么",
+     "text": "这是什么",
+     "level": 3
+    },
+    {
+     "id": "收录标准",
+     "text": "收录标准",
+     "level": 3
+    },
+    {
+     "id": "审核项-管理员合并前逐条看",
+     "text": "审核项（管理员合并前逐条看）",
+     "level": 3
+    },
+    {
+     "id": "下架",
+     "text": "下架",
+     "level": 3
+    },
+    {
+     "id": "申诉入口",
+     "text": "申诉入口",
+     "level": 3
+    },
+    {
+     "id": "本站明确不做的事",
+     "text": "本站明确不做的事",
+     "level": 3
+    }
+   ],
+   "text": "这是什么 「能力与合作」是群友 自愿登记 的黄页：成员把自己可供合作的能力（设计、审查、咨询、小批量制作等）写成条目，放在站点上展示。 它的性质必须一开始就说清： 本站只做信息展示 ：不参与交易、不担保、不抽成、不经手资金、不介入纠纷； 条目由 owner 字段对应的成员 本人提供并自负其责 ，不代表本站对任何个人或服务的认可或背书； 联系方式只能引用成员档案（ content/members/<id>.sml 的 links ）中本人授权公开的字段，本站不代收、不新收集任何个人信息； 站点默认许可为 CC BY-NC-SA 4.0（非商业） ，黄页条目同样适用；条目本身不构成商业授权，商用需与当事人另行约定； 本站 没有 支付、订单、撮合、站内私信、账号体系中的任何一个；谈合作、谈价钱、结算，全部在站外由双方自行完成。 收录标准 同时满足以下条件的条目才会被保留： owner 是已建档成员，且条目经本人同意（自己提 PR，或托管理代投并确认）； 内容只谈技术能力与合作方向，不夹带广告、拉客、返利、拉人头； contact 只引用成员档案 links 里已公开的键（ blog / homepage / github / gitee / email ）； 字段按契约 Service 填全（ name / owner / skills / contact / status / updated ），构建校验通过； 不涉及违法、侵权、危害他人权益的内容。 审核项（管理员合并前逐条看） 维度 看什么 身份 owner 是否本人、是否同意上架 联系方式 是否只用了本人已公开的 links 字段；有无夹带新的私人联系方式 表述 有无夸大、担保性承诺（「保证通过」「百分百」）、与他人比较的贬损性说法 费用 rate 是自由文本；只要求写清「谁向谁、按什么付」，本站不经手 状态 status 如实（ active / paused ）；长期暂停的条目会被提醒或合并下架 更新 updated 随内容变动维护，避免访客看到过期信息 下架 黄页条目与文章走同一套「下架与申诉制度」（见「下架与申诉制度」页）： 管理员可先行下架、后说明 ：仅限泄露个人信息、未授权转载、严重失实、夹带恶意文件四类情形；下架时必须在 PR 或群里写明 哪条、为什么、谁决定的 ； 本人随时可下架自己的条目 ：提 PR 改 status: paused 或删文件，或在群里告知任一管理员，无需理由、不得拖延；恢复同样说一声即可； 条目信息过期（ updated 超过一年且无法联系到本人）时，管理员会先提醒，联系不上则按 paused 处理。 申诉入口 渠道：群里 @ 任意管理员，或提 Issue（标签 制度建议 ）； 时限：管理员 2 个工作日内 回应； 复核：由未参与原决定的管理员复核；分歧时按「角色与权限制度」的决策方式处理（两名以上管理员同意，必要时群主裁决）； 每次下架与申诉都在 Issue 留档：时间、条目、理由、决定人、结果，记录不删除。 本站明确不做的事 不设计、不提供、不计划：支付与收款、订单与合同、需求撮合、站内私信、账号体系。 黄页只是「一块谁都可以看的公告板」，其余一律不归本站管。",
+   "map": "pages/yellow-pages.map.svg"
+  },
+  {
+   "id": "participate",
+   "title": "参与项目",
+   "file": "content/pages/participate.md",
+   "html": "pages/participate.html",
+   "group": "参与",
+   "order": 10,
+   "group_link": "",
+   "toc": [
+    {
+     "id": "写文章",
+     "text": "写文章",
+     "level": 3
+    },
+    {
+     "id": "一篇文章为什么是一个文件夹",
+     "text": "一篇文章为什么是一个文件夹",
+     "level": 3
+    },
+    {
+     "id": "改站点数据",
+     "text": "改站点数据",
+     "level": 3
+    },
+    {
+     "id": "审稿",
+     "text": "审稿",
+     "level": 3
+    },
+    {
+     "id": "运维-发布",
+     "text": "运维 / 发布",
+     "level": 3
+    },
+    {
+     "id": "参与方式",
+     "text": "参与方式",
+     "level": 3
+    }
+   ],
+   "text": "这个站点不是“作者写给读者看”的单向博客，群友可以参与写作、整理数据、审稿和发布。下面按角色说明入口；不需要先懂 SML 或构建系统。 写文章 文章是 Markdown，放在： `` text site/content/posts/<年份>/<英文短名>/index.md `` 最小 front matter： ```yaml title: \"文章标题\" author: 你的成员id date: YYYY-MM-DD tags: [ rust, embedded ] summary: \"一两句摘要\" ``` 图片放同目录 assets/ ，用 ![说明](assets/x.png) 。 本地预览： python engine/cli.py preview PR 目标分支是 staging ，不是 master 。 不会 git：把 Markdown 和图片发群里，由管理员代投，PR 注明原作者。 更完整的正文语法见 Markdown 写作速查 。 一篇文章为什么是一个文件夹 不是故意复杂，而是让文章“自带资源、地址稳定”： text 复制 posts/2026/board-bringup/ ├─ index.md 正文 + front matter ├─ index.en.md 英文版（可选） └─ assets/ 这篇文章的图片、附件 好处： 图片不串 ：每篇文章的 assets/ 独立，不会和别的文章重名； URL 稳定 ：文件夹名就是 slug，标题改了 URL 不变； 多语言同目录 ： index.md + index.en.md 自动归为同一篇； 附件/封面/草稿 可以跟文章放一起，不污染全局目录。 构建时不是手工维护列表，而是扫描： text 复制 site/content/posts/<年份>/<slug>/index.md 然后按 (年份, slug) 分组、按日期排序，生成 manifest.json 、文章页、标签页和搜索索引。 你不需要在某个“文章列表”里登记 ；文件存在、契约通过，就会自动收录。 改站点数据 成员、项目、资源、互助、页面、导航都在 site/content/ ： 内容 路径 成员 members/<id>.sml 项目 projects/<英文短名>.sml 资源 resources/<英文短名>.sml 技术互助 services/<英文短名>.sml 独立页面 pages/*.md 或 *.sml 导航/群信息 site.sml 规则： 目录决定默认契约，不需要写 @is ； 字段表： python engine/cli.py contracts ，网页版见 内容契约 （ #/page/contracts ）； 改完跑 build --offline 和 check ； 文件名是 URL 的一部分，不要随意改已有条目名。 审稿 审稿人看四件事： PR 的 base 是不是 staging ； preview 是否能打开、移动端是否溢出； 内容/署名/引用/许可是否清楚； build 、 check 、结构测试是否通过。 具体清单和打回模板在仓库 docs/REVIEW.md ；原则是： 意见要能直接执行 ，不要只说“再改改”。 运维 / 发布 一句话版： text 复制 Gitee staging → preview Gitee staging 合并到 master → 生产 Gitee code → GitHub master（代码同步） 内容 PR 只进 staging ； 生产发布 = 把 staging 合到 master ； 密钥、字体加密包、Cloudflare、回滚细节在仓库 docs/OPS.md ； 不把令牌/密码写进仓库。 参与方式 会 git：fork / 建分支 / PR 到 staging ； 不会 git：把稿子发给群管理代投； 只想提意见：在群里说，或提 issue，不用改代码。 不需要“很会写”才能参与；校对、补图、整理资源、审稿都算。",
+   "map": "pages/participate.map.svg"
+  },
+  {
+   "id": "contribute",
+   "title": "投稿与共建指南",
+   "file": "content/pages/contribute.sml",
+   "html": "pages/contribute.html",
+   "group": "指南",
+   "order": 1,
+   "group_link": "",
+   "toc": [
+    {
+     "id": "投稿方式",
+     "text": "投稿方式",
+     "level": 2
+    },
+    {
+     "id": "两种正文格式",
+     "text": "两种正文格式",
+     "level": 2
+    },
+    {
+     "id": "字段与附件",
+     "text": "字段与附件",
+     "level": 2
+    },
+    {
+     "id": "字段写错会怎样",
+     "text": "字段写错会怎样",
+     "level": 2
+    },
+    {
+     "id": "署名与许可",
+     "text": "署名与许可",
+     "level": 2
+    }
+   ],
+   "text": "投稿方式 fork 仓库 → 新建 posts/<年份>/<英文短名>/index.md → 提 PR 不方便用 git：把稿子交给有仓库权限的群管理，由对方代投（署名仍是你的） 审核人会在 3 天内响应；退稿会给明原因（格式、事实、许可、附件问题）。构建脚本会直接报出格式错误，不用自己猜。 两种正文格式 默认写 Markdown （index.md），与 SML（index.sml）渲染出的样式、章节树、搜索索引完全一致。 需要严格字段类型校验或写定理/证明时，再用 SML。 markdown 复制 --- title: \"标题\" author: sal date: 2026-09-20 tags: [ rust embedded ] summary: \"一两句摘要\" --- ## 小节标题 正文，支持**粗体**、`行内代码`、表格、引用、代码块、图片。 单独一行放 B 站视频号会自动嵌入：BV1GJ411x7h7 SML 版本写法见 posts/2026/hello-rec/index.sml；块类型 topic/section/para/code/quote/ul/table/img/note/theorem 等。 字段与附件 必填：title / author / date / tags / summary 可选：updated / license / series / video（BV 号）/ attachments / co_authors 图片放同目录 assets/，正文写相对路径 assets/xxx.png PDF、压缩包、固件等一律外链，写进 attachments 并从作者侧保证可用 系列文章用 series: {id, title, order}，会自动进入侧栏树与上一章/下一章 字段写错会怎样 每种内容都有契约（内容契约页在「文档 → 规范」里，由 content/contracts/*.sml 自动生成）。字段漏填或类型不对，构建会直接报出错误码 + 人话： text 复制 content/posts/2026/xxx/index.md: E-CONTRACT-003 契约 `BlogPost` 缺少必填字段 `summary`（字符串） 这不是在卡人，而是 契约本身就是字段文档 ：想加字段就去改契约，改完校验与文档页同时更新。 署名与许可 默认按站点许可 CC BY-NC-SA 4.0 发布，可用 license 字段单独覆盖。引用他人内容必须标出处。",
+   "map": "pages/contribute.map.svg"
+  },
+  {
+   "id": "attachments",
+   "title": "附件规则",
+   "file": "content/pages/attachments.md",
+   "html": "pages/attachments.html",
+   "group": "规范",
+   "order": 1,
+   "group_link": "",
+   "toc": [
+    {
+     "id": "总原则",
+     "text": "总原则",
+     "level": 3
+    },
+    {
+     "id": "入库的图片",
+     "text": "入库的图片",
+     "level": 3
+    },
+    {
+     "id": "外链附件",
+     "text": "外链附件",
+     "level": 3
+    },
+    {
+     "id": "审核项",
+     "text": "审核项",
+     "level": 3
+    },
+    {
+     "id": "附件的展示",
+     "text": "附件的展示",
+     "level": 3
+    }
+   ],
+   "text": "总原则 仓库只收 图片等小文件 ；大文件、固件、数据集一律用外链，由作者自己提供。 理由：仓库会随时间膨胀，而外链的责任边界清楚。 入库的图片 放在文章同目录的 assets/ 下，正文用相对路径引用（ ![说明](assets/xxx.png) ）； 类型限于 png / jpg / jpeg / webp / gif / svg ； 单张不超过 2 MB ，单篇不超过 20 张 （构建会检查，超限直接报错）； 发布前请清除照片的 EXIF 地理信息。 外链附件 必须是 http(s) 链接，并写名称、类型与体积说明（ attachments 字段， kind: link ）； 网盘类写清提取码与有效期； 链路失效由作者负责，站点只负责展示。 审核项 项 要求 版权 引用他人图表必须标出处；不放大段未授权转载 安全 不接受可执行文件与来历不明的固件 隐私 截图抹掉密钥、手机号、内部地址、真实姓名 命名 <短名>-<序号>-<语义名>.<扩展名> 附件的展示 图片随文章一起渲染；外链附件在文章底部列出（名称 / 类型 / 体积），构建期会校验链接格式与必填字段。",
+   "map": "pages/attachments.map.svg"
+  },
+  {
+   "id": "contracts",
+   "title": "内容契约（自动生成）",
+   "group": "规范",
+   "order": 2,
+   "html": "pages/contracts.html",
+   "map": "pages/contracts.map.svg",
+   "toc": [
+    {
+     "id": "contract-Attachment",
+     "text": "Attachment",
+     "level": 2
+    },
+    {
+     "id": "contract-BlogPost",
+     "text": "BlogPost",
+     "level": 2
+    },
+    {
+     "id": "contract-Gallery",
+     "text": "Gallery",
+     "level": 2
+    },
+    {
+     "id": "contract-Member",
+     "text": "Member",
+     "level": 2
+    },
+    {
+     "id": "contract-MemberLinks",
+     "text": "MemberLinks",
+     "level": 2
+    },
+    {
+     "id": "contract-Page",
+     "text": "Page",
+     "level": 2
+    },
+    {
+     "id": "contract-Panel",
+     "text": "Panel",
+     "level": 2
+    },
+    {
+     "id": "contract-Project",
+     "text": "Project",
+     "level": 2
+    },
+    {
+     "id": "contract-Resource",
+     "text": "Resource",
+     "level": 2
+    },
+    {
+     "id": "contract-Series",
+     "text": "Series",
+     "level": 2
+    },
+    {
+     "id": "contract-Service",
+     "text": "Service",
+     "level": 2
+    },
+    {
+     "id": "contract-Shot",
+     "text": "Shot",
+     "level": 2
+    },
+    {
+     "id": "contract-Steps",
+     "text": "Steps",
+     "level": 2
+    },
+    {
+     "id": "contract-Term",
+     "text": "Term",
+     "level": 2
+    },
+    {
+     "id": "contract-Topic",
+     "text": "Topic",
+     "level": 2
+    },
+    {
+     "id": "contract-Weekly",
+     "text": "Weekly",
+     "level": 2
+    },
+    {
+     "id": "contract-When",
+     "text": "When",
+     "level": 2
+    }
+   ],
+   "text": "本页由 content/contracts/*.sml 自动生成 —— 改契约即改这里。错误码见 docs/ARCHITECTURE.md。 Attachment 字段 类型 必填 约束 说明 name str 是 附件显示名（写 resource 时可省略，取资源 title） kind str 是 枚举 image/link image 入库；link 走作者自备外链 url str 否 image 用相对路径（同目录 assets/），link 用 http(s)； size str 否 体积说明，image 可由构建自动填 code str 否 提取码（如蓝奏云）；只存值，不自动展示给未点击的人 resource str 否 引用资源 id：构建期解析 url / 提取码；资源更新则附件跟随 BlogPost 字段 类型 必填 约束 说明 title str 是 标题 author str 是 成员 id，对应 content/members/<id> date date 是 首次发布日期 tags [str] 是 标签，至少一个 summary str 是 一句话摘要（列表页与分享卡片用） updated date 否 最后更新日期 license str 否 覆盖站点默认许可 draft bool 否 草稿：true 则不参与构建 series Series 否 系列：自动进侧栏树与上一章/下一章 video str 否 B 站 BV 号 map bool 否 是否在构建期生成章节导图（默认关，开启后弹层可拖动缩放） attachments [Attachment] 否 co_authors [str] 否 body any 否 SML 写法的正文块数组（Markdown 走 front matter + 正文） panel Panel 否 steps Steps 否 shot Shot 否 gallery Gallery 否 term Term 否 when When 否 Gallery（loose） 字段 类型 必填 约束 说明 cols int 否 列数 items [Para] 否 图片项 Member（loose） 字段 类型 必填 约束 说明 name str 是 群昵称 role str 否 群主 / 管理员 / 群友 … avatar str 否 头像文件路径（相对仓库根） signature str 否 个性签名 skills [str] 否 joined date 否 links MemberLinks 否 MemberLinks（loose） 字段 类型 必填 约束 说明 blog url 否 homepage url 否 个人主页 github url 否 gitee url 否 Gitee 个人空间 gitee_org url 否 Gitee 组织/第二个空间（一个人两个号时用这个，别写两个 gitee —— 对象键会互相覆盖） email str 否 由本人提供并授权展示；不想公开就删掉这一行 Page 字段 类型 必填 约束 说明 title str 是 页面标题 group str 是 文档树归组（指南 / 写作 / 规范 / 关于 …） order int 是 范围 0..None 同组内顺序 body any 否 group_link url 否 该页顶部的行动按钮（如加群链接） Panel（loose） 字段 类型 必填 约束 说明 title str 否 面板标题 text str 否 正文内容 Project 字段 类型 必填 约束 说明 name str 是 项目名 one_liner str 是 一句话简介 repo url 是 仓库地址（构建期抓元数据） status str 是 枚举 active/archived/wip host str 否 枚举 github/gitee/codeberg/gitea homepage url 否 docs url 否 外部文档 / 主页（别用它表达站内文章组） license str 否 languages [str] 否 platforms [str] 否 related_series [str] 否 related_posts [str] 否 tags [str] 否 owner str 否 成员 id contributors [str] 否 featured bool 否 是否上首页精选 meta_source str 否 枚举 auto/manual meta_override any 否 milestones any 否 Resource（loose） 字段 类型 必填 约束 说明 title str 是 资源名 kind str 是 枚举 book/tutorial/tool/video/course/route 类型 url url 是 链接 tags [str] 否 note str 否 一句话说明 folder str 否 展示用分组（不建真实目录，URL 保持稳定） code str 否 提取码；列表与附件卡显示「提取码 · 复制」 Series 字段 类型 必填 约束 说明 id str 是 系列 id（相同 id 归为一组） order int 是 范围 0..None 组内顺序 title str 否 系列显示名，缺省用 id Service 字段 类型 必填 约束 说明 name str 是 条目名称（能力/服务一句话名） owner str 是 成员 id，必须存在于 content/members/<id>.sml skills [str] 是 技能标签，至少一个 wants [str] 否 想找什么（合作方向，自由列举） contact [str] 是 联系方式：只能引用成员档案 links 里本人已公开的键（blog/homepage/github/gitee/gitee_org/email） rate str 否 费用/方式说明，自由文本；本站不经手资金，具体由双方自行约定 status str 是 枚举 active/paused active = 可接洽；paused = 暂停 updated date 是 最近更新日期 body any 否 详细介绍（SML 块 / Markdown 正文） Shot（loose） 字段 类型 必填 约束 说明 src str 是 图片路径 alt str 否 替代文本 caption str 否 图注 full bool 否 是否全宽出血 Steps（loose） 字段 类型 必填 约束 说明 items [Para] 否 步骤项 Term（loose） 字段 类型 必填 约束 说明 text str 是 终端输出文本（逐行保留，行间以 <br> 连接；与 MD :::term 完全一致，不做内联角色替换） Topic（loose） 字段 类型 必填 约束 说明 title str 是 词条名 summary str 是 一句话定义（知识页与词条页用） tags [str] 否 同标签的文章会自动归入本词条 posts [str] 否 显式关联的文章 slug related [str] 否 相关词条 id body any 否 定义、要点、参考资料 Weekly（loose） 字段 类型 必填 约束 说明 period str 是 期号，如 2026-W38 title str 是 本期标题 highlights [str] 否 merged [str] 否 关联文章 slug contributors [str] 否 body any 否 When（loose） 字段 类型 必填 约束 说明 date str 是 日期（YYYY-MM-DD），渲染进 <span class=\"when-t\"> text str 是 事件正文（唯一来源：优先取 text 字段，缺失时取子块渲染结果；与 MD :::when 围栏头之后的正文对齐）",
+   "generated": true
+  },
+  {
+   "id": "sml-native",
+   "title": "SML native 与 include（维护者）",
+   "file": "content/pages/sml-native.md",
+   "html": "pages/sml-native.html",
+   "group": "规范",
+   "order": 5,
+   "group_link": "",
+   "toc": [
+    {
+     "id": "两套后端",
+     "text": "两套后端",
+     "level": 3
+    },
+    {
+     "id": "上游来源",
+     "text": "上游来源",
+     "level": 3
+    },
+    {
+     "id": "本机编译",
+     "text": "本机编译",
+     "level": 3
+    },
+    {
+     "id": "include-预处理",
+     "text": "include 预处理",
+     "level": 3
+    },
+    {
+     "id": "安全",
+     "text": "安全",
+     "level": 3
+    },
+    {
+     "id": "常见错误",
+     "text": "常见错误",
+     "level": 3
+    }
+   ],
+   "text": "这是维护者文档。普通作者不需要读；写文章、加数据条目仍然不需要 native。 两套后端 后端 用途 builtin 纯 Python 子集；没有 native 时的回退 native Rust swsml 0.6.4 ，支持 include / import / 完整 SML native 文件： text 复制 Windows sml.dll Linux libsml.so macOS libsml.dylib 默认放在 engine/native/ ，被 .gitignore 忽略。仓库里特意入库的只有 macOS arm64 的 libsml.dylib 和它的 PROVENANCE.md 。 上游来源 text 复制 Gitee https://gitee.com/snoware/sml GitHub https://github.com/snowareofficial/sml tag v0.6.4 CI 从 v0.6.4 构建，不 patch 上游。 本机编译 bash 复制 python engine/native_build.py --sml-src /path/to/sml 脚本会跑 cargo build --release -p swsml ，找到真实 target-dir，复制到 engine/native/ ，再加载验证版本。 常用参数： bash 复制 --force 覆盖已有库 --locked cargo build --locked --out-dir 输出目录 --dry-run 只打印命令 需要 Rust/cargo；不需要 pip。 include 预处理 只有 .sml 且顶层有 include / import 才走： 从原始文件收集整个 include 闭包； 剥掉 @contract / @is ； 展平到系统临时目录，把 include 改写成同级文件名； native 只展开数据； 契约由 Python 侧从原始文件收集并校验； 删除临时目录。 允许 include 的范围是 site/content 。越界、绝对路径、symlink 指外都会被拒绝。 支持： sml 复制 include \"contracts/blog.sml\" as blog @is blog.Resource 不支持（会明确报错）： glob / 正则； 挑键 {a,b} ； 一行多个目标； 点分模块名； 被包含文件里自带 @is 。 安全 构建机不会把 secrets.* 注入 native 编译步骤。已扫描 macOS dylib：没有令牌、密码、私钥或本机用户名。 本地 Windows DLL 可能包含： text 复制 C:\\Users\\<用户名>\\.rustup\\... 这是 Rust panic 路径里的用户名，不是密钥；该 DLL 不入库。要分发本机 DLL，先做路径重映射。 常见错误 错误 处理 E-FEATURE-001 有 include 但没 native；装库或删 include E-INCLUDE-001 目标不存在 E-INCLUDE-002 循环 include E-INCLUDE-003 越出允许根 / 绝对路径 E-INCLUDE-012 不支持的 include 形态 VS Code 扩展（JS）不带回子文件契约表，编辑器里可能误报；以 build / check 为准。 完整说明见仓库 docs/NATIVE.md 。",
+   "map": "pages/sml-native.map.svg"
+  }
+ ],
+ "series": [
+  {
+   "id": "rust-learning",
+   "title": "Rust 学习",
+   "posts": [
+    {
+     "slug": "rust-learning-01-compile-basics",
+     "title": "编译教学",
+     "order": 1
+    },
+    {
+     "slug": "rust-learning-02-stack-heap",
+     "title": "1.1 堆和栈",
+     "order": 2
+    },
+    {
+     "slug": "rust-learning-03-basic-types",
+     "title": "1.2 基本数据类型",
+     "order": 3
+    },
+    {
+     "slug": "rust-learning-04-literals",
+     "title": "1.3 字面量",
+     "order": 4
+    },
+    {
+     "slug": "rust-learning-05-tuples",
+     "title": "1.4 元组",
+     "order": 5
+    },
+    {
+     "slug": "rust-learning-06-ranges",
+     "title": "1.5 范围类型",
+     "order": 6
+    },
+    {
+     "slug": "rust-learning-07-structs",
+     "title": "1.6 结构",
+     "order": 7
+    },
+    {
+     "slug": "rust-learning-08-enums",
+     "title": "1.7 枚举",
+     "order": 8
+    },
+    {
+     "slug": "rust-learning-09-arrays-slices-vectors",
+     "title": "1.8 数组、切片和向量",
+     "order": 9
+    },
+    {
+     "slug": "rust-learning-10-strings",
+     "title": "1.9 字符串",
+     "order": 10
+    },
+    {
+     "slug": "rust-learning-11-variables-mutability",
+     "title": "1.10 变量和可变性",
+     "order": 11
+    },
+    {
+     "slug": "rust-learning-12-control-flow",
+     "title": "1.11 控制语句",
+     "order": 12
+    },
+    {
+     "slug": "rust-learning-13-functions",
+     "title": "1.12 函数",
+     "order": 13
+    },
+    {
+     "slug": "rust-learning-14-comments",
+     "title": "1.13 注释",
+     "order": 14
+    },
+    {
+     "slug": "rust-learning-15-operators",
+     "title": "1.14 运算符",
+     "order": 15
+    },
+    {
+     "slug": "rust-learning-16-impl-blocks",
+     "title": "1.15 impl 代码块",
+     "order": 16
+    },
+    {
+     "slug": "rust-learning-17-memory-layout",
+     "title": "1.16 程序的内存表现",
+     "order": 17
+    },
+    {
+     "slug": "rust-learning-18-file-io",
+     "title": "1.17 文件操作",
+     "order": 18
+    },
+    {
+     "slug": "rust-learning-19-std-library",
+     "title": "1.18 Rust 标准库",
+     "order": 19
+    },
+    {
+     "slug": "rust-learning-20-misc",
+     "title": "1.19 其他",
+     "order": 20
+    }
+   ]
+  },
+  {
+   "id": "hft-embedded-linux-14",
+   "title": "HFT 工程实践",
+   "posts": [
+    {
+     "slug": "hft-engineering-01-fundamentals",
+     "title": "高频交易基础与生态",
+     "order": 1
+    },
+    {
+     "slug": "hft-engineering-02-exchange-components",
+     "title": "交易系统关键组件",
+     "order": 2
+    },
+    {
+     "slug": "hft-engineering-03-orderbook-matching",
+     "title": "交易所动态与订单簿",
+     "order": 3
+    },
+    {
+     "slug": "hft-engineering-04-hardware-os",
+     "title": "HFT 系统基础：硬件到操作系统",
+     "order": 4
+    },
+    {
+     "slug": "hft-engineering-05-kernel-tuning",
+     "title": "操作系统内核极致调优",
+     "order": 5
+    },
+    {
+     "slug": "hft-engineering-06-network",
+     "title": "低延迟网络与协议优化",
+     "order": 6
+    },
+    {
+     "slug": "hft-engineering-07-lockless-memory",
+     "title": "无锁数据结构与内存布局",
+     "order": 7
+    },
+    {
+     "slug": "hft-engineering-08-engine-dev",
+     "title": "超低延迟核心引擎开发",
+     "order": 8
+    },
+    {
+     "slug": "hft-engineering-09-latency-benchmark",
+     "title": "延迟测量与基准压测",
+     "order": 9
+    },
+    {
+     "slug": "hft-engineering-10-risk-slippage",
+     "title": "风控合规与滑点控制",
+     "order": 10
+    },
+    {
+     "slug": "hft-engineering-11-production-ops",
+     "title": "实盘上线与运维进阶",
+     "order": 11
+    },
+    {
+     "slug": "hft-engineering-12-market-making",
+     "title": "高频做市与套利策略",
+     "order": 12
+    },
+    {
+     "slug": "hft-engineering-13-fpga-crypto",
+     "title": "高频 FPGA 与加密货币",
+     "order": 13
+    }
+   ]
+  },
+  {
+   "id": "rust-embedded-101",
+   "title": "Rust 嵌入式入门",
+   "posts": [
+    {
+     "slug": "hello-rec",
+     "title": "从零点亮一块板子：probe-rs + Rust 的第一步",
+     "order": 1
+    },
+    {
+     "slug": "md-writing",
+     "title": "投稿其实很简单：写 Markdown 就行",
+     "order": 2
+    }
+   ]
+  }
+ ],
+ "tags": [
+  {
+   "tag": "rust",
+   "count": 22
+  },
+  {
+   "tag": "hft",
+   "count": 13
+  },
+  {
+   "tag": "performance",
+   "count": 8
+  },
+  {
+   "tag": "quant",
+   "count": 6
+  },
+  {
+   "tag": "类型",
+   "count": 6
+  },
+  {
+   "tag": "基础",
+   "count": 5
+  },
+  {
+   "tag": "linux",
+   "count": 3
+  },
+  {
+   "tag": "cpp",
+   "count": 2
+  },
+  {
+   "tag": "embedded",
+   "count": 2
+  },
+  {
+   "tag": "network",
+   "count": 2
+  },
+  {
+   "tag": "probe-rs",
+   "count": 2
+  },
+  {
+   "tag": "内存",
+   "count": 2
+  },
+  {
+   "tag": "标准库",
+   "count": 2
+  },
+  {
+   "tag": "kernel",
+   "count": 1
+  },
+  {
+   "tag": "markdown",
+   "count": 1
+  },
+  {
+   "tag": "trait",
+   "count": 1
+  },
+  {
+   "tag": "walkthrough",
+   "count": 1
+  },
+  {
+   "tag": "入门",
+   "count": 1
+  },
+  {
+   "tag": "函数",
+   "count": 1
+  },
+  {
+   "tag": "字符串",
+   "count": 1
+  },
+  {
+   "tag": "投稿",
+   "count": 1
+  },
+  {
+   "tag": "指南",
+   "count": 1
+  },
+  {
+   "tag": "控制流",
+   "count": 1
+  },
+  {
+   "tag": "文件",
+   "count": 1
+  },
+  {
+   "tag": "枚举",
+   "count": 1
+  },
+  {
+   "tag": "结构体",
+   "count": 1
+  },
+  {
+   "tag": "编译",
+   "count": 1
+  },
+  {
+   "tag": "运算符",
+   "count": 1
+  },
+  {
+   "tag": "集合",
+   "count": 1
+  }
+ ],
+ "built_at": "2026-10-23T11:14:49Z"
+}
