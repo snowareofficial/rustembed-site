@@ -291,6 +291,13 @@
     return a;
   }
 
+  /* 系列简介：纯文本（构建期已从 SML str 取值并转义），前端用文本节点渲染，不开放任意 HTML。
+     没写 description 的系列返回 null，调用方据此整块不渲染（旧系列产物零变化）。 */
+  function seriesDesc(s) {
+    if (s && s.description) return R.el('p', 'series-desc', s.description);
+    return null;
+  }
+
   /* hits：当前标签下命中了该系列的章节数（不传 = 全命中，如无标签的书库页）。
      系列的章数与命中数不是一回事，徽章要分开说，否则“3 章”会让人以为 3 章都讲这个标签。 */
   function seriesRow(s, members, hits, opts) {
@@ -307,6 +314,9 @@
     else if (hits && hits < chapters.length) badge += '（命中 ' + hits + '）';
     sum.appendChild(seriesLink(s, badge, 'row-words series-badge'));
     box.appendChild(sum);
+    /* 目录卡里的系列简介：纯文本、文本节点渲染（安全）；没写就不出现 */
+    var sd = R.seriesDesc(s);
+    if (sd) box.appendChild(sd);
     /* 章节 > 8 才套滚动框（.series-posts-scroll，CSS max-height 26rem）：
        20 章展开不再把整页拉长；≤ 8 章的短系列不限制高度，不添滚动条。
        只加类、不改 DOM 顺序，章节跳转与每章的日期/标题/字数/摘要/标签不变。 */
@@ -594,6 +604,8 @@
     }
     f.appendChild(crumb([['文章库', '#/library'], [s.title, '']]));
     f.appendChild(R.el('h1', '', s.title));
+    var sdHead = R.seriesDesc(s);
+    if (sdHead) f.appendChild(sdHead);
     /* 标签页写系列名，而不是通用的「系列」 */
     if (document && document.title !== undefined) {
       document.title = (m.site.title || '') + ' · ' + s.title;
@@ -1354,6 +1366,7 @@
   R.seriesHref = seriesHref;
   R.seriesLink = seriesLink;
   R.seriesRow = seriesRow;
+  R.seriesDesc = seriesDesc;
   R.proseFragment = proseFragment;
   R.pageHead = pageHead;
   R.filterBox = filterBox;
