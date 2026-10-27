@@ -1,9 +1,9 @@
 # 文章摘要（构建期 AI 步骤）
 
-给 AI / GUI 用的固定约定。产物落到 `site/content/summaries/<slug>.json`，
+给 AI 用的固定约定。产物落到 `site/content/summaries/<slug>.json`，
 下次 `python engine/cli.py build` 会自动采用，并在页面上标注「AI · 构建期」。
 
-## 算法（v1，实现见 engine/ai_summarize.py）
+## 算法（v1，实现见 engine/tools/ai_summarize.py）
 
 1. 输入只取构建产物：`title` / `summary` / `tags` / 正文纯文本（去 HTML，截断 6000 字）；
 2. 固定 system prompt + 严格 JSON 要求；

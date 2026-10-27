@@ -11,7 +11,7 @@ order: 10
 - 文章是 Markdown，放在：
 
   ```text
-  site/content/posts/<年份>/<英文短名>/index.md
+  site/content/posts/<年份>/[系列/]<英文短名>/index.md
   ```
 
 - 最小 front matter：
@@ -54,7 +54,7 @@ posts/2026/board-bringup/
 构建时不是手工维护列表，而是扫描：
 
 ```text
-site/content/posts/<年份>/<slug>/index.md
+site/content/posts/<年份>/[系列/]<slug>/index.md
 ```
 
 然后按 `(年份, slug)` 分组、按日期排序，生成 `manifest.json`、文章页、标签页和搜索索引。**你不需要在某个“文章列表”里登记**；文件存在、契约通过，就会自动收录。

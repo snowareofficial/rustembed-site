@@ -26,7 +26,7 @@ Prism.languages.json={property:{pattern:/(^|[^\\])"(?:\\.|[^\\"\r\n])*"(?=\s*:)/
 
 /* ===== GRAMMAR: sml（本站自写，不属于 Prism 官方组件） =====
  *
- * 覆盖 engine/lib/sml.py 认识的 SML 子集：注释、字符串、@contract / @is 指令、
+ * 覆盖 engine/parse/sml.py 认识的 SML 子集：注释、字符串、@contract / @is 指令、
  * &片段引用、字段名、协作修饰符（optional / loose / enum …）与内联角色 {ref:} 等。
  * 没认可的写法不会报错，只是不高亮（Prism 的 tokenize 会原样吐回文本）。
  * 升级核心时注意：before 顺序即优先级，字符串必须排在注释前面，

@@ -67,8 +67,8 @@ jobs:
         run: |
           set -euo pipefail
           python -m compileall -q engine
-          python engine/test_contracts.py
-          python engine/test_render_safety.py
+          python engine/tests/test_contracts.py
+          python engine/tests/test_render_safety.py
 
       - name: 有变化则提交并触发发布
         id: commit

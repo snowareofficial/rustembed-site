@@ -6,10 +6,10 @@
 
 | 后端 | 实现 | 何时用 |
 |---|---|---|
-| `builtin` | `engine/lib/sml.py` 里的纯 Python 子集解析器 | 没有 native 库；普通内容 |
+| `builtin` | `engine/parse/sml.py` 里的纯 Python 子集解析器 | 没有 native 库；普通内容 |
 | `native` | Rust `swsml 0.6.4` → `sml.dll` / `libsml.so` / `libsml.dylib` | 需要 `include` / `import` / 完整 SML 能力 |
 
-`engine/lib/_swsml.py` 是 vendored 的 ctypes 绑定；**不要就地改**，升级时以上游为准。
+`engine/parse/_swsml.py` 是 vendored 的 ctypes 绑定；**不要就地改**，升级时以上游为准。
 
 ## 2. 库从哪里来
 
@@ -44,10 +44,10 @@ Windows 本机 `sml.dll` 不入库；Linux `.so` 由 `include-native.yml` 在 CI
 
 ## 3. 本机编译
 
-脚本：[`../engine/native_build.py`](../engine/native_build.py)
+脚本：[`../engine/tools/native_build.py`](../engine/tools/native_build.py)
 
 ```bash
-python engine/native_build.py --sml-src /path/to/sml
+python engine/tools/native_build.py --sml-src /path/to/sml
 ```
 
 行为：

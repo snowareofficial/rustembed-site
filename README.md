@@ -21,7 +21,7 @@ python engine/cli.py check                                 # 产物自检
 python engine/cli.py preview                               # 构建 + 预览 http://127.0.0.1:8080/
 ```
 
-投稿三步：fork → 在 `site/content/posts/<年份>/<英文短名>/index.md` 写文章 → 提 PR。
+投稿三步：fork → 在 `site/content/posts/<年份>/[系列/]<英文短名>/index.md` 写文章 → 提 PR。
 不方便用 git 的，把稿子交给有仓库权限的群管理代投（署名仍是作者本人）。
 **文档总索引见 [`docs/README.md`](docs/README.md)；目录地图见 [`docs/REPO-LAYOUT.md`](docs/REPO-LAYOUT.md)。
 完整 git 写作流程与全链路验证见 [`docs/WORKFLOW.md`](docs/WORKFLOW.md)。**
@@ -30,31 +30,33 @@ python engine/cli.py preview                               # 构建 + 预览 htt
 
 ```
 engine/                   工具体系（与本站内容无关，可整体复制给别的站点复用）
-├─ build.py check.py preview.py cli.py test_contracts.py config.py
-├─ test_render_safety.py  渲染安全回归（转义/内联角色/嵌套列表/--out 守卫/双后端 SML 错误类型）
-├─ test_structure.py      产物结构断言（纯静态，不需要浏览器）
-├─ verify_parity.py       MD ↔ SML 渲染一致性证据脚本
-├─ ai_summarize.py        构建期 AI 摘要（OpenAI 兼容网关，写 summaries/<slug>.json）
-├─ fonts_import.py        从字体压缩包里挑权重到 site/fonts/src/
-├─ git_ready.py           入库前检查（大文件/忽略规则）；--commit 可本地提交（不 push）
-├─ gui.py gui_api.py      写作台 API（--port/--site；GUI_TOKEN；stdout 打印 GUI_PORT=）
-├─ lib/                   sml / markdown / render / contract / mindmap / repo_meta /
-│                          mathml / summary / urls / _swsml
+├─ build.py check.py preview.py cli.py    入口脚本（实现在下面各子包里）
+├─ core/                  底层约定：config / paths / content_paths / contract / contracts /
+│                          urls / report
+├─ parse/                 SML 解析（sml.py + vendored _swsml.py）
+├─ render/                render / markdown / mindmap / mathml
+├─ content/               每种内容一个模块：posts / projects / members / quotes / topics /
+│                          services / pages / 契约文档页，共用 loader
+├─ pipeline/              产物层：assets / manifest / fonts
+├─ tools/                 辅助脚本：ai_summarize / verify_parity / fonts_import /
+│                          git_ready / native_build / audit_images
+├─ tests/                 引擎自测：test_contracts / test_sml_include /
+│                          test_render_safety / test_structure / test_images
 ├─ native/                SML 原生加速载体（sml.dll，已 gitignore；没有就回退内置解析器）
 ├─ prompts/summarize.md   AI 摘要的输入输出约定（构建期用，离线）
 └─ vendor/                vendored fontTools / latex2mathml（构建期，不是 pip 依赖）
                           详见 engine/README.md（每个文件职责 + 常见改动怎么做）
 
-gui/                     写作台（Rust 启动器 + 内嵌 Web UI；cargo install rec-blog-gui）
-tests/                   前端验收（Node：smoke.js / browser-check.js）+ gui_api_test.py（Python）
+archive/gui/             已弃用的写作台（2026-10-28 归档，只读；恢复步骤见其 README.md）
+tests/                   验收脚本（Node：smoke.js / browser-check.js 等；Python：content_tree /
+                          i18n / tech_aid）
 deploy/                  自托管：entrypoint / build / rebuild / gitee-webhook / fonts-crypt
-Cargo.toml / Cargo.lock  Rust workspace（members=["gui"]）
 Dockerfile               自托管构建器镜像
 
 site/                     本站点本身
 ├─ content/               内容：改这里就够了
 │  ├─ site.sml            站点配置（站名、导航、公告、群信息、群规、大事记）
-│  ├─ posts/<年>/<短名>/   文章：index.md 或 index.sml，图片放同目录 assets/
+│  ├─ posts/<年>/[系列/]<短名>/   文章：index.md 或 index.sml，图片放同目录 assets/
 │  ├─ pages/*.sml         站文档（投稿指南、写作速查、附件规则、创作制度、加入我们）
 │  ├─ topics/*.(md|sml)   主题词条（同标签文章自动归入）
 │  ├─ members/<id>.sml    成员档案（自愿制；同目录放 <id>.jpg 即自动作为头像）
@@ -70,7 +72,7 @@ site/                     本站点本身
 ├─ meta/repos.json        仓库元数据缓存
 └─ *.jpg                  群 logo（同时作为站点 favicon）
 
-docs/                     文档：参与者指南、架构、运维、字体、GUI；archive/ 放历史任务书
+docs/                     文档：参与者指南、架构、运维、字体；archive/ 放历史任务书
 templates/                作者复制模板（post/resource/project/member/service）
 dist/                     构建产物（gitignore）
 ```

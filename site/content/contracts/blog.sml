@@ -118,7 +118,7 @@
   platforms: [str] optional
   # 站内相关阅读（显式关联，仅此一条来源）：
   #   related_series —— 系列 id，取自文章 front matter 的 series.id；
-  #   related_posts  —— 文章 slug（content/posts/<年>/<短名> 的短名）。
+  #   related_posts  —— 文章 slug（content/posts/<年>/[系列/]<短名> 的短名）。
   # 两者都空 = 项目页不渲染「相关阅读」区块，不回退到语言 / 标签自动匹配；
   # related_posts 里属于 related_series 已列系列的文章会被自动去重。
   related_series: [str] optional

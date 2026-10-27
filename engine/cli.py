@@ -18,18 +18,19 @@ from pathlib import Path
 import struct
 
 ENGINE = Path(__file__).resolve().parent
+REPO = ENGINE.parent
+sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(ENGINE))
-sys.path.insert(0, str(ENGINE / "lib"))
 
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 except (AttributeError, ValueError):
     pass
 
-import config  # noqa: E402
-import markdown as mdmod  # noqa: E402
-import sml  # noqa: E402
-import contract as contract_mod  # noqa: E402
+from engine.core import config, content_paths  # noqa: E402
+from engine.core import contract as contract_mod  # noqa: E402
+from engine.render import markdown as mdmod  # noqa: E402
+from engine.parse import sml  # noqa: E402
 
 MD_TMPL = """---
 title: "{title}"
@@ -260,10 +261,15 @@ def cmd_new(args):
         tmpl = TOPIC_TMPL
     else:
         year = str(dt.date.today().year)
-        path = config.CONTENT / "posts" / year / slug / ("index." + ("sml" if args.sml else "md"))
+        # 系列文章收进系列子目录：posts/<年>/<系列>/<短名>/（与 build_posts 的 E-POST-003 一致）
+        series = (args.series or "").strip()
+        if series and not content_paths.SERIES_NAME.fullmatch(series):
+            print("错误：--series 只能是小写字母、数字与连字符：%s" % series)
+            return 2
+        path = content_paths.new_post_path(year, slug, series, "sml" if args.sml else "md")
         extra = ""
-        if args.series:
-            extra = "series:\n  id: %s\n  title: %s\n  order: 1\n" % (args.series, args.series)
+        if series:
+            extra = "series:\n  id: %s\n  title: %s\n  order: 1\n" % (series, series)
         tmpl = SML_TMPL if args.sml else MD_TMPL
     if path.exists():
         print("已存在：%s" % path)
@@ -278,9 +284,16 @@ def cmd_new(args):
 
 def cmd_list(args):
     rows = []
-    for f in sorted((config.CONTENT / "posts").glob("*/*/index.*")):
-        if f.suffix.lower() not in (".md", ".markdown", ".sml"):
-            continue
+    posts_root = config.CONTENT / "posts"
+    # 发现逻辑与构建同源（core/content_paths）：深度无关，系列文章在年/系列/短名/ 下
+    variants = {}
+    for f, rel in content_paths.iter_posts(posts_root):
+        lang = content_paths.post_lang(f.name) or ""
+        variants.setdefault(f.parent, []).append((lang, f, rel))
+    for langs in variants.values():
+        # 同一目录的语言版本算一篇；列 zh，否则列 en
+        langs.sort(key=lambda v: v[0] != "zh")
+        lang, f, rel = langs[0]
         try:
             d, _ = (sml.load_doc(f) if f.suffix.lower() == ".sml"
                     else mdmod.split_front_matter(f.read_text(encoding="utf-8")))
@@ -291,9 +304,11 @@ def cmd_list(args):
         tags = d.get("tags") or []
         if args.tag and args.tag not in tags:
             continue
-        if args.year and f.parent.parent.name != args.year:
+        if args.year and rel.parts[0] != args.year:
             continue
-        rows.append((str(d.get("date", "")), f.parent.name, str(d.get("title", "")),
+        extra = "".join(" +%s" % v[0] for v in langs[1:])
+        slug = f.parent.name + (extra or ("" if lang == "zh" else " [%s]" % lang))
+        rows.append((str(d.get("date", "")), slug, str(d.get("title", "")),
                      " ".join(tags), str(d.get("author", ""))))
     rows.sort(reverse=True)
     if not rows:
@@ -443,9 +458,15 @@ def cmd_gen(args):
     tags = args.tags or "rust"
     style = args.style or "md"
 
+    series = (args.series or "").strip()
+    if series and not content_paths.SERIES_NAME.fullmatch(series):
+        print("错误：--series 只能是小写字母、数字与连字符：%s" % series)
+        return 2
+    extra = ("series:\n  id: %s\n  title: %s\n  order: 1\n" % (series, series)
+             if series else "")
+
     # 选模板：MD 侧用字符串替换注入场景块；SML 侧用对应专用模板
     if style == "sml":
-        extra = ""
         if args.kind == "post":
             tmpl = SML_TMPL
         elif args.kind == "tutorial":
@@ -455,7 +476,6 @@ def cmd_gen(args):
         else:  # weekly
             tmpl = SML_WEEKLY_TMPL
     else:
-        extra = ""
         if args.kind == "post":
             tmpl = MD_TMPL
         elif args.kind == "tutorial":
@@ -489,7 +509,7 @@ def cmd_gen(args):
         return 2
 
     year = str(today.year)
-    path = config.CONTENT / "posts" / year / slug / "index." + ("sml" if style == "sml" else "md")
+    path = content_paths.new_post_path(year, slug, series, "sml" if style == "sml" else "md")
     if path.exists():
         print("已存在，拒绝覆盖：%s（请换 --slug 或先删除该目录）" % path.relative_to(config.SITE))
         return 1
@@ -574,6 +594,7 @@ def main():
     p.add_argument("--title", default="", help="文章标题（可选）")
     p.add_argument("--tags", default="", help="标签，逗号分隔（可选）")
     p.add_argument("--author", default="sal", help="作者 id（可选）")
+    p.add_argument("--series", default="", help="系列 id（可选；落 posts/<年>/<系列>/<短名>/）")
     p.add_argument("--style", choices=["md", "sml"], default="md", help="输出格式")
     p.add_argument("--dry-run", action="store_true", help="只打印不落盘")
     config.add_site_arg(p)
@@ -595,7 +616,7 @@ def main():
 
     p = sub.add_parser("test", help="契约引擎自测")
     config.add_site_arg(p)
-    p.set_defaults(func=lambda a: run(str(ENGINE / "test_contracts.py"), *_site_arg(a)))
+    p.set_defaults(func=lambda a: run(str(ENGINE / "tests" / "test_contracts.py"), *_site_arg(a)))
 
     p = sub.add_parser("preview", help="构建并本地预览")
     p.add_argument("--port", type=int, default=8080)

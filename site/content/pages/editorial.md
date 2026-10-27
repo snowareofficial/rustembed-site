@@ -6,7 +6,7 @@ order: 3
 
 ## 投稿流程与时限
 
-1. 作者新建 `site/content/posts/<年份>/<英文短名>/index.md`（也可用 `.sml`），本地跑一遍 `python engine/cli.py build` 与 `check`；
+1. 作者新建 `site/content/posts/<年份>/[系列/]<英文短名>/index.md`（也可用 `.sml`），本地跑一遍 `python engine/cli.py build` 与 `check`；
 2. 提 PR（或在群里把稿子发给管理员代投，署名归作者）；
 3. 自动检查 + 管理员审阅：**3 个工作日内**给出结论；
 4. 通过即合并，下一次构建后上线；需要修改会写明原因与建议。

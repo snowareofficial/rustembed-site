@@ -7,4 +7,4 @@ owner: cshonor
 # GitHub 主语言统计为 HTML，来自 html/ 生成阅读版；此处按源笔记与代码实际构成填写
 languages: [ c rust cpp ]
 # 站内相关阅读：「HFT 工程实践」系列即整理自本笔记仓库的 14-hft-engineering 模块
-related_series: [ hft-embedded-linux-14 ]
+related_series: [ hft-engineering ]

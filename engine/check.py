@@ -10,9 +10,9 @@ import re
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import config  # noqa: E402
+from engine.core import config  # noqa: E402
 
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -245,8 +245,7 @@ need(not _ext, "index.html 出现了外部资源引用（运行时零外部请�
 # 图片不变量：产物里每个 <img src> 都必须是本地、存在、非 0 字节、格式没写错。
 # 外链在 build.py 的 check_external_images 就已经拦掉了，这里兜第二道
 # （防的是「构建漏拷 / 提交漏带 / 有人手改产物」）。
-sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
-import imgcheck  # noqa: E402
+from engine.content import imgcheck  # noqa: E402
 
 _IMG_DIRS = ("p", "w", "pages", "topics", "services")
 _img_checked = 0

@@ -44,7 +44,7 @@
 - 字段必填与类型 → `site/content/contracts/blog.sml`（错误码 `E-CONTRACT-*`）
 - 附件类型、体积、图片是否存在 → `engine/build.py`
 - 产物不变量（无脚本注入、锚点齐全、无内部字段泄漏）→ `engine/check.py`
-- 契约语义回归 → `engine/test_contracts.py`
+- 契约语义回归 → `engine/tests/test_contracts.py`
 
 规则一旦能被检查，就写进上述位置，制度文档里只保留「为什么」与流程。
 

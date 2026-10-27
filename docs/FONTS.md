@@ -42,8 +42,8 @@ engine/vendor/fontTools/  vendored fontTools（仓库组件，非 pip 依赖；M
 1. 从压缩包挑权重（不整包解压，避免 `bold` 命中 `demibold`）：
 
 ```bash
-python engine/fonts_import.py MiSans.zip --weights Regular,Bold   # → site/fonts/src/
-python engine/fonts_import.py MiSans.zip --list                   # 只看包里有什么
+python engine/tools/fonts_import.py MiSans.zip --weights Regular,Bold   # → site/fonts/src/
+python engine/tools/fonts_import.py MiSans.zip --list                   # 只看包里有什么
 ```
 
 2. 构建期**子集化**：`site/fonts/src/*.ttf` → `site/fonts/subset/*` + `dist/fonts.css`，

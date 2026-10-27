@@ -7,7 +7,7 @@ body: [
     children: [
       ol {
         items: [
-          "fork 仓库 → 新建 posts/<年份>/<英文短名>/index.md → 提 PR"
+          "fork 仓库 → 新建 posts/<年份>/[系列/]<英文短名>/index.md → 提 PR"
           "不方便用 git：把稿子交给有仓库权限的群管理，由对方代投（署名仍是你的）"
         ]
       }

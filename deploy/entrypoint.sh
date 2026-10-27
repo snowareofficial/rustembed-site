@@ -8,7 +8,7 @@ python engine/cli.py build --offline
 
 if [ -n "${AI_BASE_URL:-}" ] && [ -n "${AI_API_KEY:-}" ]; then
   echo "== ai summarize =="
-  python engine/ai_summarize.py --write || echo "[warn] AI 摘要失败，继续用抽取式"
+  python engine/tools/ai_summarize.py --write || echo "[warn] AI 摘要失败，继续用抽取式"
   echo "== build (2/2) =="
   python engine/cli.py build --offline
 else
@@ -19,6 +19,6 @@ echo "== check =="
 python engine/cli.py check
 
 echo "== structure =="
-python engine/test_structure.py
+python engine/tests/test_structure.py
 
 echo "== done: /src/dist =="

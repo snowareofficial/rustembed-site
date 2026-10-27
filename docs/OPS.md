@@ -73,9 +73,9 @@ GitHub Actions Secrets：
 规则：
 
 - 令牌只放 Secrets，**不进仓库、不进日志、不写进文档**；
-- GUI 的 Gitee 令牌只存本机钥匙串或内存；
+- （写作台的本地钥匙串存储已随 `archive/gui/` 归档；复活后仍适用：Gitee 令牌只存本机钥匙串或内存）
 - 字体密码只放本机 `site/fonts/FONT_PASSWORD.txt`（gitignore）和 CI Secret；
-- 轮换令牌后，同步更新 GUI/CI，并撤销旧令牌。
+- 轮换令牌后，同步更新 CI（及复活后的写作台），并撤销旧令牌。
 
 ## 字体
 
@@ -100,8 +100,8 @@ GitHub Actions Secrets：
 ```bash
 python engine/cli.py build --offline
 python engine/cli.py check
-python engine/test_contracts.py
-python engine/test_structure.py
+python engine/tests/test_contracts.py
+python engine/tests/test_structure.py
 node tests/smoke.js
 ```
 

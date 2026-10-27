@@ -77,11 +77,11 @@ Cloudflare 侧配置（Workers & Pages → 项目 → Settings → Build）：
 **发布前自检（本地）**
 
 ```bash
-python engine/test_contracts.py         # 契约自测
-python engine/test_render_safety.py     # 渲染安全回归
+python engine/tests/test_contracts.py         # 契约自测
+python engine/tests/test_render_safety.py     # 渲染安全回归
 python engine/cli.py build              # 构建（含契约校验）
 python engine/cli.py check              # 产物自检
-python engine/test_structure.py         # 结构断言
+python engine/tests/test_structure.py         # 结构断言
 ```
 
 ## 0.5 两个源（同一份代码）
@@ -139,10 +139,10 @@ GitHub 侧仍是只读镜像 + 构建发布，与这两个 Gitee 源无关。
 
 ```bash
 python engine/build.py         # 构建（含契约校验）
-python engine/test_contracts.py
-python engine/test_render_safety.py
+python engine/tests/test_contracts.py
+python engine/tests/test_render_safety.py
 python engine/check.py         # 产物自检
-python engine/test_structure.py
+python engine/tests/test_structure.py
 python engine/preview.py       # http://127.0.0.1:8080/
 ```
 

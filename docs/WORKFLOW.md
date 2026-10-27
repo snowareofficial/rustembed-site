@@ -10,33 +10,30 @@
 ```
 rec-blog/
 ├─ engine/                    构建器（可整体复制给别的站点）
-│  ├─ cli.py                  唯一入口：new/list/assets/gen/contracts/build/check/test/preview
-│  ├─ build.py                渲染 + 契约校验 + 产物（manifest/片段/摘要/字体/RSS/llms/_headers）
+│  ├─ cli.py                  唯一命令行入口：new/list/assets/gen/contracts/build/check/test/preview
+│  ├─ build.py                入口：argparse + 主流程 _run（实现在下面各子包）
 │  ├─ check.py                产物自检
 │  ├─ preview.py              本地静态服务（带 charset，后台运行）
-│  ├─ config.py               站点路径解析（--site）
-│  ├─ fonts_import.py         从 MiSans.zip 挑权重到 site/fonts/src
-│  ├─ ai_summarize.py         构建期 AI 摘要（OpenAI 兼容网关 → summaries/<slug>.json）
-│  ├─ git_ready.py            入库前检查；--commit 可本地提交（不 push）
-│  ├─ gui.py gui_api.py       写作台 API（GUI 任务用，见 docs/GUI.md）
+│  ├─ core/                   config / paths / content_paths / contract / contracts / urls / report
+│  ├─ parse/                  sml / _swsml（SML 解析与原生绑定）
+│  ├─ render/                 render / markdown / mindmap / mathml
+│  ├─ content/                posts / projects / members / quotes / topics / services / pages …
+│  ├─ pipeline/               assets / manifest / fonts（产物出口）
+│  ├─ tools/                  ai_summarize / fonts_import / git_ready / native_build /
+│  │                          verify_parity / audit_images
+│  ├─ tests/                  test_contracts / test_sml_include / test_render_safety /
+│  │                          test_structure / test_images
 │  ├─ native/                 SML 原生后端 sml.dll（gitignore；没有就回退内置解析器）
-│  ├─ test_contracts.py       契约引擎自测（21 项）
-│  ├─ test_render_safety.py   渲染安全回归（182 条）
-│  ├─ test_structure.py       产物结构断言（88 条）
-│  ├─ verify_parity.py        Markdown ↔ SML 渲染一致性证据
-│  ├─ lib/                    sml / markdown / render / contract / mindmap / repo_meta /
-│  │                          mathml / summary / urls / _swsml
 │  ├─ prompts/summarize.md    AI 摘要的输入输出约定（构建期离线步骤用）
 │  └─ vendor/                 vendored fontTools 与 latex2mathml（不是 pip 依赖）
 │
-├─ gui/                       写作台（Rust 启动器 + 内嵌 Web UI；cargo install rec-blog-gui）
-├─ Cargo.toml / Cargo.lock    Rust workspace（members=["gui"]）
+├─ archive/gui/               已归档的写作台（2026-10-28，只读；恢复见其 README.md）
 ├─ Dockerfile                 自托管构建器镜像
 │
 ├─ site/                      本站点（内容都在这里）
 │  ├─ content/
 │  │  ├─ site.sml             站名/导航/群信息/公告/群规/大事记/契约默认映射
-│  │  ├─ posts/<年>/<短名>/    文章：index.md 或 index.sml + assets/（图片）
+│  │  ├─ posts/<年>/[系列/]<短名>/    文章：index.md 或 index.sml + assets/（图片）
 │  │  ├─ pages/*.sml          站文档（投稿指南、写作速查、附件规则、制度…）
 │  │  ├─ topics/*.(md|sml)    主题词条（同标签文章自动归入）
 │  │  ├─ members/<id>.sml     成员档案（同目录 <id>.jpg 自动当头像）
@@ -57,11 +54,13 @@ rec-blog/
 │  ├─ browser_lib.js          CDP 连接 / 起浏览器 / 断言工具 / 报告
 │  ├─ browser_checks_*.js     检查用例（layout / pages / reading / settings 四模块）
 │  ├─ dom-stub.js             DOM 桩（跑 js/ 多文件视图用，theme-files.js 按 index.html 顺序加载）
-│  └─ gui_api_test.py         写作台 API 回归（Python 标准库，起真实服务）
+│  ├─ content_tree_test.py    目录树守卫回归（E-POST-001/003/004，临时站点跑真实 build）
+│  ├─ i18n_test.py            多语言（index.en.md / 语言切换）回归
+│  └─ tech_aid_test.py        技术互助黄页产物回归
 │
 ├─ deploy/                    自托管：entrypoint / build / rebuild / gitee-webhook / fonts-crypt
 ├─ docs/                      ARCHITECTURE / DEPLOY / FONTS / GOVERNANCE / ROADMAP / SELF-HOST /
-│                             GUI / WORKFLOW（本文）
+│                             WORKFLOW（本文）
 ├─ .github/workflows/         build.yml（校验门禁）、publish-pages.yml（构建+发布）、
 │                             sync-from-gitee.yml（镜像）
 ├─ dist/                      构建产物（gitignore）
@@ -90,7 +89,7 @@ python engine/cli.py new "全链路演示" --slug demo-chain --tags demo --autho
 ```
 
 - `--sml` 生成 SML 版；`--topic` 建词条；`--series` 加系列
-- 也可以手写：`site/content/posts/<年份>/<英文短名>/index.md`（短名只用小写字母/数字/连字符）
+- 也可以手写：`site/content/posts/<年份>/[系列/]<英文短名>/index.md`（短名只用小写字母/数字/连字符）
 
 ### 2.3 填 front matter（Markdown 版）
 
@@ -158,8 +157,9 @@ PR 模板在 `.github/PULL_REQUEST_TEMPLATE.md`；合并前审稿人看：事实
 | 产物自检 | `cli.py check` | `ALL PASS`（告警不阻断） |
 | 预览 | `cli.py preview` | `http://127.0.0.1:8080/`（`text/html; charset=utf-8`） |
 | 前端验收 | `node tests/browser-check.js` | `BROWSER PASS（N 项）` |
-| 结构断言 | `python engine/test_structure.py` | `STRUCTURE PASS（88 条）` |
-| 渲染安全 | `python engine/test_render_safety.py` | `ALL PASS（182 条）` |
+| 结构断言 | `python engine/tests/test_structure.py` | `STRUCTURE PASS` |
+| 渲染安全 | `python engine/tests/test_render_safety.py` | `ALL PASS` |
+| 目录树守卫 | `python tests/content_tree_test.py` | `OK（3 条）` |
 | 发布 | `git push origin master` | Gitee 权威源 → GitHub 镜像 → Actions `build.yml`（门禁）/ `publish-pages.yml`（构建+发布） → Cloudflare Pages |
 
 **实测记录（2026-10-18）**：`new` 建 `demo-chain` → build 文章 3 篇 → check/build/test 全绿 →
@@ -208,8 +208,8 @@ HTTP 取到 `p/demo-chain.html`（408 B）与 `summaries/demo-chain.json`（182 
 ```bash
 python engine/cli.py build --offline
 node tests/browser-check.js        # 需要 Node + 本机 Edge/Chromium
-python engine/test_structure.py
-python engine/test_render_safety.py
+python engine/tests/test_structure.py
+python engine/tests/test_render_safety.py
 ```
 
 改 `engine/` 或 `site/content/contracts/` 属于高影响改动：PR 里写清「改了哪条、为什么」，
