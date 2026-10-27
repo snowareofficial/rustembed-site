@@ -385,6 +385,46 @@ async function testPerf() {
     + frag.querySelectorAll('li.row-series li.row').length + ' 行');
 }
 
+/* ---------------- [6] 系列简介（description） ---------------- */
+
+async function testSeriesDescription() {
+  console.log('== [6] 系列简介：三处展示 + 旧系列不出现 ==');
+  const desc = '本系列从零开始，手把手带你把灯点亮。';
+  const withDesc = manifest({
+    series: SERIES.map(function (s) {
+      return s.id === 'ser-a' ? Object.assign({}, s, { description: desc }) : s;
+    })
+  });
+
+  /* 系列页头部 */
+  let app = makeApp(withDesc);
+  await app.rec.started;
+  let frag = await app.rec.VIEWS.series({ seg: [null, 'ser-a'] });
+  includes(textOf(frag), desc, '系列页头部展示 description');
+
+  /* 系列目录卡（书库页） */
+  app = makeApp(withDesc);
+  await app.rec.started;
+  frag = await app.rec.VIEWS.library({ q: {} });
+  const card = frag.querySelectorAll('li.row-series')[0];
+  need(!!card && String(textOf(card)).indexOf(desc) >= 0, '系列目录卡展示 description');
+
+  /* 文章侧栏（属于该系列的文章详情页） */
+  app = makeApp(withDesc);
+  await app.rec.started;
+  frag = await app.rec.viewPost('s1-c1');
+  includes(textOf(frag), desc, '文章侧栏展示系列 description');
+
+  /* 没写 description 的旧系列：三处都不出现该文案、且不崩 */
+  const noDesc = manifest();
+  app = makeApp(noDesc);
+  await app.rec.started;
+  frag = await app.rec.VIEWS.series({ seg: [null, 'ser-a'] });
+  need(textOf(frag).indexOf(desc) < 0, '旧系列（无 description）页头部不出现该文案');
+  frag = await app.rec.viewPost('s1-c1');
+  need(textOf(frag).indexOf(desc) < 0, '旧系列文章侧栏不出现该文案');
+}
+
 /* ---------------- 主流程 ---------------- */
 
 async function main() {
@@ -399,6 +439,7 @@ async function main() {
   await testFooter(footApp);
   await testA11y();
   await testPerf();
+  await testSeriesDescription();
 
   console.log('\n' + (fails.length
     ? 'SERIES/TAG FAIL（' + fails.length + '/' + checks + '）'

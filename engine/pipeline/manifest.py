@@ -7,13 +7,30 @@ _run 按原顺序 put_text，产物字节与拆分前一致。调用顺序（map
 search → llms → feed/sitemap/_headers）保持 _run 里的原样。
 """
 
+import datetime
 import json
+from email.utils import formatdate
 
 from engine.core import urls
 from engine.core.report import esc, now_iso
 from engine.content.loader import as_list
 from engine.parse import sml
 from engine.render import mindmap
+
+
+def _rfc822(d):
+    """日期 → RFC 822（RSS 2.0 要求），如 `Tue, 27 Oct 2026 00:00:00 GMT`。
+
+    `d` 是 ISO `YYYY-MM-DD`（文章发布日）或 `None`（用当前构建时间）。
+    解析失败（非预期格式）时退回原样字符串，不让 feed 生成整体崩掉。
+    """
+    if d:
+        try:
+            t = datetime.datetime.strptime(str(d).strip(), "%Y-%m-%d").timestamp()
+            return formatdate(t, usegmt=True)
+        except (ValueError, TypeError):
+            return str(d)
+    return formatdate(usegmt=True)
 
 
 def site_map_svg(title, series, posts, projects, members, services, resources,
@@ -91,11 +108,16 @@ def build_series(posts):
     for sid, group_posts in series_map.items():
         items = sorted(group_posts, key=lambda p: (p["order"] if isinstance(p["order"], int) else 999, p["date"]))
         title = next((p["series_title"] for p in items if p["series_title"]), sid)
-        series.append({
+        entry = {
             "id": sid,
             "title": title,
             "posts": [{"slug": p["slug"], "title": p["title"], "order": p["order"]} for p in items],
-        })
+        }
+        # 系列简介：取组内第一篇非空值；没写的系列不挂 description 键，产物与改动前一致
+        description = next((p["_series_description"] for p in items if p.get("_series_description")), None)
+        if description:
+            entry["description"] = description
+        series.append(entry)
     return series
 
 
@@ -293,7 +315,7 @@ def feed_xml(manifest, posts):
             "<title>%s</title>" % esc(manifest["site"]["title"]),
             "<link>%s</link>" % esc(base_url),
             "<description>%s</description>" % esc(manifest["site"]["tagline"]),
-            "<lastBuildDate>%s</lastBuildDate>" % now_iso()]
+            "<lastBuildDate>%s</lastBuildDate>" % _rfc822(None)]
     for p in posts[:20]:
         # slug 来自目录名：Windows 上不含引号/尖括号，但 git 里不保证 ——
         # 拼进 XML 前与 title/summary 一样过 esc，保持同一纪律。
@@ -301,7 +323,7 @@ def feed_xml(manifest, posts):
                     "<pubDate>%s</pubDate><description>%s</description></item>" % (
                         esc(p["title"]), esc(base_url), esc(p["slug"]),
                         esc(base_url), esc(p["slug"]),
-                        esc(p["date"]), esc(p["summary"])))
+                        esc(_rfc822(p["date"])), esc(p["summary"])))
     feed.append("</channel></rss>")
     return "\n".join(feed)
 

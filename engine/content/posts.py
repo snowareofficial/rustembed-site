@@ -17,6 +17,10 @@ _POST_NAME = content_paths.POST_NAME
 _LANGS = content_paths.LANGS
 _YEAR_NAME = content_paths.YEAR_NAME
 
+# 系列简介最大字数：纯文本，构建期走统一转义（前端用文本节点渲染，不开放任意 HTML）；
+# 超出截断并告警，避免投稿人塞进大段正文。取组内第一篇非空值。
+SERIES_DESC_MAX = 240
+
 
 def build_post_file(rep, f, year, slug, lang, res_index):
     """渲染单篇文章的某个语言版本，返回该版本的字段字典（不含 lang 键，避免污染 manifest）。
@@ -116,10 +120,18 @@ def build_post_file(rep, f, year, slug, lang, res_index):
     series_id = None
     series_title = ""
     order = None
+    series_description = ""
     if isinstance(series, dict):
         series_id = sml.as_str(series.get("id")) or None
         series_title = sml.as_str(series.get("title", ""))
         order = series.get("order")
+        # 系列简介：纯文本，超长截断并告警（不开放任意 HTML，前端文本节点二次防护）
+        raw_desc = sml.as_str(series.get("description", ""))
+        if raw_desc and len(raw_desc) > SERIES_DESC_MAX:
+            rep.warn(where, "series.description 超过 %d 字，已截断：%s"
+                     % (SERIES_DESC_MAX, series_id or ""))
+            raw_desc = raw_desc[:SERIES_DESC_MAX]
+        series_description = raw_desc
     elif isinstance(series, str):
         series_id = series
 
@@ -138,6 +150,7 @@ def build_post_file(rep, f, year, slug, lang, res_index):
         "series": series_id,
         "series_title": series_title,
         "order": order,
+        "_series_description": series_description,
         "video": sml.as_str(d.get("video", "")),
         "attachments": atts,
         "toc": toc,

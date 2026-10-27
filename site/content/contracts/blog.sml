@@ -66,6 +66,8 @@
   id: str                 # 系列 id（相同 id 归为一组）
   order: int min 0        # 组内顺序
   title: str optional     # 系列显示名，缺省用 id
+  description: str optional # 系列简介（纯文本；系列页头部 / 目录卡 / 文章侧栏展示；
+                            #   构建期转义，不开放任意 HTML；超长截断）
 }
 
 @contract Attachment {
