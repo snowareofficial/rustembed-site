@@ -14,54 +14,66 @@ engine 与站点内容完全解耦：换 `site/` 目录即可复用到别的站�
 
 ```
 rec-blog/
-├─ gui/                    写作台（Rust 启动器 + 内嵌 Web UI；cargo install rec-blog-gui）
-│  ├─ src/                 args / engine / assets / server / session / main
-│  └─ assets/              index / login / settings + app.js + style.css（由 docs/gui-mock 改造）
+├─ archive/gui/            已弃用的写作台（2026-10-28 归档，只读）：rust/ + engine/ + tests/ +
+│                          docs/（含 gui-mock 与任务书）；恢复步骤见其 README.md
 ├─ engine/                 可复用工具体系（不认识任何具体内容，只认目录约定）
-│  ├─ config.py            站点定位：SITE/CONTENT/THEME/OUT/CACHE 路径约定；--site 参数
-│  ├─ build.py             构建入口：argparse/CLI、公共名再导出、主流程 _run（2026-10-21 拆出
-│  │                        lib/build_*.py 后只留这些；`import build` 的对外形状不变）
+│  ├─ build.py             构建入口：argparse/CLI、主流程 _run、对外名字再导出
 │  ├─ check.py             产物自检不变量（CI 用）；只读 dist/、不比对源码时间戳，dist/ 缺失直接退出
 │  ├─ cli.py               命令行入口：new / list / contracts / build / check / test / preview
-│  ├─ test_contracts.py    契约引擎自测（错误码语义，对齐 SML 上游 sml-codes）
-│  ├─ test_sml_include.py  include / 命名空间 / 契约桥接回归（[B][D] 组需 native，缺则 SKIP）
-│  ├─ test_render_safety.py 渲染安全回归（契约页转义 / 内联角色 / 嵌套列表 / --out 守卫 /
-│  │                        URL 白名单 / safe_url 单元 / assets 改写 / 双后端 SML 错误类型）
-│  ├─ test_structure.py     产物结构断言（纯静态，不需要浏览器）
 │  ├─ preview.py           本地静态服务（后台运行 + 日志，默认 127.0.0.1:8080）
-│  ├─ gui.py               写作台 API 入口（--port/--site；GUI_TOKEN；stdout 打印 GUI_PORT=）
-│  ├─ gui_api.py           写作台 /api/*：树 / 文档读写 / 校验 / 预览 / 新建 / 资源 / PR
-│  ├─ ai_summarize.py      AI 摘要（OpenAI 兼容；写 summaries/<slug>.json）
-│  ├─ verify_parity.py     内置 / 原生 SML 后端一致性校验
-│  ├─ fonts_import.py      从字体包挑权重到 site/fonts/src/（不整包解压）
-│  ├─ git_ready.py         入库前检查 / 本地提交（不 push；大文件与忽略规则检查）
+│  ├─ core/                底层约定（谁都可以依赖，它不依赖别人）
+│  │  ├─ config.py         站点定位：SITE/CONTENT/THEME/OUT/CACHE；--site / REC_BLOG_SITE
+│  │  ├─ paths.py          路径表、DOC_EXT、REQ、guard_out / clean_out
+│  │  ├─ content_paths.py  内容树约定：docs_in / iter_posts / new_post_path（唯一事实源）
+│  │  ├─ contract.py       契约校验（E-CONTRACT-001–006、008；007 在码表里不存在）
+│  │  ├─ contracts.py      契约表状态（register / apply / loose 开关）—— 由内容层与入口共用
+│  │  ├─ urls.py           URL 协议白名单（http/https/mailto/tel、#、相对路径）
+│  │  └─ report.py         构建公共件：esc / Report / now_iso / 分阶段计时
+│  ├─ parse/               SML 解析
+│  │  ├─ sml.py            SML 子集解析器（片段 &、契约 @contract/@is；builtin/native 双后端）
+│  │  └─ _swsml.py         SML 原生绑定：vendored from swsml 0.6.4（MulanPSL-2.0）。别就地
+│  │                       「改进」上游行为，升级 vendor 时以上游为准
+│  ├─ render/              渲染层（只吃数据、吐 HTML/SVG）
+│  │  ├─ render.py         SML 块 → HTML（内联角色、B 站视频白名单）
+│  │  ├─ markdown.py       Markdown 子集（front matter、:::note 提示块）
+│  │  ├─ mindmap.py        导图 SVG 生成（整齐树布局）
+│  │  └─ mathml.py         LaTeX → MathML（构建期；失败回退 math-raw）
+│  ├─ content/             内容类型（每种内容一个模块，共用 loader）
+│  │  ├─ loader.py         load / load2 / render_body / 字段小工具
+│  │  ├─ posts.py          文章：多语言、附件、目录树守卫 E-POST-001–004
+│  │  ├─ projects.py members.py quotes.py topics.py services.py pages.py
+│  │  ├─ contract_page.py  契约文档页（代码即文档）
+│  │  ├─ reading.py        site.sml 的阅读习惯配置（代码折叠阈值）
+│  │  ├─ summary.py        摘要：优先 summaries/*.json，否则抽取式
+│  │  ├─ repo_meta.py      仓库元数据抓取（GitHub/Gitee/Codeberg/Gitea）+ 缓存
+│  │  └─ imgcheck.py       图片探测（尺寸 / 魔数 / 外链引用）
+│  ├─ pipeline/            产物层（只拼产物，不解析内容）
+│  │  ├─ assets.py         产物收集 Out / 图片资源入口 / inject_head / inject_shell
+│  │  ├─ manifest.py       manifest / search-index / llms / feed / sitemap / map.svg
+│  │  └─ fonts.py          字体子集：site_text / font_family_weight / build_fonts
+│  ├─ tools/               辅助脚本（不进构建主链）
+│  │  ├─ ai_summarize.py   AI 摘要（OpenAI 兼容；写 summaries/<slug>.json）
+│  │  ├─ verify_parity.py  内置 / 原生 SML 后端一致性校验
+│  │  ├─ fonts_import.py   从字体包挑权重到 site/fonts/src/（不整包解压）
+│  │  ├─ git_ready.py      入库前检查 / 本地提交（不 push；大文件与忽略规则检查）
+│  │  ├─ native_build.py   本机编译 SML native cdylib
+│  │  └─ audit_images.py   图片引用审计（外链 / 缺失 / 孤儿）
+│  ├─ tests/               引擎自测（CI 门禁）
+│  │  ├─ test_contracts.py 契约引擎自测（错误码语义，对齐 SML 上游 sml-codes）
+│  │  ├─ test_sml_include.py include / 命名空间 / 契约桥接回归（[B][D] 组需 native，缺则 SKIP）
+│  │  ├─ test_render_safety.py 渲染安全回归（契约页转义 / 内联角色 / 嵌套列表 / --out 守卫 /
+│  │  │                    URL 白名单 / safe_url 单元 / assets 改写 / 双后端 SML 错误类型）
+│  │  ├─ test_structure.py  产物结构断言（纯静态，不需要浏览器）
+│  │  └─ test_images.py     图片不变量与审计脚本回归
 │  ├─ native/sml.dll       SML 原生载体（加速 + include / 命名空间展开，仅文件入口使用）。
 │  │                       engine/native/ 已 gitignore：干净克隆没有它 —— 不含 include 的内容照常
 │  │                       构建，含 include 的内容明确报错（不静默降级，见 §14）；可用 SML_LIB /
 │  │                       REC_BLOG_SML_LIB 环境变量指定库路径
-│  ├─ vendor/              vendored fontTools / latex2mathml（构建期，不 pip）
-│  └─ lib/
-│     ├─ sml.py            SML 子集解析器（片段 &、契约 @contract/@is；builtin/native 双后端，可改）
-│     ├─ _swsml.py         SML 原生绑定：vendored from swsml 0.6.4（MulanPSL-2.0）。别就地
-│     │                    「改进」上游行为，升级 vendor 时以上游为准
-│     ├─ markdown.py       Markdown 子集（front matter、:::note 提示块）
-│     ├─ render.py         SML 块 → HTML（内联角色、B 站视频白名单）
-│     ├─ contract.py       契约校验（E-CONTRACT-001–006、008；007 在码表里不存在）
-│     ├─ mindmap.py        导图 SVG 生成（整齐树布局）
-│     ├─ mathml.py         LaTeX → MathML（构建期；失败回退 math-raw）
-│     ├─ summary.py        摘要：优先 summaries/*.json，否则抽取式
-│     ├─ urls.py           URL 协议白名单（http/https/mailto/tel、#、相对路径）
-│     ├─ repo_meta.py      仓库元数据抓取（GitHub/Gitee/Codeberg/Gitea）+ 缓存
-│     ├─ build_common.py   构建公共件：esc / Report / now_iso / 分阶段计时（2026-10-21 拆出）
-│     ├─ build_paths.py    路径与硬编码表：ROOT/CONTENT/…、REQ、guard_out、clean_out
-│     ├─ build_assets.py   产物收集 Out / 图片资源入口 / resource_index / inject_head / inject_shell
-│     ├─ build_pages.py    内容层：load / load2 / 契约校验 / render_body / 全部 build_*
-│     ├─ build_manifest.py 数据出口：manifest / search-index / llms / feed / sitemap / map.svg
-│     └─ build_fonts.py    字体子集：site_text / font_family_weight / build_fonts
+│  └─ vendor/              vendored fontTools / latex2mathml（构建期，不 pip）
 ├─ site/                   站点本身（换站点只换这个目录）
 │  ├─ content/
 │  │  ├─ site.sml          站点配置：title/tagline/url/nav/contracts 默认映射/group 群信息
-│  │  ├─ posts/<年>/<短名>/index.(md|sml) + assets/    文章
+│  │  ├─ posts/<年>/[系列/]<短名>/index.(md|sml) + assets/    文章
 │  │  ├─ pages/*.(md|sml)  站文档（group + order 决定文档树）
 │  │  ├─ topics/*.(md|sml) 主题词条（同标签文章自动归入）
 │  │  ├─ members/<id>.sml  成员档案（自愿制；同目录 <id>.jpg 自动作头像）
@@ -78,15 +90,15 @@ rec-blog/
 │  │                       加密包 misans-fonts.tar.gz.enc 入库（含三者），CI 用 FONT_PASSWORD 解密
 │  │                       （deploy/fonts-crypt.sh）；许可随产物发布到 dist/fonts/
 │  └─ meta/repos.json      仓库元数据缓存（入库）
-├─ tests/                  smoke.js / series_tag_test.js / reading_controls_test.js / gui_dom_test.js
-│                          / gui_api_test.py / dom-stub.js / theme-files.js（多文件加载唯一事实源）
+├─ tests/                  smoke.js / series_tag_test.js / reading_controls_test.js / dom-stub.js
+│                          / theme-files.js（多文件加载唯一事实源）/ content_tree_test.py
+│                          / i18n_test.py / tech_aid_test.py
 │                          / browser-check.js（runner）+ browser_lib.js + browser_checks_*.js
 ├─ deploy/                 自托管：entrypoint / build / rebuild / gitee-webhook / fonts-crypt
 ├─ docs/                   索引 docs/README.md；参与者 ROLES/CONTRIBUTING/EDIT-SITE-DATA/
 │                          REVIEW/OPS；维护 ARCHITECTURE/WORKFLOW/FONTS/GOVERNANCE/
-│                          REPO-LAYOUT/NATIVE/PLAN-SML-NATIVE；GUI.md/GUI-FLOWS/GUI-IMPLEMENT/
-│                          gui-mock；archive/ 放已完成的任务书与交接
-├─ Cargo.toml / Cargo.lock  Rust workspace（members=["gui"]）
+│                          REPO-LAYOUT（目录与内容树唯一事实源）/NATIVE/PLAN-SML-NATIVE；
+│                          archive/ 放已完成的任务书与交接
 ├─ Dockerfile / .dockerignore
 ├─ dist/                   构建产物（gitignore；固定输出到 <repo>/dist）
 ├─ LICENSE / LICENSE-CONTENT / CONTRIBUTING.md
@@ -98,9 +110,9 @@ rec-blog/
 
 ```
 site/content/**/*.(md|sml)
-  → engine/build.py（入口；实现在 lib/build_pages.py）: load2() 解析 → apply_contract() 校验
-    （文件里 @is 优先，否则按 site.sml 的 contracts{} 默认映射；两者都没有时退回
-     lib/build_paths.py 的 REQ 硬编码必填表）
+  → engine/build.py（入口；内容实现在 content/，产物在 pipeline/）: load2() 解析 →
+    contracts.apply_contract() 校验（文件里 @is 优先，否则按 site.sml 的 contracts{} 默认映射；
+    两者都没有时退回 core/paths.py 的 REQ 硬编码必填表）
   → render.render()/md.render() 预渲染 HTML 片段 → dist/{p,topics,services,w,pages}/<id>.html
   → dist/manifest.json（站前端唯一数据源；_ 前缀字段被过滤，不进 manifest）
   → site/theme/js/（core.js 建 window.REC 命名空间 → 各模块挂导出 → app.js 装配并启动）:
@@ -117,15 +129,15 @@ site/content/**/*.(md|sml)
 - **成员 links 的两个键不能重名**：一人两个 Gitee 要写 `gitee` + `gitee_org`
   （同名 `gitee` 会被对象覆盖，构建不报错但页面只显示一条）。加键要同步三处：
   `contracts/blog.sml` 的 `MemberLinks`、`js/core.js` 的 `CONTACT_LABEL`、`docs/EDIT-SITE-DATA.md`。
-- **URL 协议白名单已落地**（`engine/lib/urls.py`）：只放行 http / https / mailto / tel、
+- **URL 协议白名单已落地**（`engine/core/urls.py`）：只放行 http / https / mailto / tel、
   页内 `#` 锚点与相对路径；`javascript:` / `data:` / `vbscript:` / `file:` / 协议相对 `//host` 一律拒绝。
   已覆盖五处出口：`{link:}`、SML `a`/`img`（含 shot/gallery）、Markdown 链接与图片；
   构建期还会清洗 projects（repo/homepage）、members.links、resources.url、pages.group_link、
   site.avatar/repo_url 与 group.join_url。新增任何拼 href/src 的代码必须调用 `urls.safe_url()`；
-  回归在 `engine/test_render_safety.py` 第 [9] 组（含 `//evil`、控制字符、大小写混淆）。
+  回归在 `engine/tests/test_render_safety.py` 第 [9] 组（含 `//evil`、控制字符、大小写混淆）。
 - manifest 是前端唯一数据源；新增内容类型 = 新增 manifest 键 + `site/theme/js/` 里的路由与视图。
 - 站点默认许可 CC BY-NC-SA 4.0（`site.sml: default_license`），llms.txt/页脚都会引用。
-- `search-index.json` 的正文在构建期就被截断：每篇取 `p["_text"][:4000]`（`build.py:1034`），
+- `search-index.json` 的正文在构建期就被截断：每篇取 `p["_text"][:4000]`（`pipeline/manifest.py`），
   超长文章的后半部分**搜不到**（当前最长文章 959 字，尚未触发）。
 
 ## 4. 常用命令
@@ -141,41 +153,34 @@ python engine/cli.py build --offline                    # 不联网，只用 met
 # cli.py build 只暴露 --offline / --contract-loose / --site。警告：--warn-only 会把契约/附件错误
 # 降级为告警（CI 明确不加，见 .github/workflows/build.yml）；--contract-loose 放开 E-CONTRACT-004
 # （未声明字段）——两者都别在提交前用。
-python engine/git_ready.py                              # 入库前检查（大文件/忽略规则）；--commit 可本地提交（不 push）
-python engine/cli.py test                               # test_contracts.py
+python engine/tools/git_ready.py                        # 入库前检查（大文件/忽略规则）；--commit 可本地提交（不 push）
+python engine/cli.py test                               # engine/tests/test_contracts.py
 python engine/cli.py check                              # check.py（跑在 build 之后）
 python engine/cli.py preview                            # 构建 + 本地预览
-
-# 写作台（gui/ + engine/gui.py）：Rust 只做外壳，引擎仍是 Python
-cargo fmt --check && cargo clippy -- -D warnings && cargo test   # Rust 门禁（workspace 根）
-python tests/gui_api_test.py                            # 写作台 API 回归（起真实服务 + 临时站点）
-cargo install --path gui                                # 安装二进制 rec-blog；--force 即更新
-rec-blog --site . --no-open --port 8788                 # 起写作台（--site 吃仓库根或站点目录）
-rec-blog --version                                      # crate 版本 + 引擎 commit
-rec-blog update                                         # 引擎 git pull --ff-only，二进制要自己重装
 ```
 
 提交前六连（与 `.github/workflows/build.yml` 的门禁一致）：
-`python engine/test_contracts.py` → `python engine/test_sml_include.py` →
-`python engine/test_render_safety.py` → `python engine/build.py` →
-`python engine/check.py` → `python engine/test_structure.py`，全绿才算完成。
+`python engine/tests/test_contracts.py` → `python engine/tests/test_sml_include.py` →
+`python engine/tests/test_render_safety.py` → `python engine/build.py` →
+`python engine/check.py` → `python engine/tests/test_structure.py`，全绿才算完成。
 注意：CI 跑的是**联网** build（元数据抓取失败不中断，回退 `meta/repos.json` 缓存）；
 本地求快可加 `--offline`，但抓取降级路径只在联网构建里能复现。
-另：`cli.py test` 只跑 `test_contracts.py`；渲染安全回归要直接跑 `engine/test_render_safety.py`。
+另：`cli.py test` 只跑 `test_contracts.py`；渲染安全回归要直接跑 `engine/tests/test_render_safety.py`。
+目录树守卫回归（E-POST-001/003/004）：`python tests/content_tree_test.py`（临时站点跑真实 build）。
 
 前端三连（改了 `site/theme/**` 就一起跑）：
 `node tests/series_tag_test.js`（标签页系列合并 / 成员页列表 / 页脚声明）→
 `node tests/reading_controls_test.js`（最近条数 / 一言 / 代码折叠 / 高亮 / 成员链接标签）→
-`node tests/gui_dom_test.js` → `node tests/smoke.js`。
+`node tests/smoke.js`。（写作台的 `gui_dom_test.js` 已随 GUI 归档到 `archive/gui/tests/`）
 样式相关的（滚动区、页脚显隐、375px 溢出）再跑 `node tests/browser-check.js`：
 它要先 `python engine/cli.py preview` 起服务，且**自己挑一个能 bind 的调试端口** ——
 Windows 默认保留 9211–9310，以前写死 `9222+pid%200` 会稳定落进去，CDP 起不来干等 20s 超时。
 
 ## 5. 加一个内容类型（官方扩展步骤，来自 engine/README.md）
 
-1. `engine/build.py` 仿 `build_topics()` 写 `build_xxx()`；
-2. 在 `main()` 里调用，写产物文件与 manifest 新键；
-3. `lib/contract.py` 或 `site/content/contracts/blog.sml` 补契约字段；
+1. `engine/content/` 仿 `topics.py` 写 `build_xxx()`（模块只回答一个问题：这类内容怎么进产物）；
+2. `engine/build.py` 的 `_run` 里调用，写产物文件与 manifest 新键（产物出口在 `engine/pipeline/manifest.py`）；
+3. `engine/core/contract.py` 或 `site/content/contracts/blog.sml` 补契约字段；
 4. `site/content/site.sml` 的 `contracts{}` 加默认映射、`nav` 加一项；
 5. `site/theme/js/` 加路由与视图（复用现有 `.card`/`.badge`/`.tags`/`.meta`/`.admonition`，不造新设计语言；
    新函数挂到 `window.REC`，跨模块调用走 `R.xxx()`，加载顺序写进 `index.html` 的 script 序）；
@@ -183,25 +188,25 @@ Windows 默认保留 9211–9310，以前写死 `9222+pid%200` 会稳定落进�
 7. 需要脚手架时在 `cli.py` 的 `new` 子命令加模板。
 
 **契约语法（与 VS Code 扩展对齐）**：`loose` 写在头部 —— `@contract Name loose { ... }`，
-不要写成契约体里的第一行。Python 内置解析器两种都兼容（`lib/sml.py` 会读头部参数），
+不要写成契约体里的第一行。Python 内置解析器两种都兼容（`engine/parse/sml.py` 会读头部参数），
 但扩展/上游语法只认头部；体首行写法会让 `.sml` 在编辑器里报
 `sml: 契约字段期望名称, 得 :`。改动契约后可用扩展的 `diagnose()` 扫描一遍：
 `node` 加载 `~/.vscode/extensions/snoware.sml-lang-*/src/sml-parse.mjs` 即可。
 
 已按此流程落地的最新样例：`services`（能力与合作黄页，2026-10-16），
-参考实现 = `build_services()` + `@contract Service` + `viewServices()/viewService()`。
+参考实现 = `content/services.py:build_services()` + `@contract Service` + `viewServices()/viewService()`。
 
 ## 6. 硬约束（踩线即 bug，不是建议）
 
-- `engine/lib/sml.py` 是 builtin/native 双后端，但**两者目前并不等价**（已实测，别以为有保障）：
+- `engine/parse/sml.py` 是 builtin/native 双后端，但**两者目前并不等价**（已实测，别以为有保障）：
   native 支持顶层 `@is` 指令，builtin（没有 `engine/native/` 原生库时的默认后端，CI 即此路径）会把
-  `@is P` 解析成裸块头并在下一行抛「期望一个值」；`@contract` 两后端都支持（均产出 11 个契约）；
+  `@is P` 解析成裸块头并在下一行抛「期望一个值」；`@contract` 两后端都支持（产出同一批契约，数量以 `cli.py contracts` 为准）；
   `__type` 块标记两后端由不同路径产生，别依赖它存在与否。`set_backend()` 可强制切换，
   **当前没有自动差分测试**，改完必须手动跑两种后端比对；
-  `engine/lib/_swsml.py` 是 swsml 0.6.4 的 vendor 副本，别就地「改进」，升级以上游为准；
-  `build.py` 的 `guard_out()`、`.github/` 下任何文件勿改。
+  `engine/parse/_swsml.py` 是 swsml 0.6.4 的 vendor 副本，别就地「改进」，升级以上游为准；
+  `engine/core/paths.py` 的 `guard_out()`、`.github/` 下任何文件勿改。
 - **include / 命名空间只在「文件入口」生效**：`load_doc(path, root=None)` 与
-  `parse_doc_at(text, path, root=None)`（`build.load2()`、写作台校验与预览都走它们）。
+  `parse_doc_at(text, path, root=None)`（`engine/content/loader.py` 的 `load2()` 走它们）。
   文本入口 `parse_doc(text, path)` 一律**不展开** include，撞上就报错，绝不静默当字段。
 - **include 的允许根 = `site/content`**（`config.CONTENT`）：跨兄弟目录可以，
   逃出内容目录（绝对路径 / `..` / symlink 指外）一律 `E-INCLUDE-003`。
@@ -209,7 +214,7 @@ Windows 默认保留 9211–9310，以前写死 `9222+pid%200` 会稳定落进�
   不放宽 native（详见 `docs/ARCHITECTURE.md` §15）。
 - **含 include 的内容必须用 native 构建**：native 缺失时构建直接失败并报 `E-FEATURE-001`
   （附安装办法）。不含 include 的内容无论有没有 native，产物都一致。
-- **契约校验只在一处**：`lib/contract.py`。native 侧的类型系统不等价（`url`/`date`/`image`
+- **契约校验只在一处**：`engine/core/contract.py`。native 侧的类型系统不等价（`url`/`date`/`image`
   会被当成契约名）、命名空间隔离也没实现，别把 `@contract` / `@is` 交给它（细节见 §14）。
 - **桥接只沿真实 include 图走**：禁止扫描工作区所有 `@contract` 来"补全"契约表 —— 那会
   绕过命名空间隔离。
@@ -218,20 +223,14 @@ Windows 默认保留 9211–9310，以前写死 `9222+pid%200` 会稳定落进�
 - 黄页（services）性质：纯展示，**不参与交易、不担保、不抽成、不经手资金、不介入纠纷**；
   contact 只能引用成员档案 `links` 里本人已公开的字段，不得新收集个人信息；不设计支付/订单/撮合/站内私信/账号体系。
 - `--out` 只会清空目标目录：`guard_out()` 拒绝仓库根/站点目录**及其上级**、仓库内非 dist 位置；放行仓库外目录与 `dist/` 子树。
-- 契约错误码语义由 `test_contracts.py` 钉住，改 `lib/contract.py` 必须同步用例。
-- 已知缺陷（未修）：`lib/sml.py` 内置解析器报错行号偏 1 —— `entry()` 在 `p.skip()` **之后**才取 `head`，
+- 契约错误码语义由 `engine/tests/test_contracts.py` 钉住，改 `engine/core/contract.py` 必须同步用例。
+- 已知缺陷（未修）：`engine/parse/sml.py` 内置解析器报错行号偏 1 —— `entry()` 在 `p.skip()` **之后**才取 `head`，
   所以单行文件的「多余的值」会报 `line=2`。投稿者按行号定位会找错一行，修时顺手加一条用例。
 - 解析器内部字段（`__is` / `__md_body` / `__type`；注意 `__type` 在每个 SML 块上，不只是文件顶部）以 `_` 前缀统一被挡在 manifest 外（check.py 有断言）。
-- **写作台红线**（`gui/` + `engine/gui*.py`；实现说明见 `docs/GUI-IMPLEMENT.md`）：
-  - Rust 只做外壳：参数、引擎发现、进程守护、内嵌 UI 托管、`/api/*` 反代、钥匙串、打开窗口；
-    **不写 UI、不重写引擎**（解析/渲染/契约/构建一律走 `engine/`）。UI 是 `gui/assets/` 的
-    HTML/CSS/JS（vanilla，零构建、不引 Node、不引 CDN，视觉基准 `docs/gui-mock/`）。
-  - 令牌只进系统钥匙串或进程内存：不写配置文件、不进日志（两侧都脱敏成 `***`）、
-    不进 URL、不进 argv（`GUI_TOKEN` 走环境变量）。钥匙串不可用只能降级为「仅本次会话」，不得回退到文件。
-  - 路径白名单：`realpath` 必须落在 `site/content/**` 或 `site/theme/**`，否则 **403**。
-  - 保存一律 UTF-8 **无 BOM**、LF、末尾换行，且保存前跑契约，**422 不写盘**。
-  - 永不 `git push --force`、永不直接推 master；PR 一律走分支（fork 兜底也要走分支）。
-  - 没实现的接口返回 501 + 说明，不假装成功。
+- **写作台已归档（2026-10-28）**：`archive/gui/` 下只有只读副本（Rust 外壳 + `engine/gui*.py` +
+  GUI 测试 + GUI 文档 / 视觉稿），不再参与构建、CI 与门禁。要复活先读 `archive/gui/README.md`
+  的还原步骤——Rust 侧硬编码了 `<root>/engine/gui.py`，必须还原到原位才能跑。归档副本里的红线
+  （令牌只进钥匙串、路径白名单 403、保存 UTF-8 无 BOM、永不 push --force）在复活后仍然有效。
 
 ### 6.1 契约与编辑器（VS Code 扩展）的分工（2026-10-16 实测）
 
@@ -296,8 +295,8 @@ Windows 默认保留 9211–9310，以前写死 `9222+pid%200` 会稳定落进�
   （`CONTRACT_LOOSE` 这类开关用 setter；测试会重绑的 `GLOBAL_CONTRACTS` 走模块属性读取）。
 - **循环导入用「模块级 import、调用期取属性」解**，别用延迟 from-import（导入顺序敏感）。
 - **拆 `engine/build.py` 的约定**：入口（argparse/CLI/`_run` 主流程）与公共名再导出留在 `build.py`，
-  实现按职责进 `lib/build_{common,paths,assets,pages,manifest,fonts}.py`；外部（gui_api /
-  test_render_safety / tech_aid_test / i18n_test）仍从 `import build` 拿名字，一个都不能少。
+  实现按职责进 `engine/{core,parse,render,content,pipeline,tools}/`；外部（`tech_aid_test` /
+  `i18n_test` / `test_render_safety`）仍从 `import build` 拿名字，一个都不能少。
 - **拆测试的约定**：基础设施（起浏览器/CDP/断言工具/报告）进 `*_lib.js`，用例按职责分模块
   各导出一个 `check(H)`，原文件变 runner；断言条数不得减少（拆分前先记基线）。
 
@@ -317,7 +316,7 @@ Windows 默认保留 9211–9310，以前写死 `9222+pid%200` 会稳定落进�
 
 nav 顺序：`library knowledge topics projects resources members services weekly pages join`。
 
-- `updated` 不来自 git：不写就取 `date`（`build.py:322` 的 `pick(d, ["updated"], date)` —— build 全流程
+- `updated` 不来自 git：不写就取 `date`（`engine/content/loader.py` 的 `pick(d, ["updated"], date)` —— build 全流程
   没有任何 git 调用，manifest 实测 `updated == date`）。改稿后要显示「更新于」必须手写 `updated:`；
   `docs/ARCHITECTURE.md` 里「缺省取 git 最后提交时间」的说法**尚未实现**。
 

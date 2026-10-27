@@ -2,27 +2,30 @@
   "https://github.com/probe-rs/probe-rs": {
     "host": "github",
     "url": "https://github.com/probe-rs/probe-rs",
-    "stars": 2976,
-    "forks": 663,
+    "stars": 2986,
+    "forks": 676,
     "language": "Rust",
     "license": "Apache-2.0",
-    "updated_at": "2026-10-15T22:39:21Z",
+    "updated_at": "2026-10-27T10:02:04Z",
     "description": "A debugging toolset and library for debugging embedded ARM and RISC-V targets on a separate host",
     "archived": false,
-    "fetched_at": "2026-10-16T12:25:23+00:00",
-    "stale": false
+    "fetched_at": "2026-10-27T18:55:54+00:00",
+    "stale": false,
+    "languages_pct": {
+      "Rust": 100.0
+    }
   },
   "https://gitee.com/rustembed/site": {
     "host": "gitee",
     "url": "https://gitee.com/rustembed/site",
-    "stars": 1,
-    "forks": 0,
+    "stars": 4,
+    "forks": 3,
     "language": null,
     "license": null,
-    "updated_at": "2026-09-19T07:12:18+08:00",
+    "updated_at": "2026-10-28T01:41:31+08:00",
     "description": "群页面",
     "archived": false,
-    "fetched_at": "2026-10-16T12:25:22+00:00",
+    "fetched_at": "2026-10-27T18:55:51+00:00",
     "stale": false
   },
   "https://gitee.com/snoware/sml-sitegen": {
@@ -36,6 +39,176 @@
     "description": "基于sml的网页构建系统",
     "archived": false,
     "fetched_at": "2026-10-16T12:25:22+00:00",
+    "stale": false
+  },
+  "https://github.com/bfxh/BSHSQ": {
+    "host": "github",
+    "url": "https://github.com/bfxh/BSHSQ",
+    "stars": 2,
+    "forks": 1,
+    "language": "Rust",
+    "license": "Apache-2.0",
+    "updated_at": "2026-10-22T20:32:10Z",
+    "description": "BSHSQ ——  自研 Rust 物理引擎",
+    "archived": false,
+    "fetched_at": "2026-10-27T18:55:38+00:00",
+    "stale": false,
+    "languages_pct": {
+      "Rust": 91.4,
+      "Python": 3.9,
+      "WGSL": 2.6,
+      "Shell": 2.1
+    }
+  },
+  "https://github.com/bfxh/trit": {
+    "host": "github",
+    "url": "https://github.com/bfxh/trit",
+    "stars": 2,
+    "forks": 1,
+    "language": "Rust",
+    "license": "Apache-2.0",
+    "updated_at": "2026-10-27T18:25:56Z",
+    "description": "Rust 三进制工具箱：三值逻辑 K3/Ł3/B3、双导轨位平面、CPU/GPU 三值内核、5 trit/字节打包、三值训练（STE/QAT）、TT3/TTX 资产格式与 .tri 语言服务器",
+    "archived": false,
+    "fetched_at": "2026-10-27T18:55:43+00:00",
+    "stale": false,
+    "languages_pct": {
+      "Rust": 90.8,
+      "Python": 6.0,
+      "WGSL": 2.7,
+      "HTML": 0.3,
+      "C": 0.2
+    }
+  },
+  "https://github.com/cshonor/Computer-Networking": {
+    "host": "github",
+    "url": "https://github.com/cshonor/Computer-Networking",
+    "stars": 8,
+    "forks": 0,
+    "language": "Python",
+    "license": null,
+    "updated_at": "2026-06-11T14:22:37Z",
+    "description": "专为后端开发打造，聚焦：网络原理、Socket 编程、TCP/IP 底层、服务端网络问题排查。",
+    "archived": false,
+    "fetched_at": "2026-10-27T18:55:44+00:00",
+    "stale": false,
+    "languages_pct": {
+      "Python": 56.9,
+      "C": 35.7,
+      "Rust": 7.4
+    }
+  },
+  "https://github.com/cshonor/hft-embedded-linux-study": {
+    "host": "github",
+    "url": "https://github.com/cshonor/hft-embedded-linux-study",
+    "stars": 11,
+    "forks": 3,
+    "language": "HTML",
+    "license": null,
+    "updated_at": "2026-10-27T08:39:51Z",
+    "description": "Low-level Linux systems deep-dive: HFT low-latency, kernel/memory/concurrency, with a parallel track on embedded UAV flight control.",
+    "archived": false,
+    "fetched_at": "2026-10-27T18:55:46+00:00",
+    "stale": false,
+    "languages_pct": {
+      "HTML": 95.1,
+      "C": 3.0,
+      "Rust": 0.9,
+      "C++": 0.4,
+      "Shell": 0.2,
+      "Python": 0.1,
+      "Makefile": 0.1,
+      "PowerShell": 0.1,
+      "LLVM": 0.1
+    }
+  },
+  "https://github.com/cshonor/LDD-": {
+    "host": "github",
+    "url": "https://github.com/cshonor/LDD-",
+    "stars": 1,
+    "forks": 0,
+    "language": "C",
+    "license": null,
+    "updated_at": "2026-10-08T06:10:25Z",
+    "description": " Linux 内核模块（Kernel Module）和设备驱动（Device Driver）的开发",
+    "archived": false,
+    "fetched_at": "2026-10-27T18:55:47+00:00",
+    "stale": false,
+    "languages_pct": {
+      "C": 82.6,
+      "Python": 10.9,
+      "Makefile": 5.9,
+      "Shell": 0.6
+    }
+  },
+  "https://github.com/cshonor/Quant-AI-Foundations": {
+    "host": "github",
+    "url": "https://github.com/cshonor/Quant-AI-Foundations",
+    "stars": 7,
+    "forks": 0,
+    "language": "Python",
+    "license": null,
+    "updated_at": "2026-09-29T12:47:40Z",
+    "description": "本仓库包含三大主要方向所需的数学与计算机科学基础知识： 1. 股票多因子量化 2. 智能体开发 3. 期权期货量化（随机金融）",
+    "archived": false,
+    "fetched_at": "2026-10-27T18:55:48+00:00",
+    "stale": false,
+    "languages_pct": {
+      "Python": 56.9,
+      "HTML": 36.4,
+      "Jupyter Notebook": 6.7
+    }
+  },
+  "https://github.com/cshonor/rust-concurrency-async-practice": {
+    "host": "github",
+    "url": "https://github.com/cshonor/rust-concurrency-async-practice",
+    "stars": 2,
+    "forks": 0,
+    "language": "Rust",
+    "license": null,
+    "updated_at": "2026-06-09T08:13:50Z",
+    "description": "个人 Rust 并发与异步编程专属学习仓库，记录从入门到进阶的完整学习全过程。 专门针对： 原生多线程、作用域线程、Send/Sync 线程安全 原子操作、内存排序、锁与无锁并发原理 crossbeam 无锁队列与高级并发工具 Tokio 异步 Runtime、TCP/UDP/WebSocket 异步 IO Rayon 极简并行化批量数据处理 每一个主题都配有可直接运行的示例代码与个人学习笔记，一步步吃透 Rust 高性能高并发核心能力，为 Rust 后端、量化高频开发求职做技术储备。",
+    "archived": false,
+    "fetched_at": "2026-10-27T18:55:49+00:00",
+    "stale": false,
+    "languages_pct": {
+      "Rust": 70.7,
+      "Python": 17.6,
+      "PowerShell": 11.7
+    }
+  },
+  "https://github.com/cshonor/stm32-rtos": {
+    "host": "github",
+    "url": "https://github.com/cshonor/stm32-rtos",
+    "stars": 3,
+    "forks": 0,
+    "language": "C",
+    "license": null,
+    "updated_at": "2026-10-23T15:26:54Z",
+    "description": null,
+    "archived": false,
+    "fetched_at": "2026-10-27T18:55:50+00:00",
+    "stale": false,
+    "languages_pct": {
+      "C": 27.3,
+      "Makefile": 21.5,
+      "Shell": 20.9,
+      "Python": 11.5,
+      "Assembly": 9.4,
+      "Linker Script": 9.4
+    }
+  },
+  "https://gitee.com/snoware/sml": {
+    "host": "gitee",
+    "url": "https://gitee.com/snoware/sml",
+    "stars": 4,
+    "forks": 6,
+    "language": "Rust",
+    "license": null,
+    "updated_at": "2026-10-28T01:45:49+08:00",
+    "description": "居于json和yaml之间的标记语言",
+    "archived": false,
+    "fetched_at": "2026-10-27T18:55:53+00:00",
     "stale": false
   }
 }

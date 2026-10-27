@@ -49,7 +49,7 @@ Windows Defender 对仓库内文件的删除/写入做实时扫描；而**读内
    （主题复制排除 `index.html`，否则会把注入后的版本盖回去）。
 3. **字体 stamp 去掉 `built_at`**：签名只算站点内容，同样的内容不再触发重新子集化
    （`site_fonts_sig()` 改走 `site_text(manifest)`，不再含 `built_at`）。
-4. **MathML memo**（`engine/lib/mathml.py`）：`render()` 按 `(表达式, display)` 缓存
+4. **MathML memo**（`engine/render/mathml.py`）：`render()` 按 `(表达式, display)` 缓存
    latex2mathml 结果，进程内有效。351 次调用 → 286 个唯一串（命中 ~18%）。
    全命中时文章阶段 5.15s → 1.80s；站内公式去重越高收益越大。
 
@@ -74,7 +74,7 @@ Windows Defender 对仓库内文件的删除/写入做实时扫描；而**读内
   （`built_at` 本来就不该进内容签名）。
 - 门禁全绿：`test_contracts` / `test_sml_include` / `test_render_safety` /
   `build` / `check` / `test_structure` / `smoke` / `series_tag` /
-  `reading_controls` / `gui_dom` / `browser-check`（121 项）。
+  `reading_controls` / `browser-check`（`gui_dom` 已随写作台归档）。
 
 ## 6. 没做的，与原因
 

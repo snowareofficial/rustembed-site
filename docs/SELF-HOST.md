@@ -35,7 +35,7 @@ cd /srv/rec-blog
 
 # MiSans 源字体不入库，需要在服务器上放一份（构建期子集化）
 # 方式 A：把 MiSans.zip 放到仓库根，导入一次
-python3 engine/fonts_import.py MiSans.zip --weights Regular,Bold
+python3 engine/tools/fonts_import.py MiSans.zip --weights Regular,Bold
 # 方式 B：直接把 MiSans-Regular.ttf / MiSans-Bold.ttf 放进 site/fonts/src/
 ```
 
@@ -132,7 +132,7 @@ Cloudflare 侧也可以在面板 Deployments → 选旧版本 → Rollback。
 
 - 服务器首次构建会为每篇文章调用一次网关并落盘；之后 `git reset --hard` **不会删除**这些文件（ignored），
   `ai_summarize.py` 默认跳过已存在的摘要 → **只有新文章才花 token**。
-- 想强制重生成：`python engine/ai_summarize.py --write --force`。
+- 想强制重生成：`python engine/tools/ai_summarize.py --write --force`。
 - 若希望摘要随仓库分发（换服务器不用重跑），把该目录从 `.gitignore` 移除并提交即可。
 
 ## 6. 验收清单

@@ -5,7 +5,7 @@
 ## 已做（2026-09-19 第四轮：字体与资源库）
 
 - [x] 字体支持：MiSans 自托管 + 构建期子集化（**实测 15.4 MB 源字体 → 约 254 KB 子集**）；
-      `engine/fonts_import.py` 从压缩包挑权重；源字体与子集均不入库，CI/自托管用
+      `engine/tools/fonts_import.py` 从压缩包挑权重；源字体与子集均不入库，CI/自托管用
       `site/fonts/misans-fonts.tar.gz.enc` 加密包 + `FONT_PASSWORD` 解密（见 docs/FONTS.md）；
       缺 brotli 自动退化为 woff
 - [x] 字体使用说明与许可要点：`docs/FONTS.md`；隐私页补「静态资源自托管、不请求第三方 CDN」

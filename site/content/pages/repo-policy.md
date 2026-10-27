@@ -40,7 +40,7 @@ PR 描述里必须有：
 
 | 内容 | 位置 |
 |---|---|
-| 文章 | `site/content/posts/<年>/<英文短名>/index.md`（或 `.sml`），图片同目录 `assets/` |
+| 文章 | `site/content/posts/<年>/[系列/]<英文短名>/index.md`（或 `.sml`），图片同目录 `assets/` |
 | 站文档 / 制度 | `site/content/pages/*.md`（`group` + `order` 决定归组与顺序） |
 | 主题词条 | `site/content/topics/*.md` |
 | 成员档案 | `site/content/members/<id>.sml`（头像同名 `<id>.jpg`） |

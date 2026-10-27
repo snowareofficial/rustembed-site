@@ -22,7 +22,7 @@
 
 ### 格式
 
-- [ ] 文章在 `site/content/posts/<年份>/<短名>/index.md`；
+- [ ] 文章在 `site/content/posts/<年份>/[系列/]<短名>/index.md`；
 - [ ] front matter 必填字段齐全（`title/author/date/tags/summary`）；
 - [ ] 图片在文章同目录 `assets/`，没有外部图床；
 - [ ] 代码块有语言标记；
@@ -41,8 +41,8 @@
 ```bash
 python engine/cli.py build --offline
 python engine/cli.py check
-python engine/test_structure.py
-python engine/test_contracts.py
+python engine/tests/test_structure.py
+python engine/tests/test_contracts.py
 ```
 
 CI 已经跑过的话可以只看结果；本地改过内容就自己再跑一遍。

@@ -5,7 +5,7 @@ order: 1
 body: [
   topic 最小可用模板 {
     children: [
-      para { text: "新建 content/posts/<年份>/<英文短名>/index.md，粘贴下面这段就能开工。" }
+      para { text: "新建 content/posts/<年份>/[系列/]<英文短名>/index.md，粘贴下面这段就能开工。" }
       code { lang: markdown text: "---\ntitle: \"文章标题\"\nauthor: 你的成员id\ndate: 2026-09-20\ntags: [ rust embedded ]\nsummary: \"一两句摘要\"\n---\n\n## 第一个小节\n\n正文……" }
       para { text: "作者 id 与 content/members/<id>.sml 对应；没有档案也能发，只是不会链接到个人页。" }
     ]

@@ -18,18 +18,18 @@
 ```
 rec-blog/
 ├─ engine/                       # 工具体系：不含本站知识，可整体复制复用
-│  ├─ build.py check.py preview.py cli.py test_contracts.py config.py
-│  ├─ test_render_safety.py test_structure.py verify_parity.py ai_summarize.py
-│  ├─ fonts_import.py git_ready.py gui.py gui_api.py
-│  └─ lib/{sml,_swsml,markdown,render,contract,mindmap,mathml,summary,urls,repo_meta}.py
-├─ gui/                          # 写作台（Rust 启动器 + 内嵌 Web UI）
-├─ tests/                        # 前端验收（Node）+ 写作台 API 回归（Python）
+│  ├─ build.py check.py preview.py cli.py          # 入口脚本
+│  ├─ core/  parse/  render/     # 约定 / 解析 / 渲染（只向下依赖，不反向）
+│  ├─ content/  pipeline/        # 内容类型 / 产物出口
+│  ├─ tools/  tests/             # 辅助脚本 / 引擎自测
+│  ├─ native/ vendor/            # SML 原生库、vendored 依赖
+├─ archive/gui/                  # 已归档的写作台（2026-10-28，只读）
+├─ tests/                        # 验收脚本（Node 前端 + 三个 Python harness）
 ├─ deploy/                       # 自托管链路（entrypoint / webhook / fonts-crypt）
-├─ Cargo.toml / Cargo.lock       # Rust workspace（members=["gui"]）
 ├─ site/                         # 本站点本身
 │  ├─ content/                   #   人写的内容
 │  │  ├─ site.sml                #   站点配置（站名/标语/导航/公告/群信息/默认契约映射）
-│  │  ├─ posts/<year>/<slug>/index.(md|sml) + assets/
+│  │  ├─ posts/<year>/[series/]<slug>/index.(md|sml) + assets/
 │  │  ├─ pages/<name>.sml        #   站文档：group + order 决定文档树
 │  │  ├─ topics/<id>.(md|sml)    #   主题词条：同标签文章自动归入
 │  │  ├─ members/<id>.sml        #   成员档案（同目录 <id>.jpg 自动作头像）
@@ -44,7 +44,7 @@ rec-blog/
 │  ├─ meta/repos.json            #   仓库元数据缓存（入库）
 │  └─ *.jpg                      #   群 logo（同时作为站点 favicon）
 ├─ docs/                         # 开发者文档（ARCHITECTURE / DEPLOY / FONTS / GOVERNANCE /
-│                                #  ROADMAP / WORKFLOW / SELF-HOST / GUI）
+│                                #  ROADMAP / WORKFLOW / SELF-HOST）
 └─ dist/                         # 产物（gitignore）
 ```
 
@@ -172,7 +172,7 @@ rec-blog/
   → 产出 manifest.json / search-index.json / sitemap.xml / feed.xml → dist/
 ```
 
-前端：`index.html` 壳 + `site/theme/js/`（core 建 `window.REC` 命名空间 → 各模块挂导出 → app.js 入口装配启动）拉 `manifest.json` 做路由（首页/文章/项目/成员/资源/周报/群/搜索/标签归档），正文按 URL fetch 预渲染好的 HTML 片段；**投稿文本一律走文本节点，只有构建期预渲染的片段允许 `innerHTML`（构建侧已统一转义 + URL 白名单，`engine/lib/urls.py`）**。
+前端：`index.html` 壳 + `site/theme/js/`（core 建 `window.REC` 命名空间 → 各模块挂导出 → app.js 入口装配启动）拉 `manifest.json` 做路由（首页/文章/项目/成员/资源/周报/群/搜索/标签归档），正文按 URL fetch 预渲染好的 HTML 片段；**投稿文本一律走文本节点，只有构建期预渲染的片段允许 `innerHTML`（构建侧已统一转义 + URL 白名单，`engine/core/urls.py`）**。
 
 ## 7. SML 工具链调研结论与改动建议
 
@@ -189,7 +189,7 @@ rec-blog/
 
 ## 8. 已定项（2026-09-19）
 
-- **SML 解析**：自写 Python 子集解析器（`engine/lib/sml.py`），零第三方依赖、不在 CI 里编 Rust
+- **SML 解析**：自写 Python 子集解析器（`engine/parse/sml.py`），零第三方依赖、不在 CI 里编 Rust
   （原生加速 `engine/native/sml.dll` 可选：缺失时不含 `include` 的内容照常构建、含 `include`
   的内容明确报错；有的话它额外负责 include / 命名空间的展开，见 §14）
 - **仓库元数据**：仅构建期抓取，写进 manifest 并缓存 `meta/repos.json`，失败降级 stale
@@ -200,7 +200,7 @@ rec-blog/
 
 构建期为**站点树**与**每篇文章的章节树**生成可点击 SVG，不依赖任何外部 SML 工具：
 
-- 生成器：`engine/lib/mindmap.py`（整齐树布局：子树高度定 y、列宽定 x、贝塞尔连线）
+- 生成器：`engine/render/mindmap.py`（整齐树布局：子树高度定 y、列宽定 x、贝塞尔连线）
 - 产物：`dist/map.svg`、文章 `dist/p/<slug>.map.svg`（front matter 写 `map: true` 才生成，默认关）、
   词条 `dist/topics/<id>.map.svg`、技术互助 `dist/services/<id>.map.svg`、
   周报/文档页 `dist/w/<id>.map.svg` / `dist/pages/<id>.map.svg`（含自动生成的契约页）
@@ -212,7 +212,7 @@ rec-blog/
 - **默认 Markdown**（`index.md`）：front matter（YAML 子集）+ 正文。群友不需要学 SML。
 - **可选 SML**（`index.sml`）：需要严格契约校验或结构化块（theorem/proof/math）时用。
 - 两者出口统一：`render_body()` 返回 `(html, toc)`，因此**样式、章节树、导图、搜索索引完全共用**。
-- Markdown 渲染器 `engine/lib/markdown.py` 支持：标题、段落、围栏/缩进代码、引用、有序/无序列表（一层嵌套）、
+- Markdown 渲染器 `engine/render/markdown.py` 支持：标题、段落、围栏/缩进代码、引用、有序/无序列表（一层嵌套）、
   表格、水平线、图片（可带图注）、链接、粗体/斜体/删除线/行内代码、单独一行的 B 站视频，
   以及 SML 的内联角色；正文 HTML 一律转义（`check.py` 会验证片段里没有 `<script>`）。
 - **Hugo 的位置**：当前不需要。若将来要完整 CommonMark（脚注、定义列表、自动链接）或复杂排版，
@@ -235,7 +235,7 @@ rec-blog/
 | **多行字符串**（引号内直接换行） | 是 | 写整段正文不用 `\n`，站点里的 SML 页面就是这么写的 |
 | **片段 `@frag {}` + `&frag`** | 是 | 值级展开：`links: &sal_links`（成员档案在用） |
 | `@version` 等指令行 | 忽略 | 解析时丢弃，不报错 |
-| `@contract` / `@is` 契约校验 | 是（走 `contracts{}` 默认映射） | 内容文件里不写 `@is`（builtin 后端会报错）；字段校验由 `lib/contract.py` 统一做，报错信息带错误码 + 人话 |
+| `@contract` / `@is` 契约校验 | 是（走 `contracts{}` 默认映射） | 内容文件里不写 `@is`（builtin 后端会报错）；字段校验由 `engine/core/contract.py` 统一做，报错信息带错误码 + 人话 |
 | `include "x.sml" [as ns]` 包含 | 是（仅文件入口 + native） | 跨文件复用契约/数据；沙箱 = 包含者所在目录子树（§14） |
 | glob / regex / 挑键 / 多目标 include | 不支持 | 桥接层直接拒绝（native 能展开数据但契约拉不回来） |
 | `$env.VAR` 环境变量内插 | 不用 | 静态站点不需要，且容易把密钥带进产物 |
@@ -288,7 +288,7 @@ site/content/members/sal.sml: E-CONTRACT-008 字段 `Member.links` 应为块并�
 
 其它：支持 `optional` / `default` / `[类型]` 数组 / 嵌套契约；字段行 `#` 后的文字会作为「说明」进入自动生成的文档页；
 `python engine/build.py --contract-loose` 可临时把 `E-CONTRACT-004` 放宽（应急，不建议长期用）；
-`python engine/test_contracts.py` 是契约引擎自测（断言数动态计数，钉住每一类错误码）。
+`python engine/tests/test_contracts.py` 是契约引擎自测（断言数动态计数，钉住每一类错误码）。
 
 ### 12.1 跨文件复用：`include` + 命名空间
 
@@ -313,10 +313,10 @@ url: "https://example.com/"
 | 允许根 | 目标 realpath 必须落在 **site/content** 内；跨兄弟目录（如 `resources/` → `contracts/`）可以 |
 | 沙箱 | native 的沙箱更紧（基准 = 包含者目录），靠下面的**预处理**绕开，不放宽 native |
 | 防护 | 循环 include → `E-INCLUDE-002`；嵌套 > 32 层 / 文件 > 64 个 / 总字节 > 8 MiB → 明确错误 |
-| 契约谁校验 | 一律 Python 侧 `lib/contract.py`（native 不懂 url/date/image，见 §14） |
+| 契约谁校验 | 一律 Python 侧 `engine/core/contract.py`（native 不懂 url/date/image，见 §14） |
 
 优先级：文件里的 `@is` > `site.sml` 的 `contracts{}` 默认映射，二者只走一个，不会重复报错。
-「优先级」的落点在 `build.apply_contract()`，与写作台 `validate_doc()` 同一口径。
+「优先级」的落点在 `engine/core/contracts.py` 的 `apply_contract()`（唯一入口，构建与工具共用同一口径）。
 
 不支持的写法（构建直接报错，不静默降级）：glob `*.sml`、正则 `re:"…"`、挑键 `{ a, b }`、
 一行多目标 `"a", "b"`、点分模块名 `import a.b`、以及未加引号的路径。
@@ -330,12 +330,12 @@ url: "https://example.com/"
 
 ## 14. 原生后端（native）与 include：谁负责什么
 
-`engine/lib/sml.py` 有两条加载路径：
+`engine/parse/sml.py` 有两条加载路径：
 
 | 入口 | 谁在用 | 行为 |
 |---|---|---|
-| 文本入口 `parse_doc(text, path)` | 单测、写作台无 include 的场景 | 不展开 include（撞上就报错，见 `_include_guard`） |
-| 文件入口 `load_doc(path)` / `parse_doc_at(text, path)` | `build.load2()`、写作台校验/预览 | 内容含 include/import 时交给 native 展开 |
+| 文本入口 `parse_doc(text, path)` | 单测、无 include 的场景 | 不展开 include（撞上就报错，见 `_include_guard`） |
+| 文件入口 `load_doc(path)` / `parse_doc_at(text, path)` | `engine/content/loader.py` 的 `load2()` | 内容含 include/import 时交给 native 展开 |
 
 native = `engine/native/sml.dll`（swsml 0.6.4 的 Rust cdylib，`engine/native/` 已 gitignore）。
 文件入口会额外打开 `include` + `namespace` 两个特性位（`as ns` 需要它）；`implicit-ns` **不开** ——
@@ -353,7 +353,7 @@ native = `engine/native/sml.dll`（swsml 0.6.4 的 Rust cdylib，`engine/native/
 所以做法是：入口文件里的 `@contract` / `@is` 照旧在交给 native 前剥掉（`_strip_directives`），
 native 只拿数据；被包含文件的 `@contract` 由 `bridge_contracts()` 沿 include 图走一遍
 `_strip_directives` 拉回来，组成**旁路契约表**（`as ns` → `ns.契约名`），校验仍由
-`lib/contract.py` 统一负责 —— 于是 url / date / image / 附件路径这些本站校验一条不少。
+`engine/core/contract.py` 统一负责 —— 于是 url / date / image / 附件路径这些本站校验一条不少。
 
 ## 15. 跨目录 include 的预处理（为什么 native 沙箱要绕）
 
@@ -378,7 +378,7 @@ native 看到的永远是「同目录 / 子目录」的 include，沙箱自然�
 扁平化是必须的：如果把被包含文件放进子目录，它对入口的引用会变成 `../entry.sml`
 ⇒ 照样 E-INCLUDE-003（实测踩过）。
 
-流程（`engine/lib/sml.py`）：
+流程（`engine/parse/sml.py`）：
 
 1. `scan_include_refs()` 扫顶层 include 行：`_code_lines()` 先把字符串与块注释
    内部的行掩掉，防止注释里伪造一行 `include` 就真去读文件；
@@ -409,7 +409,7 @@ native 看到的永远是「同目录 / 子目录」的 include，沙箱自然�
 
 - 新增 `.github/workflows/include-native.yml`：job `include-native` 先拉上游
   `v0.6.4` 并 `cargo build --release -p swsml`，把 cdylib 放进 `engine/native/`，
-  再跑 `python engine/test_sml_include.py`（[B][D][E] 真跑）；
+  再跑 `python engine/tests/test_sml_include.py`（[B][D][E] 真跑）；
 - 脚本本身也改了口径：**缺 native 时退出码 1**（不再静默 SKIP），
   只有显式 `REC_BLOG_SML_ALLOW_NO_NATIVE=1` 才降级为跳过。
   于是「装不上 native」会红，而不是悄悄绿。

@@ -3,7 +3,7 @@ name: include 回归（需要 native）
 # 为什么单开一条流水线：
 #   include 的跨目录展开必须走 native（swsml cdylib）的文件入口 load_file，
 #   而 engine/native/ 是 .gitignore 的 —— 干净克隆里根本没有这个库。
-#   以前 `engine/test_sml_include.py` 的做法是「找不到 native 就 SKIP」，
+#   以前 `engine/tests/test_sml_include.py` 的做法是「找不到 native 就 SKIP」，
 #   等于把门禁悄悄关掉（CI 全绿但什么都没测）。现在两条一起上：
 #     * 本 job **先装 native 再跑测试** ⇒ [B][D][E] 三组真跑；
 #     * 脚本本身缺 native 时**退出码 1** ⇒ 装不上就红，不静默跳过。
@@ -71,19 +71,19 @@ jobs:
         run: |
           python - <<'PY'
           import sys
-          sys.path.insert(0, "engine/lib")
-          import sml
+          sys.path.insert(0, ".")
+          from engine.parse import sml
           print("backend:", sml.backend_info())
           assert sml.backend() == "native", "native 没生效，本 job 失去意义"
           PY
 
       - name: include 回归（跨目录 / 嵌套 / 菱形 / 循环 / 越界）
-        run: python engine/test_sml_include.py
+        run: python engine/tests/test_sml_include.py
 
       - name: 其余既有门禁
         run: |
-          python engine/test_contracts.py
-          python engine/test_render_safety.py
+          python engine/tests/test_contracts.py
+          python engine/tests/test_render_safety.py
           python engine/cli.py build --offline
           python engine/cli.py check
-          python engine/test_structure.py
+          python engine/tests/test_structure.py

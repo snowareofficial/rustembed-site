@@ -101,8 +101,8 @@ tags: [ "Rust", "静态站点" ]
 - 项目页的「相关阅读」只认手写的两个字段，**不会按 `languages` / `tags` 自动匹配**：
 
   ```sml
-  related_series: [ hft-embedded-linux-14 ]   # 系列 id（文章 front matter 的 series.id）
-  related_posts: [ md-writing ]               # 文章 slug（posts/<年>/<短名> 的短名）
+  related_series: [ hft-engineering ]   # 系列 id（文章 front matter 的 series.id）
+  related_posts: [ md-writing ]               # 文章 slug（posts/<年>/[系列/]<短名> 的短名）
   ```
 
   - 都不写 → 整块不出现（不显示「暂无」），不要为了填满而关联；

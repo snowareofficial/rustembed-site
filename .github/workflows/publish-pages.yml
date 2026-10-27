@@ -130,7 +130,7 @@ jobs:
           AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
           AI_MODEL: ${{ secrets.AI_MODEL }}
-        run: python engine/ai_summarize.py --write
+        run: python engine/tools/ai_summarize.py --write
 
       - name: 构建（带摘要）+ 自检
         env:
@@ -140,7 +140,7 @@ jobs:
           export BUILT_AT="$(git log -1 --format=%cI)"
           python engine/build.py
           python engine/check.py
-          python engine/test_structure.py
+          python engine/tests/test_structure.py
 
       - name: 发布到 ${{ matrix.target }} 分支（内容未变则跳过）
         env:

@@ -56,11 +56,24 @@ jobs:
 
       # 1) 契约引擎自测：钉住每一类错误码的语义
       - name: 契约引擎自测
-        run: python engine/test_contracts.py
+        run: python engine/tests/test_contracts.py
 
       # 2) 渲染安全回归：转义、内联角色、嵌套列表
       - name: 渲染安全回归
-        run: python engine/test_render_safety.py
+        run: python engine/tests/test_render_safety.py
+
+      # 2.1) include / 命名空间回归（本 job 无 native，显式允许跳过 [B][D][E]，
+      #      真跑在 include-native.yml；这里守住 [A][C] 的规则与非降级行为）
+      - name: include 回归
+        env:
+          REC_BLOG_SML_ALLOW_NO_NATIVE: "1"
+        run: python engine/tests/test_sml_include.py
+
+      # 2.2) 图片引用自测 + 目录树守卫（E-POST-001/003/004，临时站点跑真实构建）
+      - name: 图片与目录树回归
+        run: |
+          python engine/tests/test_images.py
+          python tests/content_tree_test.py
 
       # 3) 构建。**不加 --warn-only**：契约与附件错误必须让流水线失败，
       #    否则「字段写错会被契约拦下」这句对投稿者的承诺在发布链路上不成立。
@@ -76,7 +89,7 @@ jobs:
 
       # 4.5) 前端结构断言（三栏/版心/零外链/摘要/导图等，纯静态，不需要浏览器）
       - name: 结构断言
-        run: python engine/test_structure.py
+        run: python engine/tests/test_structure.py
 
       # 4.6) AI 摘要（可选；没有 secrets 或调用失败都不阻断）
       - name: AI 摘要（GLM，构建期）
@@ -85,7 +98,7 @@ jobs:
           AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
           AI_MODEL: ${{ secrets.AI_MODEL }}
-        run: python engine/ai_summarize.py --write
+        run: python engine/tools/ai_summarize.py --write
 
       # 4.7) 摘要可能更新，重建一次让页面带上
       - name: 重建（带摘要）
@@ -93,7 +106,7 @@ jobs:
         run: |
           python engine/build.py
           python engine/check.py
-          python engine/test_structure.py
+          python engine/tests/test_structure.py
 
       # 5) 发布不在本文件：publish-pages.yml 会把 dist 推到 `pages` 分支，
       #    Cloudflare Pages 的 Git 集成直接取那个分支（不需要 CF token）。

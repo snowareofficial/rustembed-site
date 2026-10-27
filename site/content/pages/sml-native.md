@@ -36,7 +36,7 @@ CI 从 v0.6.4 构建，不 patch 上游。
 ## 本机编译
 
 ```bash
-python engine/native_build.py --sml-src /path/to/sml
+python engine/tools/native_build.py --sml-src /path/to/sml
 ```
 
 脚本会跑 `cargo build --release -p swsml`，找到真实 target-dir，复制到 `engine/native/`，再加载验证版本。

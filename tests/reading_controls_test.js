@@ -1218,8 +1218,8 @@ async function main() {
           '#/post/md-writing', 'rec-blog 的相关阅读只有显式关联的那篇');
       }
       /* 有真系列关联的项目：HFT 项目页应出现那条系列组，且不铺开章节 */
-      const hft = man.projects.find((p) => (p.related_series || []).indexOf('hft-embedded-linux-14') >= 0);
-      need(!!hft, 'cshonor-hft-embedded-linux 应显式关联 hft-embedded-linux-14 系列');
+      const hft = man.projects.find((p) => (p.related_series || []).indexOf('hft-engineering') >= 0);
+      need(!!hft, 'cshonor-hft-embedded-linux 应显式关联 hft-engineering 系列');
       if (hft) {
         const frag = await app.rec.viewProject(hft.id);
         const box = app.document.createElement('div');

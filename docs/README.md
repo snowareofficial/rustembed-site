@@ -30,20 +30,14 @@
 | [`PLAN-SML-NATIVE.md`](PLAN-SML-NATIVE.md) | native include/契约改造的工作量与决策 |
 | [`PERF-BUILD.md`](PERF-BUILD.md) | 构建性能：基线、Out 收集器、没做的及原因 |
 
-## GUI
-
-| 文档 | 内容 |
-|---|---|
-| [`GUI.md`](GUI.md) | GUI 设计 |
-| [`GUI-FLOWS.md`](GUI-FLOWS.md) | 交互流程 |
-| [`GUI-IMPLEMENT.md`](GUI-IMPLEMENT.md) | 已实现的结构与差异 |
-| [`gui-mock/`](gui-mock/) | 视觉基准（HTML/PNG/CSS） |
-
 ## 归档
+
+GUI（写作台）已于 2026-10-28 暂停并整体归档到仓库根的 `archive/gui/`，
+其设计/流程/实现文档与视觉稿随代码一起搬走，恢复步骤见 `archive/gui/README.md`。
 
 [`archive/`](archive/) 里是**已完成任务的任务书/交接记录**，不再维护：
 
-- `archive/gui/`：GUI M1–M3 任务书与交接；
+- `archive/gui/`：GUI M1–M3 任务书与交接（已随 GUI 归档，见上）；
 - `archive/p0/`：技术互助 P0 任务书与交接；
 - `archive/i18n/`：i18n phase 1 任务书；
 - `archive/audit/`：审计任务书。

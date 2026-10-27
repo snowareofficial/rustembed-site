@@ -19,7 +19,7 @@
 ### 1. 建目录
 
 ```text
-site/content/posts/<年份>/<英文短名>/index.md
+site/content/posts/<年份>/[系列/]<英文短名>/index.md
 ```
 
 例如：

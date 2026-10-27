@@ -14,7 +14,7 @@ nav: [ library knowledge topics projects resources members services weekly pages
 # 代码块超过这个行数就折叠（最大高度 = 该行数，点「展开全部（N 行）」看完整代码）
 code_collapse_lines: 20
 
-# PR 默认审核人（写作台 /api/pr 带出，可增删）；环境变量 REC_BLOG_REVIEWERS 可覆盖
+# PR 默认审核人：写作台归档后构建侧不再读取，保留供复活时使用；环境变量 REC_BLOG_REVIEWERS 可覆盖
 reviewers: [ sal ]
 
 # 默认契约：按内容类型自动套用（文件里写 @is 可覆盖）
