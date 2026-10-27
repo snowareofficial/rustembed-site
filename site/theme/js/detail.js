@@ -191,6 +191,9 @@
       if (p.series) {
         var s = R.byId(m.series, p.series);
         if (s) {
+          /* 文章侧栏（系列上下文块）：有简介才显示，纯文本、文本节点渲染（安全） */
+          var sdesc = R.seriesDesc(s);
+          if (sdesc) f.appendChild(sdesc);
           var idx = -1;
           for (var si = 0; si < s.posts.length; si++) { if (s.posts[si].slug === p.slug) idx = si; }
           var pager = R.el('nav', 'pager');

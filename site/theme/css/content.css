@@ -30,6 +30,9 @@
   border-left: 2px solid var(--line-strong);
   color: var(--ink-soft); font-size: 17px;
 }
+/* 系列简介：纯文本（构建期转义 + 前端文本节点二次防护），复用 --ink-soft 配色，
+   不造新设计语言；出现在系列页头部 / 目录卡 / 文章侧栏三处，样式统一。 */
+.series-desc { margin: .4rem 0 .8rem; color: var(--ink-soft); font-size: 14.5px; line-height: 1.7; }
 .crumb { font-size: 12.5px; color: var(--ink-mute); margin: 0 0 .5rem; }
 .crumb a { color: var(--ink-mute); }
 .crumb .sep { padding: 0 .35rem; color: var(--line-strong); }
