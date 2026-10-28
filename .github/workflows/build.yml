@@ -62,6 +62,10 @@ jobs:
       - name: 渲染安全回归
         run: python engine/tests/test_render_safety.py
 
+      # 2.0) RSS 系列聚合：一个系列一条，按最近一章日期排序
+      - name: RSS 系列聚合回归
+        run: python engine/tests/test_feed.py
+
       # 2.1) include / 命名空间回归（本 job 无 native，显式允许跳过 [B][D][E]，
       #      真跑在 include-native.yml；这里守住 [A][C] 的规则与非降级行为）
       - name: include 回归
