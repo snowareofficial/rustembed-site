@@ -308,22 +308,59 @@ def sitemap_xml(manifest, posts, members, services, topics):
 
 
 def feed_xml(manifest, posts):
-    """feed.xml（RSS 2.0，最近 20 篇）。"""
+    """feed.xml（RSS 2.0，最近 20 个条目）。
+
+    同一系列只出一条，链接到系列页，日期取该系列最近一章；
+    没有 series 的文章仍按单篇输出。这样系列不会用章节把 feed 占满。
+    """
     base_url = manifest["site"]["url"].rstrip("/")
+    series_by_id = {s.get("id"): s for s in manifest.get("series", [])}
+    by_series = {}
+    for p in posts:
+        sid = p.get("series")
+        if sid:
+            by_series.setdefault(sid, []).append(p)
+
+    entries = []
+    seen_series = set()
+    for p in posts:
+        sid = p.get("series")
+        if not sid:
+            entries.append({"title": p["title"], "href": "#/post/" + p["slug"],
+                            "date": p["date"], "description": p["summary"]})
+            continue
+        if sid in seen_series:
+            continue
+        seen_series.add(sid)
+        s = series_by_id.get(sid)
+        if not s:
+            # 契约里 series 是合法字段，但 manifest 缺项时不要丢文章：按单篇退回首条。
+            entries.append({"title": p["title"], "href": "#/post/" + p["slug"],
+                            "date": p["date"], "description": p["summary"]})
+            continue
+        group = by_series.get(sid, [p])
+        latest = max(group, key=lambda x: x["date"])
+        entries.append({
+            "title": s.get("title") or latest.get("series_title") or sid,
+            "href": "#/series/" + sid,
+            "date": latest["date"],
+            "description": s.get("description") or latest.get("summary") or "",
+        })
+
+    entries.sort(key=lambda e: (e["date"], e["href"]), reverse=True)
     feed = ['<?xml version="1.0" encoding="UTF-8"?>',
             '<rss version="2.0"><channel>',
             "<title>%s</title>" % esc(manifest["site"]["title"]),
             "<link>%s</link>" % esc(base_url),
             "<description>%s</description>" % esc(manifest["site"]["tagline"]),
             "<lastBuildDate>%s</lastBuildDate>" % _rfc822(None)]
-    for p in posts[:20]:
-        # slug 来自目录名：Windows 上不含引号/尖括号，但 git 里不保证 ——
-        # 拼进 XML 前与 title/summary 一样过 esc，保持同一纪律。
-        feed.append("<item><title>%s</title><link>%s/#/post/%s</link><guid>%s/#/post/%s</guid>"
+    for e in entries[:20]:
+        # slug/系列 id 来自目录或 front matter：拼进 XML 前统一过 esc。
+        feed.append("<item><title>%s</title><link>%s/%s</link><guid>%s/%s</guid>"
                     "<pubDate>%s</pubDate><description>%s</description></item>" % (
-                        esc(p["title"]), esc(base_url), esc(p["slug"]),
-                        esc(base_url), esc(p["slug"]),
-                        esc(_rfc822(p["date"])), esc(p["summary"])))
+                        esc(e["title"]), esc(base_url), esc(e["href"]),
+                        esc(base_url), esc(e["href"]),
+                        esc(_rfc822(e["date"])), esc(e["description"])))
     feed.append("</channel></rss>")
     return "\n".join(feed)
 
