@@ -1,0 +1,86 @@
+<p>这是维护者文档。普通作者不需要读；写文章、加数据条目仍然不需要 native。</p>
+<h3 id="两套后端">两套后端</h3>
+<table>
+<thead><tr><th>后端</th><th>用途</th></tr></thead>
+<tbody>
+<tr><td>builtin</td><td>纯 Python 子集；没有 native 时的回退</td></tr>
+<tr><td>native</td><td>Rust <code>swsml 0.6.4</code>，支持 include / import / 完整 SML</td></tr>
+</tbody>
+</table>
+<p>native 文件：</p>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">Windows  sml.dll
+Linux    libsml.so
+macOS    libsml.dylib</code></pre>
+</div>
+<p>默认放在 <code>engine/native/</code>，被 <code>.gitignore</code> 忽略。仓库里特意入库的只有 macOS arm64 的 <code>libsml.dylib</code> 和它的 <code>PROVENANCE.md</code>。</p>
+<h3 id="上游来源">上游来源</h3>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">Gitee   https://gitee.com/snoware/sml
+GitHub  https://github.com/snowareofficial/sml
+tag     v0.6.4</code></pre>
+</div>
+<p>CI 从 v0.6.4 构建，不 patch 上游。</p>
+<h3 id="本机编译">本机编译</h3>
+<div class="code">
+<div class="code-head"><span>bash</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-bash">python engine/tools/native_build.py --sml-src /path/to/sml</code></pre>
+</div>
+<p>脚本会跑 <code>cargo build --release -p swsml</code>，找到真实 target-dir，复制到 <code>engine/native/</code>，再加载验证版本。</p>
+<p>常用参数：</p>
+<div class="code">
+<div class="code-head"><span>bash</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-bash">--force       覆盖已有库
+--locked      cargo build --locked
+--out-dir     输出目录
+--dry-run     只打印命令</code></pre>
+</div>
+<p>需要 Rust/cargo；不需要 pip。</p>
+<h3 id="include-预处理">include 预处理</h3>
+<p>只有 <code>.sml</code> 且顶层有 <code>include</code> / <code>import</code> 才走：</p>
+<ol>
+<li>从原始文件收集整个 include 闭包；</li>
+<li>剥掉 <code>@contract</code> / <code>@is</code>；</li>
+<li>展平到系统临时目录，把 include 改写成同级文件名；</li>
+<li>native 只展开数据；</li>
+<li>契约由 Python 侧从原始文件收集并校验；</li>
+<li>删除临时目录。</li>
+</ol>
+<p>允许 include 的范围是 <code>site/content</code>。越界、绝对路径、symlink 指外都会被拒绝。</p>
+<p>支持：</p>
+<div class="code">
+<div class="code-head"><span>sml</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-sml">include &quot;contracts/blog.sml&quot; as blog
+@is blog.Resource</code></pre>
+</div>
+<p>不支持（会明确报错）：</p>
+<ul>
+<li>glob / 正则；</li>
+<li>挑键 <code>{a,b}</code>；</li>
+<li>一行多个目标；</li>
+<li>点分模块名；</li>
+<li>被包含文件里自带 <code>@is</code>。</li>
+</ul>
+<h3 id="安全">安全</h3>
+<p>构建机不会把 <code>secrets.*</code> 注入 native 编译步骤。已扫描 macOS dylib：没有令牌、密码、私钥或本机用户名。</p>
+<p>本地 Windows DLL 可能包含：</p>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">C:\Users\&lt;用户名&gt;\.rustup\...</code></pre>
+</div>
+<p>这是 Rust panic 路径里的用户名，不是密钥；该 DLL 不入库。要分发本机 DLL，先做路径重映射。</p>
+<h3 id="常见错误">常见错误</h3>
+<table>
+<thead><tr><th>错误</th><th>处理</th></tr></thead>
+<tbody>
+<tr><td><code>E-FEATURE-001</code></td><td>有 include 但没 native；装库或删 include</td></tr>
+<tr><td><code>E-INCLUDE-001</code></td><td>目标不存在</td></tr>
+<tr><td><code>E-INCLUDE-002</code></td><td>循环 include</td></tr>
+<tr><td><code>E-INCLUDE-003</code></td><td>越出允许根 / 绝对路径</td></tr>
+<tr><td><code>E-INCLUDE-012</code></td><td>不支持的 include 形态</td></tr>
+</tbody>
+</table>
+<p>VS Code 扩展（JS）不带回子文件契约表，编辑器里可能误报；以 <code>build</code> / <code>check</code> 为准。</p>
+<p>完整说明见仓库 <code>docs/NATIVE.md</code>。</p>

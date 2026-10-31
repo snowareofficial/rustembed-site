@@ -1,0 +1,13 @@
+<h3 id="定义">定义</h3>
+<p>指把 Rust 代码变成能在 MCU 上跑起来的一整条链路：交叉编译目标三元组、链接脚本与内存布局、
+烧录与调试后端、日志与追踪（defmt / RTT / ITM）、以及包管理与构建配置。</p>
+<h3 id="组成">组成</h3>
+<ul>
+<li><code>rustup target add thumbv7em-none-eabihf</code> 之类的目标三元组</li>
+<li><code>.cargo/config.toml</code>：runner、linker、target 默认值</li>
+<li><code>memory.x</code> + <code>build.rs</code>：告诉链接器 Flash/RAM 布局</li>
+<li>烧录/调试：probe-rs（推荐）、OpenOCD、pyOCD</li>
+<li>日志：defmt + RTT（低开销、不阻塞），串口 <code>core::fmt</code> 作为兜底</li>
+</ul>
+<h3 id="判断原则">判断原则</h3>
+<p>工具链越短越好：能用一个命令跑通就别写脚本；能靠配置解决的别靠记忆。</p>

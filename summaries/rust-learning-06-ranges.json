@@ -1,0 +1,10 @@
+{
+ "source": "extractive",
+ "one_line": "Range 系列的写法，以及在循环和切片中的用法。",
+ "points": [],
+ "keywords": [
+  "rust",
+  "类型"
+ ],
+ "reading": 2
+}

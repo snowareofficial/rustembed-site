@@ -1,0 +1,18 @@
+{
+ "source": "extractive",
+ "one_line": "rustlings 是 Rust 官方组织的入门练习集：用一堆编译不过的小题，逼你学会看 rustc 报错、建立所有权与借用直觉。",
+ "points": [
+  "这是什么",
+  "能练什么",
+  "安装与开始",
+  "适合谁",
+  "参考"
+ ],
+ "keywords": [
+  "rust",
+  "rustlings",
+  "入门",
+  "教程"
+ ],
+ "reading": 3
+}

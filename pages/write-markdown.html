@@ -1,0 +1,60 @@
+<h2 id="最小可用模板">最小可用模板</h2>
+<p>新建 content/posts/&lt;年份&gt;/[系列/]&lt;英文短名&gt;/index.md，粘贴下面这段就能开工。</p>
+<div class="code">
+<div class="code-head"><span>markdown</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-markdown">---
+title: &quot;文章标题&quot;
+author: 你的成员id
+date: 2026-09-20
+tags: [ rust embedded ]
+summary: &quot;一两句摘要&quot;
+---
+
+## 第一个小节
+
+正文……</code></pre>
+</div>
+<p>作者 id 与 content/members/&lt;id&gt;.sml 对应；没有档案也能发，只是不会链接到个人页。</p>
+<h2 id="正文语法">正文语法</h2>
+<table>
+<thead><tr><th>写法</th><th>效果</th></tr></thead>
+<tbody>
+<tr><td>## 标题</td><td>小节标题（会进侧栏章节树与导图）</td></tr>
+<tr><td>**粗体** / *斜体* / ~~删除线~~</td><td>行内样式</td></tr>
+<tr><td>`行内代码`</td><td>等宽高亮</td></tr>
+<tr><td>[文字](https://…)</td><td>链接</td></tr>
+<tr><td>![说明](assets/x.png)</td><td>图片（图放同目录 assets/）</td></tr>
+<tr><td>![说明](assets/x.png &quot;图注&quot;)</td><td>带图注的图</td></tr>
+<tr><td>&gt; 引用</td><td>引用块</td></tr>
+<tr><td>- 列表 / 1. 列表</td><td>无序 / 有序，缩进两格可嵌套</td></tr>
+<tr><td>| a | b |</td><td>表格（第二行写 |---|）</td></tr>
+<tr><td>单独一行 BV 号</td><td>自动嵌入 B 站视频</td></tr>
+</tbody>
+</table>
+<h2 id="进阶">进阶</h2>
+<ul>
+<li>系列文章：front matter 里写 series: {id, title, order}，会自动进侧栏树并生成上一章/下一章</li>
+<li>视频：也可以写在 front matter 的 video 字段</li>
+<li>附件：图片入库（同目录 assets/），其余外链，写在 front matter 的 attachments 里</li>
+<li>内联角色：<a class="ref" href="#锚点">文字</a>、<dfn>术语</dfn>、<span class="math-inline"><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>公</mi><mi>式</mi></mrow></math></span>、<a href="url" target="_blank" rel="nofollow noopener">文字</a> 在 Markdown 里同样可用</li>
+<li>字段写错会被内容契约拦下，报错形如 [E-CONTRACT-003] 缺少必填字段 summary（字符串）</li>
+<li>契约清单与字段说明见「文档 → 规范 → 内容契约」（由 content/contracts/*.sml 自动生成）</li>
+</ul>
+<aside class="admonition note"><p>构建会校验必填字段、图片是否存在、附件类型与体积；写错会直接报错，不用自己猜。</p>
+</aside>
+<h2 id="加资源">加资源</h2>
+<p>文章用 Markdown；资源、项目、成员、互助是结构化条目，用 SML。SML 不是编程，只是「字段: 值」列表。</p>
+<div class="code">
+<div class="code-head"><span>sml</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-sml">title: &quot;The Embedded Rust Book&quot;
+kind: book
+url: &quot;https://docs.rust-embedded.org/book/&quot;
+tags: [ rust embedded book ]
+note: &quot;官方入门书，no_std 与外设访问的基础概念都在这里。&quot;</code></pre>
+</div>
+<p>复制模板到 content/resources/&lt;英文短名&gt;.sml；引擎按目录自动套 Resource 契约，不需要写契约名。</p>
+<p>字段表用 python engine/cli.py contracts 查看；完整模板在仓库 templates/ 与 docs/CONTRIBUTING.md。</p>
+<h2 id="不会">不会</h2>
+<p>把 Markdown / SML 文件和图片打包发到群里，说明作者署名用哪个 id。</p>
+<p>有仓库权限的管理员代投，PR 里注明原作者；预览链接发回给你确认。</p>
+<p>不需要注册 Gitee、不需要配 SSH。</p>

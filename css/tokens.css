@@ -1,0 +1,67 @@
+/* tokens.css —— 令牌：明暗两套 + 版心/字号/行距/圆角/等宽字体。改一处必须同步另一处。
+   由 style.css 按职责拆分（2026-10-21）：按 index.html 的 link 顺序拼接即原文件，级联顺序未变，不随意重排文件。 */
+/* rec-blog 站点样式（三栏：左=本文目录 / 中=正文 / 右=站点导航）
+   原则：内容至上 —— 正文最大最舒服，顶栏/侧栏/元信息/标签/页脚一律小一号、轻一号。
+   无 Web 字体（系统字体栈）、无外部请求、无渐变/玻璃拟态/装饰阴影/滚动动画。
+   配色全部走令牌；暗色只覆盖令牌，组件层零特例。 */
+
+/* ---------- 1. 令牌 ---------- */
+:root {
+  color-scheme: light dark;
+  --paper: #faf8f5;
+  --surface: #ffffff;
+  --surface-2: #f3efe8;
+  --surface-3: #ece6dc;
+  --ink: #1f1c19;
+  --ink-soft: #4a443c;
+  --ink-mute: #5d564d;
+  --line: #e3ddd3;
+  --line-strong: #cfc7ba;
+  --accent: #a8471f;
+  --ok: #2f6b4f;
+  --warn: #8a5a12;
+  /* 版心：--measure 一处定义，网格中栏与正文宽度共用它 */
+  --measure: 38rem;
+  /* 正文字号：只作用于 .col-main（默认 100% = body 的 17px）。
+     设置面板写的是 documentElement 上的同名属性，这里给默认值；
+     代码块字号固定（.code pre / .col-main code），不随它变化。 */
+  --reading-size: 100%;
+  --reading-line: 1.8;
+  --radius: 6px;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+/* 手动主题：data-theme 由设置面板写入（localStorage 持久化）。
+   与下面 prefers-color-scheme 那份令牌是同一套 —— 改一处必须同步另一处。 */
+:root[data-theme="dark"] {
+  --paper: #16140f;
+  --surface: #1e1b16;
+  --surface-2: #262219;
+  --surface-3: #2b261d;
+  --ink: #ece7dd;
+  --ink-soft: #c3bbae;
+  --ink-mute: #9c9385;
+  --line: #322c23;
+  --line-strong: #463e32;
+  --accent: #e08a5f;
+  --ok: #7fc4a0;
+  --warn: #d8a860;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #16140f;
+    --surface: #1e1b16;
+    --surface-2: #262219;
+    --surface-3: #2b261d;
+    --ink: #ece7dd;
+    --ink-soft: #c3bbae;
+    --ink-mute: #9c9385;
+    --line: #322c23;
+    --line-strong: #463e32;
+    --accent: #e08a5f;
+    --ok: #7fc4a0;
+    --warn: #d8a860;
+  }
+}
+

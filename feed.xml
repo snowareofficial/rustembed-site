@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel>
+<title>Rust嵌入式探讨</title>
+<link>https://rustembed.swebase.cn</link>
+<description>一个 QQ 群的技术共建博客：嵌入式、Rust，以及把想法做出来的过程</description>
+<lastBuildDate>Sat, 31 Oct 2026 17:51:46 GMT</lastBuildDate>
+<item><title>Rustlings：用官方练习跨过 Rust 入门坎</title><link>https://rustembed.swebase.cn/#/post/rustlings-tutorial</link><guid>https://rustembed.swebase.cn/#/post/rustlings-tutorial</guid><pubDate>Sun, 25 Oct 2026 00:00:00 GMT</pubDate><description>rustlings 是 Rust 官方组织的入门练习集：用一堆编译不过的小题，逼你学会看 rustc 报错、建立所有权与借用直觉。</description></item>
+<item><title>Rust 学习</title><link>https://rustembed.swebase.cn/#/series/rust-learning</link><guid>https://rustembed.swebase.cn/#/series/rust-learning</guid><pubDate>Tue, 20 Oct 2026 00:00:00 GMT</pubDate><description>下画线、格式化输出、类型清单与保留字等杂项。</description></item>
+<item><title>HFT 工程实践</title><link>https://rustembed.swebase.cn/#/series/hft-engineering</link><guid>https://rustembed.swebase.cn/#/series/hft-engineering</guid><pubDate>Tue, 20 Oct 2026 00:00:00 GMT</pubDate><description>FPGA 如何突破微秒极限、加密货币高频的新战场，以及云环境里的共址竞速。</description></item>
+<item><title>From a Blank Board to RTT: A Cortex-M Bring-Up Field Note</title><link>https://rustembed.swebase.cn/#/post/cortex-m-bringup</link><guid>https://rustembed.swebase.cn/#/post/cortex-m-bringup</guid><pubDate>Mon, 19 Oct 2026 00:00:00 GMT</pubDate><description>A weekend bring-up log: toolchain, wiring, first flash, RTT, and the checks that save an afternoon.</description></item>
+<item><title>Rust 嵌入式入门</title><link>https://rustembed.swebase.cn/#/series/rust-embedded-101</link><guid>https://rustembed.swebase.cn/#/series/rust-embedded-101</guid><pubDate>Sun, 20 Sep 2026 00:00:00 GMT</pubDate><description>不用学 SML。文章用 Markdown 写，front matter 填几个字段，提 PR 即可；SML 只是给需要更强结构的人准备的。</description></item>
+</channel></rss>

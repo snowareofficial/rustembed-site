@@ -1,0 +1,267 @@
+<p>这是三种&quot;放一排相同元素&quot;的容器，但适用场景与内存模型截然不同。</p>
+<h3 id="1-8-1-数组">1.8.1 数组</h3>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+let a: [i32; 6]      = [1, 2, 4, 7, 11, 16];
+let zeros            = [0; 20];          // 20 个 0
+let sieve            = [false; 100];     // 100 个 false
+let buffer           = [0u8; 1024];      // 1KB 缓冲
+let taxonomy         = [&quot;A1&quot;, &quot;A2&quot;, &quot;A3&quot;];
+println!(&quot;{}&quot;, taxonomy[1]);
+}</code></pre>
+</div>
+<p><strong>已编译运行。</strong></p>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">A2</code></pre>
+</div>
+<p>数组特点：</p>
+<ol>
+<li>长度写在类型里 <code>[T; N]</code>，不同 N 是不同类型。</li>
+<li>默认栈分配，<strong>不可增长</strong>。</li>
+<li>索引越界 <code>panic</code>；数组 <code>.len()</code> 返回 <code>usize</code>。</li>
+</ol>
+<p>泛型函数必须能让编译器推断 N：</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">// ===== 数组/向量：原理速记 =====
+// 1. [T; N] 数组：长度 N 是类型的一部分 — [i32; 3] 与 [i32; 4] 是不同类型；
+//    栈上固定分配，不会增长。语法 [expr; N] 让 N 个元素全部初始化为 expr。
+// 2. Vec&lt;T&gt; 向量：堆上可变长、运行时分配，等价 &quot;ptr + len + cap&quot; 三元组。
+//    Vec::new() 不分配，push 触发首次分配；之后 capacity 按 2 倍策略扩容。
+//    用宏 vec![] 或 (a..b).collect::&lt;Vec&lt;_&gt;&gt;() 创建亦可。
+// 3. 元素只能取 &amp;/&amp;mut，引用传递不会夺所有权；
+//    移动时 let v2 = v1 会触发 Vec 的移动语义（仅搬运胖指针，原堆不动）。
+// 4. 访问元素：v[i] 直接索引，越界会 panic；v.get(i) -&gt; Option&lt;&amp;T&gt; 安全。
+// 5. 多维数组本质仍是&quot;数组的数组&quot;：let v: [[i32; 2]; 3] = ...。
+
+fn main() {
+    let _array1 = [10, 20, 30]; // 声明并赋初始值
+    let _array2: [u32; 6] = [1, 2, 4, 7, 11, 16]; // 显示声明T和N
+
+    let _array3 = [0; 20]; // array3: [i32;20] 数组是 20个元素，初始值均为0
+    let mut _sieve = [false; 100]; // 100个布尔元素，初始值都是false
+    let _bufferblock = [0u8; 1024]; // 1KB 的缓冲块，初始值为0
+
+    let array4 = [10, 20, 30];
+    println!(&quot;array4 has {} elements&quot;, array4.len());
+
+    let taxonomy = [&quot;A1&quot;, &quot;A2&quot;, &quot;A3&quot;];
+    println!(&quot;The second taxonomy is:{}&quot;, taxonomy[1]);
+
+    let mut x = [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;];
+    println!(&quot;{} {} {} .&quot;, x[0], x[1], x[2]);
+    x = [&quot;X&quot;, &quot;Y&quot;, &quot;Z&quot;];
+    println!(&quot;{} {} {} .&quot;, x[0], x[1], x[2]);
+    let y = [&quot;1&quot;, &quot;2&quot;, &quot;3&quot;];
+    x = y;
+    println!(&quot;{} {} {} .&quot;, x[0], x[1], x[2]);
+
+    {
+        let a: [u8; 3] = [1, 2, 3];
+        show(a);
+        let b: [u8; 4] = [1, 2, 3, 4];
+        show_any(b);
+    }
+
+    // 多维数组
+    {
+        let v: [[i32; 2]; 3] = [[10, 20], [100, 200], [1000, 2000]];
+        for i in &amp;v {
+            println!(&quot;{:?} &quot;, i);
+        }
+    }
+    // vec! 宏
+    {
+        let mut v = vec![];
+        v.push(2);
+
+        let _v1: Vec&lt;u8&gt; = Vec::new();
+        let mut v2 = Vec::new();
+        v2.push(2);
+        v2.push(666);
+        // get 需要传索引 0，返回 Option
+        match v2.get(1) {
+            Some(val) =&gt; println!(&quot;{} &quot;, val),
+            None =&gt; println!(&quot;向量为空&quot;),
+        }
+
+        // 简写：unwrap 确信下标存在（此处不会panic）
+        println!(&quot;{}&quot;, v2.get(0).unwrap());
+
+        // 2. 泛型显式声明创建空Vec
+        let mut v3 = Vec::&lt;u8&gt;::new();
+        v3.push(10); // 使用v3消除未使用警告
+        println!(&quot;v3第一个元素: {}&quot;, v3[0]);
+    }
+
+    // 指定类型
+    {
+        let _v1: Vec&lt;u8&gt; = Vec::new();
+        let mut v2 = Vec::new();
+        v2.push(2);
+        let _v3 = Vec::&lt;u8&gt;::new();
+        // 迭代 闭包 封装
+        let v: Vec&lt;i32&gt; = (0..5).collect();
+        println!(&quot;{:?}&quot;,v);
+    }
+}
+
+fn show(arr: [u8; 3]) {
+    for i in &amp;arr {
+        print!(&quot;{} &quot;, i);
+    }
+    println!();
+}
+
+fn show_any&lt;const N: usize&gt;(arr: [u8; N]) {
+    for i in &amp;arr {
+        print!(&quot;{} &quot;, i);
+    }
+    println!();
+}</code></pre>
+</div>
+<p><strong>已编译运行（取自 </strong><code>src/Chapter4/数据.rs</code><strong>）。</strong></p>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">array4 has 3 elements
+The second taxonomy is:A2
+a b c .
+X Y Z .
+1 2 3 .
+1 2 3 
+......
+[100, 200] 
+[1000, 2000] 
+666 
+2
+v3第一个元素: 10
+[0, 1, 2, 3, 4]</code></pre>
+</div>
+<h3 id="1-8-2-向量">1.8.2 向量</h3>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+let mut v: Vec&lt;i32&gt; = Vec::new();        // 空向量，未分配
+v.push(2);                                // 首次 push 才分配堆
+v.push(666);
+let v = vec![1, 2, 3];                    // 字面量宏
+let v = (0..5).collect::&lt;Vec&lt;i32&gt;&gt;();     // 从迭代器收
+}</code></pre>
+</div>
+<p>向量特点：</p>
+<ol>
+<li>堆分配，内部是 <code>(ptr, len, cap)</code> 三元组。</li>
+<li><code>.push</code> 容量不足时按 <strong>2×</strong> 策略扩容（数据迁移）。</li>
+<li>访问：下标 <code>v[i]</code> panic 安全交由 <code>v.get(i) -&gt; Option&lt;&amp;T&gt;</code>。</li>
+<li>移动：<code>let v2 = v</code> 只迁移胖指针，原堆数据不复制。</li>
+</ol>
+<p><code>vec![]</code> 与 <code>Vec::new()</code> 的区别：</p>
+<ul>
+<li><code>Vec::new()</code> 不立即分配，节省一次空分配开销；</li>
+<li><code>vec![expr; n]</code> 等价 <code>vec![expr; n]</code>，会让编译器优化到单次分配。</li>
+</ul>
+<h4 id="向量-与切片-的访问方式">向量（与切片）的访问方式</h4>
+<table>
+<thead><tr><th>序号</th><th>方法</th><th>示例</th><th>描述</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><code>[index]</code></td><td><code>let first_line = &amp;v.lines()[0]</code></td><td>通过索引直接访问</td></tr>
+<tr><td>2</td><td><code>slice.first()</code></td><td><code>let Some(item) = v.first()</code></td><td>返回向量的第一个元素</td></tr>
+<tr><td>3</td><td><code>slice.last()</code></td><td>—</td><td>返回向量的最后一个元素</td></tr>
+<tr><td>4</td><td><code>slice.get(index)</code></td><td><code>slice.get(2)</code></td><td>返回向量指定索引位置上的元素</td></tr>
+<tr><td>5</td><td><code>slice.first_mut()</code> / <code>slice.last_mut()</code></td><td><code>let last = slice.last_mut().unwrap();</code></td><td>上面 2、3、4 的可变版本</td></tr>
+<tr><td>6</td><td><code>slice.to_vec()</code></td><td><code>v.to_vec()</code></td><td>复制整个向量</td></tr>
+<tr><td>7</td><td><code>Iterator</code></td><td>—</td><td>可以通过迭代器来访问向量</td></tr>
+</tbody>
+</table>
+<blockquote>
+<p>用法提示：</p>
+<ul>
+<li><code>[index]</code> 在越界时会 panic（生产代码慎用，请改 <code>get(index)</code>）；</li>
+<li><code>first()</code> / <code>last()</code> / <code>get()</code> 对空切片返回 <code>None</code>，不会 panic；</li>
+<li><code>to_vec()</code> 是把任何实现了 <code>&amp;[T]</code> / <code>ToOwned</code> 的对象复制为新的 <code>Vec&lt;T&gt;</code>，常用于 <code>&amp;str -&gt; String</code>、<code>&amp;[T] -&gt; Vec&lt;T&gt;</code>。</li>
+</ul>
+</blockquote>
+<h4 id="向量的常用成员方法">向量的常用成员方法</h4>
+<table>
+<thead><tr><th>序号</th><th>方法</th><th>方法签名</th><th>描述</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><code>new()</code></td><td><code>pub fn new() -&gt; Vec&lt;T&gt;</code></td><td>创建一个空的向量。该向量等到元素存入时才会真正地分配内存</td></tr>
+<tr><td>2</td><td><code>push()</code></td><td><code>pub fn push(&amp;mut self, value: T)</code></td><td>在数据序列的尾部追加元素</td></tr>
+<tr><td>3</td><td><code>remove()</code></td><td><code>pub fn remove(&amp;mut self, index: usize) -&gt; T</code></td><td>删除指定索引位置上的元素，并将该位置后边的元素都向左移动</td></tr>
+<tr><td>4</td><td><code>contains()</code></td><td><code>pub fn contains(&amp;self, x: &amp;T)</code></td><td>如果向量包含指定值的元素，则返回 <code>true</code></td></tr>
+<tr><td>5</td><td><code>len()</code></td><td><code>pub fn len(&amp;self) -&gt; usize</code></td><td>返回向量中的元素个数</td></tr>
+</tbody>
+</table>
+<blockquote>
+<p>补充：上面列出的 5 个方法只覆盖最常用的部分；<code>Vec&lt;T&gt;</code> 还提供 <code>pop()</code> / <code>append()</code> / <code>clear()</code> / <code>truncate()</code> / <code>extend_from_slice()</code> / <code>dedup()</code> / <code>sort()</code> / <code>retain()</code> 等几十个成员方法。遇到具体需求，先查 <a href="https://doc.rust-lang.org/std/vec/struct.Vec.html" target="_blank" rel="nofollow noopener">std::vec::Vec</a> 的官方手册，再决定是手写循环还是直接用现成方法。</p>
+</blockquote>
+<h3 id="1-8-3-切片">1.8.3 切片</h3>
+<p>切片是 DST（动态大小类型），它本身<strong>无法</strong>独立存在，只能通过胖指针 <code>&amp;[T]</code> 引用一段连续数据。</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+let a = [10, 20, 30, 40, 50, 60];
+let all = &amp;a[..];        // 全元素
+let sub = &amp;a[1..4];      // 索引 1..4，半开 [1, 4) = [20, 30, 40]
+let pre = &amp;a[..=2];      // 闭区间 [..=2] = [10, 20, 30]
+let suf = &amp;a[2..];       // 下标 2 至结尾
+let arr = [55, 22, 33, 44, 66];
+let s   = &amp;arr[..3];     // [55, 22, 33]
+}</code></pre>
+</div>
+<p>切片的本质：</p>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">&amp;[T] 的内部表示（胖指针）：
++----------+----------+
+| ptr      | len      |  // 24 字节（64 位机器）
++----------+----------+
+   |
+   v
++--+--+--+--+ ...
+|T0|T1|T2|T3|     &lt;- 任意连续数据：数组、Vec、其它切片的子集</code></pre>
+</div>
+<p>特性：</p>
+<ul>
+<li>切片<strong>不</strong>拥有元素——借用离开作用域时数据不变；</li>
+<li>可变借用 <code>&amp;mut [T]</code> 期间原数据其他人无法再借；</li>
+<li>DST 不能直接传递，要传只能传引用或裸指针：</li>
+</ul>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">// 不能直接使用切片类型（编译错）：fn foo(x: [i32]) {}
+// 切片的借用：
+fn foo_borrow(x: &amp;[i32]) -&gt; &amp;[i32] { x }
+
+// 可变裸指针（unsafe）：
+fn foo_raw(x: *mut [i32]) -&gt; *mut [i32] { x }
+
+fn main() {
+    let arr = [1, 2, 3, 4];
+    let s = foo_borrow(&amp;arr[1..3]);
+    println!(&quot;{:?}&quot;, s);
+}</code></pre>
+</div>
+<p><strong>（教学片段，直接复制 src/Chapter4/ 对应文件即可运行。）</strong></p>
+<p>示例还展示一个&quot;切片当长度借用&quot;的尾字段结构：</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">// 把自定义 DST 用法改写为合法可执行的形态
+struct Pair { tag: u8, left: u8, right: u8 }  // 不定长字段的代替：固定二元组
+
+fn main() {
+    let p = Pair { tag: 1, left: 0xAA, right: 0xBB };
+    let bytes: &amp;[u8] = unsafe {
+        // 用裸指针从结构体地址取 [u8] 视图（这是 DST 的关键目的：在尾部拿到不定长字段）
+        std::slice::from_raw_parts(
+            &amp;p as *const Pair as *const u8,
+            std::mem::size_of::&lt;Pair&gt;(),
+        )
+    };
+    println!(&quot;tag=0x{:02x} bytes={:02x?}&quot;, p.tag, bytes);
+    // 真正的 DST 写法（编译错）：
+    // struct DSTStruct { tag: u8, data: [u8] }
+}</code></pre>
+</div>

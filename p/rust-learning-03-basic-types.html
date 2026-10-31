@@ -1,0 +1,135 @@
+<h3 id="1-2-1-整型">1.2.1 整型</h3>
+<p>Rust 的整型长度写进类型后缀：</p>
+<table>
+<thead><tr><th>长度</th><th>有符号</th><th>无符号</th></tr></thead>
+<tbody>
+<tr><td>8</td><td><code>i8</code></td><td><code>u8</code></td></tr>
+<tr><td>16</td><td><code>i16</code></td><td><code>u16</code></td></tr>
+<tr><td>32</td><td><code>i32</code>（默认）</td><td><code>u32</code></td></tr>
+<tr><td>64</td><td><code>i64</code></td><td><code>u64</code></td></tr>
+<tr><td>arch</td><td><code>isize</code></td><td><code>usize</code></td></tr>
+</tbody>
+</table>
+<h4 id="整数类型的范围">整数类型的范围</h4>
+<table>
+<thead><tr><th>长度</th><th>无符号类型</th><th>范围</th><th>有符号类型</th><th>范围</th></tr></thead>
+<tbody>
+<tr><td>8-bit</td><td><code>u8</code></td><td>[0, 2⁸−1] = [0, 255]</td><td><code>i8</code></td><td>[−2⁷, 2⁷−1] = [−128, 127]</td></tr>
+<tr><td>16-bit</td><td><code>u16</code></td><td>[0, 2¹⁶−1] = [0, 65535]</td><td><code>i16</code></td><td>[−2¹⁵, 2¹⁵−1] = [−32768, 32767]</td></tr>
+<tr><td>32-bit</td><td><code>u32</code></td><td>[0, 2³²−1]</td><td><code>i32</code></td><td>[−2³¹, 2³¹−1]</td></tr>
+<tr><td>64-bit</td><td><code>u64</code></td><td>[0, 2⁶⁴−1]</td><td><code>i64</code></td><td>[−2⁶³, 2⁶³−1]</td></tr>
+<tr><td>128-bit</td><td><code>u128</code></td><td>[0, 2¹²⁸−1]</td><td><code>i128</code></td><td>[−2¹²⁷, 2¹²⁷−1]</td></tr>
+<tr><td>和架构相关</td><td><code>usize</code></td><td>[0, 2³²−1] 或 [0, 2⁶⁴−1]</td><td><code>isize</code></td><td>[−2³¹, 2³¹−1] 或 [−2⁶³, 2⁶³−1]</td></tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>设计取舍</strong>：</p>
+<ul>
+<li>无符号整型下界固定为 0，上界 2ⁿ−1；减法会自动饱和到 0（debug panic / release 回卷）。</li>
+<li>有符号整型跨&quot;零&quot;对称：负数下限 = −(2ⁿ⁻¹)，正数上限 = 2ⁿ⁻¹−1；这意味着 <code>i8</code> 范围是 [−128, 127] 而非 [−127, 128]，主要为了让 <code>|MIN| &gt; |MAX|</code>，避开绝对值陷阱。</li>
+<li><code>usize</code> / <code>isize</code> 的具体宽度等于平台指针大小：在 32 位机器上是 32-bit，在 64 位机器上是 64-bit。下标、长度、<code>size_of</code> 全部用 <code>usize</code>，避免与地址宽度不匹配。</li>
+</ul>
+</blockquote>
+<p><code>usize</code> 是平台相关，<strong>专用于下标、长度、内存大小</strong>——<code>vec.len()</code>、<code>[i]</code> 索引、<code>size_of</code> 都是它。</p>
+<h4 id="整数溢出策略">整数溢出策略</h4>
+<p><code>+</code>/<code>-</code>/<code>*</code> 在 <strong>debug</strong> 模式下溢出即 panic；<strong>release</strong> 下按补码回卷。<code>arithematic.rs</code> 给出 5 种显式 API：</p>
+<table>
+<thead><tr><th>方法</th><th>失败时</th><th>适用场景</th></tr></thead>
+<tbody>
+<tr><td><code>checked_*</code></td><td>返回 <code>None</code></td><td>业务禁止溢出也不能 panic（如金额、ID）</td></tr>
+<tr><td><code>wrapping_*</code></td><td>按位回卷</td><td>哈希、加密、位运算有意溢出</td></tr>
+<tr><td><code>saturating_*</code></td><td>钳到 MIN/MAX</td><td>信号处理、定点数</td></tr>
+<tr><td><code>overflowing_*</code></td><td>返回 <code>(回卷值, 是否溢出bool)</code></td><td>既要结果又要审计</td></tr>
+<tr><td>裸 <code>+/-/*</code></td><td>debug panic / release 回卷</td><td>默认路径，不适合关键业务</td></tr>
+</tbody>
+</table>
+<h4 id="各运算的命名后缀与样例">各运算的命名后缀与样例</h4>
+<table>
+<thead><tr><th>操作</th><th>名称后缀</th><th>示例</th></tr></thead>
+<tbody>
+<tr><td>加法</td><td><code>add</code></td><td><code>100_i8.checked_add(27) == Some(127)</code></td></tr>
+<tr><td>减法</td><td><code>sub</code></td><td><code>10_u8.checked_sub(11) == None</code></td></tr>
+<tr><td>乘法</td><td><code>mul</code></td><td><code>128_u8.saturating_mul(3) == 255</code></td></tr>
+<tr><td>除法</td><td><code>div</code></td><td><code>64_u16.wrapping_div(8) == 8</code></td></tr>
+<tr><td>余数</td><td><code>rem</code></td><td><code>(-32768_i16).wrapping_rem(-1) == 0</code></td></tr>
+<tr><td>取负</td><td><code>neg</code></td><td><code>(-128_i8).checked_neg() == None</code></td></tr>
+<tr><td>取绝对值</td><td><code>abs</code></td><td><code>(-32768_i16).wrapping_abs() == -32768</code></td></tr>
+<tr><td>指数</td><td><code>pow</code></td><td><code>3_u8.checked_pow(4) == Some(81)</code></td></tr>
+<tr><td>左位移</td><td><code>shl</code></td><td><code>10_u32.wrapping_shl(34) == 40</code></td></tr>
+<tr><td>右位移</td><td><code>shr</code></td><td><code>40_u64.wrapping_shr(66) == 10</code></td></tr>
+</tbody>
+</table>
+<blockquote>
+<p>五个策略前缀（<code>checked_*</code> / <code>wrapping_*</code> / <code>saturating_*</code> / <code>overflowing_*</code> / 裸算符）与操作名后缀（<code>add</code>/<code>sub</code>/<code>mul</code>/...）两两正交，组合起来就是标准库全部&quot;安全算符&quot;矩阵。</p>
+</blockquote>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+// 示例：import std::Wrapping，整数包装类型，让 +/- 自动按回卷处理
+use std::num::Wrapping;
+let big = Wrapping(std::u32::MAX);
+let sum = big + Wrapping(2_u32); // 不会 panic
+}</code></pre>
+</div>
+<p>布尔和整数严格分家：<code>false + true</code> 编译错，<code>true as u8 == 1</code>、<code>false as u8 == 0</code>，可做安全转换。</p>
+<h3 id="1-2-2-布尔类型">1.2.2 布尔类型</h3>
+<p><code>bool</code> 两值 <code>true</code> / <code>false</code>，<strong>不能与整数互算</strong>。</p>
+<table>
+<thead><tr><th>运算</th><th>类型</th></tr></thead>
+<tbody>
+<tr><td><code>== != &lt; &lt;= &gt; &gt;=</code></td><td>返回 <code>bool</code></td></tr>
+<tr><td>`&amp;&amp;</td><td></td><td>`</td><td>短路布尔（仅 <code>bool</code>）</td></tr>
+<tr><td>`&amp;</td><td>^`</td><td>按位布尔算符（仅 <code>bool</code>，不短路）</td></tr>
+<tr><td><code>as u8</code></td><td>显式把 <code>bool</code> 转成 <code>0/1</code></td></tr>
+</tbody>
+</table>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+let b = false | true; // 不短路按位或
+let s = false || true; // 短路逻辑或，常用于控制流
+}</code></pre>
+</div>
+<h3 id="1-2-3-字符类型">1.2.3 字符类型</h3>
+<p><code>char</code> 是 <strong>32 位 Unicode 标量</strong>*（不是单字节！），<code>&#x27;🦀&#x27;</code> 是一个合法字面量。占 4 字节。</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main()
+{
+    // let _a = &#x27;a&#x27; + &#x27;b&#x27;; // 报错，非 C/C++ 数字类型
+    println!(&quot;{} {} {}&quot;,&#x27;A&#x27; as u32,&#x27;🦉&#x27; as u32, &#x27;E&#x27; as u32);
+    println!(&quot;{}&quot;,&quot;\u{747e}\u{745c}&quot;);
+
+    assert_eq!(&#x27;*&#x27;.is_alphabetic(),false);
+    assert_eq!(&#x27;æ&#x27;.is_alphabetic(),true);
+    assert_eq!(&#x27;8&#x27;.to_digit(10),Some(8));
+    assert_eq!(&#x27;≠&#x27;.len_utf8(),3);
+    assert_eq!(std::char::from_digit(2, 10),Some(&#x27;2&#x27;));
+}</code></pre>
+</div>
+<p><strong>已编译运行（取自 </strong><code>src/Chapter4/char.rs</code><strong>）。</strong></p>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">65 129417 69
+瑾瑜</code></pre>
+</div>
+<p>注意：字符串用 <code>usize</code> 长度单位是<strong>字节</strong>，不是字符！</p>
+<h3 id="1-2-4-浮点类型">1.2.4 浮点类型</h3>
+<p><code>f32</code> 与 <code>f64</code>（默认）遵循 IEEE 754：</p>
+<ul>
+<li><code>f32</code> ≈ 6~7 位十进制精度；<code>f64</code> ≈ 15~17 位。</li>
+<li>特殊值 <code>INFINITY</code>、<code>-INFINITY</code>、<code>NAN</code>、<code>-0.0</code>。</li>
+<li>严格区分正负零：<code>(-1.0 / INFINITY).is_sign_negative() == true</code>。</li>
+</ul>
+<p>注意浮点<strong>不精确</strong>：</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+// 经典反直觉：float 不可 ==
+assert!(0.1_f32 + 0.2_f32 == 0.3_f32); // 运气好可能成立，但跨平台不一致
+// 更稳妥：用允许误差 fabs(a-b) &lt; EPSILON
+let abs = (0.3_f32 - (0.1_f32 + 0.2_f32)).abs();
+assert!(abs &lt;= f32::EPSILON);
+}</code></pre>
+</div>
+<p>实战中比较浮点：要么钳到相等，要么算<strong>绝对误差</strong>或<strong>相对误差</strong>。<code>EPSILON</code> 与 <code>INFINITY</code> 是按平台最优精度给出的常量。</p>
