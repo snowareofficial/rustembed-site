@@ -1,0 +1,247 @@
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+fn add_one(x: i32) -&gt; i32 { x + 1 }       // 标准签名
+fn divergess() -&gt; ! { panic!(&quot;!&quot;); }       // 发散函数：永返回
+fn fib(x: i64) -&gt; i64 {                    // 递归
+    if x == 0 || x == 1 { return x; }
+    fib(x - 1) + fib(x - 2)
+}
+}</code></pre>
+</div>
+<p>要点：</p>
+<table>
+<thead><tr><th>概念</th><th>解释</th></tr></thead>
+<tbody>
+<tr><td>签名末尾无 <code>;</code></td><td>自动返回值就是表达式，免 <code>return</code></td></tr>
+<tr><td>末尾 <code>;</code></td><td>等价 <code>return ();</code>，函数返回 <code>unit</code></td></tr>
+<tr><td><code>!</code> 发散</td><td>函数永不返回，可强制任何分支返回同一类型</td></tr>
+<tr><td>递归</td><td>没有尾调用优化（TCO）保证；大递归请用迭代</td></tr>
+<tr><td>函数指针</td><td><code>fn(i32) -&gt; i32</code> 是一类值，可赋给变量、传参、做返回值</td></tr>
+<tr><td>函数当参数</td><td>形如 <code>F: Fn(i32) -&gt; i32</code>，是泛型闭包约束</td></tr>
+<tr><td>函数嵌套</td><td>内部函数闭包外层局部变量（闭包捕获）</td></tr>
+</tbody>
+</table>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">struct Circle {
+    x: f64,
+    y: f64,
+    redius: f64,
+}
+
+impl Circle {
+    fn area(&amp;self) -&gt; f64 {
+        std::f64::consts::PI * (self.redius * self.redius)
+    }
+    fn grow(&amp;self, increment: f64) -&gt; Circle {
+        Circle {
+            x: self.x,
+            y: self.y,
+            redius: self.redius + increment,
+        }
+    }
+}
+
+fn main() {
+    print_sum(5, 6);
+    println!(&quot; {}&quot;, add_one(65));
+    // divergess();
+
+    let ans = fib(10);
+    println!(&quot;{} &quot;, ans);
+
+    let x: fn(i32) -&gt; i32 = foo;
+    let f = foo;
+    let e = f(10);
+    let k = x(55);
+    println!(&quot;{} {}&quot;, e, k);
+
+    // ========== 调用 again 示例 ==========
+    // 1. 传入普通函数 foo
+    let a1 = again(foo, 10);
+    println!(&quot;again(foo,10) = {}&quot;, a1);
+
+    // 2. 传入自定义闭包
+    let a2 = again(|v| v * 3, 2);
+    println!(&quot;again(|v|v*3,2) = {}&quot;, a2);
+
+    // 3. 传入函数指针变量x
+    let a3 = again(x, 5);
+    println!(&quot;again(x,5) = {}&quot;, a3);
+
+    {
+        let c = Circle {
+            x: 0.0,
+            y: 0.0,
+            redius: 2.0,
+        };
+        println!(&quot;{} &quot;, c.area());
+        println!(&quot;{} &quot;, c.grow(2.0).area());
+    }
+
+    {
+        let a = [11, 22, 33, 44, 55, 66, 77];
+        let mut v = Vec::&lt;i32&gt;::new();
+        for i in &amp;a {
+            let f = get_func(*i);
+            v.push(f(*i));
+        }
+        println!(&quot;{:?} &quot;, v);
+    }
+
+    // CHECKSUM
+    println!(&quot;0x{:X} &quot;,CHECKSUM);
+
+    {
+        let x = S{
+            field1:&#x27;Z&#x27;,
+            field2: true,
+        };
+        someFunc(x);
+    }
+
+    {
+        let a: i32 = 10;
+        let b: u16 = 100;
+        let b_ = b.try_into().unwrap();
+        if a &lt; b_{
+            println!(&quot;自动推导&quot;)
+        }
+    }
+}
+
+fn print_sum(x: i32, y: i32) {
+    print!(&quot;{}&quot;, x + y);
+}
+
+fn add_one(x: i32) -&gt; i32 {
+    // return x;
+    x + 1
+}
+
+// 发散函数
+fn divergess() -&gt; ! {
+    panic!(&quot;This function never returns!&quot;);
+}
+
+// fn seerve_forever(socket: ServerSocket, handler: ServerHandler) -&gt; !{
+//     socket.listen();
+//     loop {
+//         let s = socket.accept();
+//         handler.handle(s);
+//     }
+// }
+
+fn fib(x: i64) -&gt; i64 {
+    if x == 0 || x == 1 {
+        return x;
+    }
+    fib(x - 1) + fib(x - 2)
+}
+
+fn foo(x: i32) -&gt; i32 {
+    x + 1
+}
+
+fn again&lt;F: Fn(i32) -&gt; i32&gt;(f: F, s: i32) -&gt; i32 {
+    f(f(s))
+}
+
+// 函数里面 可以写函数
+/*
+    fn a{
+        fn b{
+            fn c{
+
+            }
+        }
+    }
+*/
+
+type timesType = fn(i32) -&gt; i32;
+
+fn get_func(n: i32) -&gt; fn(i32) -&gt; i32 {
+    fn double(n: i32) -&gt; i32 {
+        n * 2
+    }
+    fn triple(n: i32) -&gt; i32 {
+        n * 3
+    }
+    if n % 2 == 0 { double } else { triple }
+}
+
+const CHECKSUM: u32 = salt(56);
+const fn salt(a:u32) -&gt; u32{
+    0xDEADBEEF ^ a
+}
+
+struct S{
+    field1:char,
+    field2:bool,
+}
+
+fn someFunc(S{field1:arg1,field2:arg2}:S)
+{
+    println!(&quot;{} {} &quot;,arg1,arg2);
+}</code></pre>
+</div>
+<p><strong>已编译运行（取自 </strong><code>src/Chapter4/函数.rs</code><strong>）。</strong></p>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">11 66
+55 
+11 56
+again(foo,10) = 12
+again(|v|v*3,2) = 18
+again(x,5) = 7
+12.566370614359172 
+50.26548245743669 
+[33, 44, 99, 88, 165, 132, 231] 
+0xDEADBED7 
+Z true 
+自动推导</code></pre>
+</div>
+<h3 id="提早返回">提早返回</h3>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+fn classify(s: &amp;str) -&gt; &amp;&#x27;static str {
+    if s.is_empty() { return &quot;empty&quot;; }   // 提前返回
+    if s.len() &gt; 10 { return &quot;long&quot;; }
+    &quot;short&quot;
+}
+}</code></pre>
+</div>
+<h3 id="函数作为返回值">函数作为返回值</h3>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+type Op = fn(i32) -&gt; i32;
+fn get_func(n: i32) -&gt; Op {
+    fn double(n: i32) -&gt; i32 { n * 2 }
+    fn triple(n: i32) -&gt; i32 { n * 3 }
+    if n % 2 == 0 { double } else { triple }
+}
+}</code></pre>
+</div>
+<h3 id="常量函数-const-fn">常量函数（<code>const fn</code>）</h3>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+const fn salt(a: u32) -&gt; u32 { 0xDEADBEEF ^ a }
+const CHECKSUM: u32 = salt(56);   // 编译期就计算好
+}</code></pre>
+</div>
+<p><code>const fn</code> 是编译期可执行的函数。Rust 不断扩展其能力（1.46 起 mut 绑定，1.51 起 if/match，1.61 起 trait 默认方法）。</p>
+<h3 id="模式解构参数">模式解构参数</h3>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+struct S { field1: char, field2: bool }
+fn someFunc(S { field1: arg1, field2: arg2 }: S) {
+    println!(&quot;{} {}&quot;, arg1, arg2);
+}
+}</code></pre>
+</div>
+<p>参数处的模式解构是&quot;先解构、再调用&quot;——既能匹配，又能在签名清晰表达。</p>

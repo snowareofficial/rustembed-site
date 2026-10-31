@@ -1,0 +1,19 @@
+{
+ "source": "extractive",
+ "one_line": "A weekend bring-up log: toolchain, wiring, first flash, RTT, and the checks that save an afternoon.",
+ "points": [
+  "What you actually need",
+  "Toolchain in three commands",
+  "Wiring, slowly",
+  "First contact",
+  "Flash and run",
+  "RTT instead of a serial port"
+ ],
+ "keywords": [
+  "rust",
+  "embedded",
+  "probe-rs",
+  "walkthrough"
+ ],
+ "reading": 17
+}

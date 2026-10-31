@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="634" height="372" viewBox="0 0 634 372" font-family="-apple-system,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif">
+<title>From a Blank Board to RTT: A Cortex-M Bring-Up Field Note</title>
+<style>.nd{fill:#fff;stroke:#e4dfd6;rx:8} .rt{fill:#f6efe6;stroke:#d9c9b0}.tx{font-size:13px;fill:#23201c} .lk{cursor:pointer}.lk:hover .nd{stroke:#b4552d;fill:#fff8f2} .ed{fill:none;stroke:#ddd6c9;stroke-width:1.4}</style>
+<g class="edges">
+<path class="ed" d="M320.0 186.0 C343.0 186.0 343.0 34.0 366.0 34.0"/>
+<path class="ed" d="M320.0 186.0 C343.0 186.0 343.0 72.0 366.0 72.0"/>
+<path class="ed" d="M320.0 186.0 C343.0 186.0 343.0 110.0 366.0 110.0"/>
+<path class="ed" d="M320.0 186.0 C343.0 186.0 343.0 148.0 366.0 148.0"/>
+<path class="ed" d="M320.0 186.0 C343.0 186.0 343.0 186.0 366.0 186.0"/>
+<path class="ed" d="M320.0 186.0 C343.0 186.0 343.0 224.0 366.0 224.0"/>
+<path class="ed" d="M320.0 186.0 C343.0 186.0 343.0 262.0 366.0 262.0"/>
+<path class="ed" d="M320.0 186.0 C343.0 186.0 343.0 300.0 366.0 300.0"/>
+<path class="ed" d="M320.0 186.0 C343.0 186.0 343.0 338.0 366.0 338.0"/>
+</g>
+<g class="nodes">
+<rect class="nd rt" x="20.0" y="172.0" width="300.0" height="28" rx="8"/><text class="tx" x="30.0" y="191.0">From a Blank Board to RTT: A Cortex-M…</text>
+<a class="lk" href="#/post/cortex-m-bringup/what-you-actually-need" xlink:href="#/post/cortex-m-bringup/what-you-actually-need"><rect class="nd" x="366.0" y="20.0" width="203.6" height="28" rx="8"/><text class="tx" x="376.0" y="39.0">1 What you actually need</text></a>
+<a class="lk" href="#/post/cortex-m-bringup/toolchain-in-three-commands" xlink:href="#/post/cortex-m-bringup/toolchain-in-three-commands"><rect class="nd" x="366.0" y="58.0" width="240.6" height="28" rx="8"/><text class="tx" x="376.0" y="77.0">2 Toolchain in three commands</text></a>
+<a class="lk" href="#/post/cortex-m-bringup/wiring-slowly" xlink:href="#/post/cortex-m-bringup/wiring-slowly"><rect class="nd" x="366.0" y="96.0" width="144.4" height="28" rx="8"/><text class="tx" x="376.0" y="115.0">3 Wiring, slowly</text></a>
+<a class="lk" href="#/post/cortex-m-bringup/first-contact" xlink:href="#/post/cortex-m-bringup/first-contact"><rect class="nd" x="366.0" y="134.0" width="137.0" height="28" rx="8"/><text class="tx" x="376.0" y="153.0">4 First contact</text></a>
+<a class="lk" href="#/post/cortex-m-bringup/flash-and-run" xlink:href="#/post/cortex-m-bringup/flash-and-run"><rect class="nd" x="366.0" y="172.0" width="137.0" height="28" rx="8"/><text class="tx" x="376.0" y="191.0">5 Flash and run</text></a>
+<a class="lk" href="#/post/cortex-m-bringup/rtt-instead-of-a-serial-port" xlink:href="#/post/cortex-m-bringup/rtt-instead-of-a-serial-port"><rect class="nd" x="366.0" y="210.0" width="248.0" height="28" rx="8"/><text class="tx" x="376.0" y="229.0">6 RTT instead of a serial port</text></a>
+<a class="lk" href="#/post/cortex-m-bringup/when-nothing-works" xlink:href="#/post/cortex-m-bringup/when-nothing-works"><rect class="nd" x="366.0" y="248.0" width="174.0" height="28" rx="8"/><text class="tx" x="376.0" y="267.0">7 When nothing works</text></a>
+<a class="lk" href="#/post/cortex-m-bringup/what-i-would-do-differently" xlink:href="#/post/cortex-m-bringup/what-i-would-do-differently"><rect class="nd" x="366.0" y="286.0" width="240.6" height="28" rx="8"/><text class="tx" x="376.0" y="305.0">8 What I would do differently</text></a>
+<a class="lk" href="#/post/cortex-m-bringup/中文备注" xlink:href="#/post/cortex-m-bringup/中文备注"><rect class="nd" x="366.0" y="324.0" width="100.0" height="28" rx="8"/><text class="tx" x="376.0" y="343.0">9 中文备注</text></a>
+</g></svg>

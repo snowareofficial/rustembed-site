@@ -1,0 +1,131 @@
+/* base.css —— 基础：reset / 字体 / 顶栏 / 三栏布局 / 左栏目录 / 右栏站点导航。
+   由 style.css 按职责拆分（2026-10-21）：按 index.html 的 link 顺序拼接即原文件，级联顺序未变，不随意重排文件。 */
+/* ---------- 2. 基础 ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* 安全网：任何破栏元素最多被裁掉一点，绝不产生横向滚动条 */
+html { overflow-x: clip; -webkit-text-size-adjust: 100%; scroll-padding-top: 4.5rem; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "MiSans", system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 17px;
+  line-height: 1.9;
+}
+
+/* 正文西文优先 Times New Roman（系统字体，零外部请求）；中文缺字自动回退 MiSans */
+.prose {
+  font-family: "Times New Roman", "Liberation Serif", "Nimbus Roman", "MiSans",
+               system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", serif;
+  overflow-wrap: anywhere;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; height: auto; display: block; }
+button { font: inherit; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 2rem 0; }
+input, textarea, select { font-family: inherit; color: var(--ink); }
+
+.muted { color: var(--ink-mute); }
+.hide { display: none !important; }
+
+/* ---------- 3. 顶栏（辅助层：14px） ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; align-items: center; gap: .75rem;
+  height: 48px; padding: 0 1.25rem;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+.brand { display: flex; align-items: center; gap: .45rem; color: var(--ink); font-weight: 600; }
+.brand:hover { text-decoration: none; }
+.brand img { width: 22px; height: 22px; border-radius: 4px; }
+.topbar-tools { margin-left: auto; display: flex; align-items: center; gap: .5rem; min-width: 0; }
+.search-input {
+  width: 11rem; min-width: 5rem; padding: .22rem .5rem;
+  font-size: 12.5px; line-height: 1.5;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 5px;
+}
+
+/* ---------- 4. 三栏布局 ---------- */
+.layout {
+  display: grid;
+  grid-template-columns: 13rem minmax(0, 1fr) 13rem;
+  justify-content: center;
+  gap: 2.5rem;
+  padding: 2rem 1.25rem 4rem;
+  align-items: start;
+}
+.col-left, .col-right {
+  position: sticky; top: 4.25rem;
+  max-height: calc(100vh - 6rem);
+  overflow-y: auto;
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+.col-main { min-width: 0; max-width: var(--measure); width: 100%; margin: 0 auto; }
+
+/* 没有分节标题的页面：左栏不占位，但仍保留等宽空列，避免正文偏左 */
+body[data-toc="none"] .layout { grid-template-columns: 13rem minmax(0, 1fr) 13rem; }
+body[data-toc="none"] .col-left { display: none; }
+body[data-toc="none"] .col-main { grid-column: 2; }
+body[data-toc="none"] .col-right { grid-column: 3; }
+
+/* ---------- 5. 左栏：本文导航 ---------- */
+.col-left-inner { padding-right: .4rem; }
+.col-title {
+  margin: 0 0 .5rem; font-size: 10.5px; letter-spacing: .1em;
+  color: var(--ink-mute); font-weight: 600;
+}
+.col-sub { margin: .8rem 0 0; }
+.map-link { font-size: 12.5px; color: var(--ink-mute); }
+/* 左槽位恒定预留给「当前位置」三角：不管是不是 .cur，文字起始位置都一样，
+   高亮切换时标题不会左右跳动。 */
+.toc a {
+  display: block; position: relative;
+  padding: .16rem .2rem .16rem 1.15rem;
+  color: var(--ink-soft); border-left: 2px solid transparent;
+}
+.toc a:hover { color: var(--accent); text-decoration: none; }
+.toc a.cur { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
+/* 三角画在预留槽里（--toc-mark 随层级缩进走）：
+   inline 的 content:"▸ " 会把标题往右挤；负 left 会被 .col-left / .mobile-toc 的
+   overflow 裁掉并带出横向滚动条 —— 两条都不许。 */
+.toc a.cur::before {
+  content: "▸";
+  position: absolute; top: 50%; left: var(--toc-mark, .2rem);
+  transform: translateY(-50%);
+  font-size: 10px; line-height: 1; color: var(--accent);
+}
+.toc .lv2 { padding-left: 1.15rem; --toc-mark: .2rem; }
+.toc .lv3 { padding-left: 2.05rem; --toc-mark: 1.1rem; font-size: 12px; }
+.toc .lv4 { padding-left: 2.95rem; --toc-mark: 2rem; font-size: 12px; color: var(--ink-mute); }
+.toc .lv5, .toc .lv6 { padding-left: 3.75rem; --toc-mark: 2.8rem; font-size: 12px; color: var(--ink-mute); }
+
+/* ---------- 6. 右栏：站点导航（默认收起） ---------- */
+.nav-drawer {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.nav-drawer > summary {
+  cursor: pointer; list-style: none;
+  padding: .38rem .65rem;
+  font-size: 12.5px; color: var(--ink-soft);
+}
+.nav-drawer > summary::-webkit-details-marker { display: none; }
+.nav-drawer > summary:hover { color: var(--ink); }
+.nav-drawer[open] > summary { border-bottom: 1px solid var(--line); color: var(--ink); font-weight: 600; }
+.site-nav { display: flex; flex-direction: column; padding: .3rem 0; }
+.site-nav a {
+  display: block; padding: .18rem .65rem;
+  color: var(--ink-soft); border-left: 2px solid transparent;
+}
+.site-nav a:hover { color: var(--ink); text-decoration: none; }
+/* 当前项：弱左边框 + 加粗，不是实心色块 */
+.site-nav a.cur { color: var(--ink); font-weight: 600; border-left-color: var(--accent); }
+

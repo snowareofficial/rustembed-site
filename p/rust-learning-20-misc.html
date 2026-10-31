@@ -1,0 +1,639 @@
+<h3 id="1-19-1-下画线">1.19.1 下画线</h3>
+<p><code>_</code> 是&quot;占位通配&quot;——告诉编译器&quot;我故意不用它&quot;，常常用作：</p>
+<table>
+<thead><tr><th>位置</th><th>含义</th></tr></thead>
+<tbody>
+<tr><td>变量名</td><td><code>let _ = ...;</code> 不警告未用</td></tr>
+<tr><td>数值字面量</td><td><code>1_000_000</code> 仅分隔</td></tr>
+<tr><td>模式</td><td><code>let (_, x) = (1, 2);</code> 只取第二个</td></tr>
+<tr><td>类型参数</td><td><code>Vec&lt;_&gt;</code> 让编译器自动推断</td></tr>
+<tr><td>trait 方法</td><td><code>trait T { fn foo(&amp;self) -&gt; _; }</code>（1.75+，不规则返回位置）</td></tr>
+</tbody>
+</table>
+<p>多种用法意义不同，但都共享&quot;忽略 / 推导&quot;。</p>
+<h3 id="1-19-2-字符串格式化输出">1.19.2 字符串格式化输出</h3>
+<p>来自 <code>std::fmt</code>：</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">use std::fmt::{Display,Formatter};
+
+#[derive(Debug)]
+struct T{
+    field1:i32,
+    field2:i32
+}
+
+impl Display for T{
+    fn fmt(&amp;self, f: &amp;mut Formatter&lt;&#x27;_&gt;) -&gt; std::fmt::Result {
+        write!(f, &quot;{} {}&quot;,self.field1,self.field2)
+    }
+}
+
+fn main() {
+    let octal = 0o_777_205_162;
+    let binary = 0b_0110_1001_1111_0001;
+    println!(&quot;{:o} {:b}&quot;, octal, binary);
+
+    let p = (1, 2);
+    let mut a = 0;
+    println!(&quot;a = {}&quot;, a);
+    (_, a) = p;
+    println!(&quot;a = {}&quot;, a);
+
+    let ten = 10;
+    let ws = 5;
+    println!(&quot;{ten:&gt;ws$}&quot;);
+    println!(&quot;{ten:&gt;0ws$}&quot;);
+    println!(&quot;{ten:-&lt;ws$}&quot;);
+    println!(&quot;{ten:^ws$}&quot;);
+    println!(&quot;{ten:#^10}&quot;);
+    println!(&quot;{:e}&quot;,std::f64::consts::PI);
+
+    let var = T{field1:2,field2:6};
+    println!(&quot;{} &quot;,var);
+    println!(&quot;{:?} &quot;,var);
+    println!(&quot;{:#?}&quot;,var);
+}</code></pre>
+</div>
+<p><strong>已编译运行（取自 </strong><code>src/Chapter4/基础end.rs</code><strong>）。</strong></p>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">777205162 110100111110001
+a = 0
+a = 2
+   10
+00010
+10---
+......
+2 6 
+T { field1: 2, field2: 6 } 
+T {
+    field1: 2,
+    field2: 6,
+}</code></pre>
+</div>
+<p>占位符：</p>
+<ul>
+<li><code>{位置}</code>：参数索引。</li>
+<li><code>{名字}</code>：命名参数。</li>
+<li><code>{位置:填充对齐符号宽度.精度 类型}</code>：格式规范。</li>
+<li><code>{位置:fill align sign # 0 width .precision type}</code>：完整说明符。</li>
+</ul>
+<h4 id="宽度-填充字符-对齐-ten-ws-形态-基础end-rs">宽度、填充字符、对齐：<code>{ten:&gt;ws$}</code> 形态（<code>基础end.rs</code>）</h4>
+<p>字段宽度、对齐符号、填充字符都可以<strong>由变量提供</strong>，用 <code>$</code> 标注&quot;参数引用&quot;：</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+let ten = 10;
+let ws  = 5;
+println!(&quot;{ten:&gt;ws$}&quot;);      // 默认 fill=&#x27; &#x27; align=&#x27;&gt;&#x27;： &#x27;   10&#x27;
+println!(&quot;{ten:&gt;0ws$}&quot;);     // fill=&#x27;0&#x27; align=&#x27;&gt;&#x27;     ： &#x27;00010&#x27;
+println!(&quot;{ten:-&lt;ws$}&quot;);     // fill=&#x27;-&#x27; align=&#x27;&lt;&#x27;     ： &#x27;10---&#x27;
+println!(&quot;{ten:^ws$}&quot;);      // 默认 fill=&#x27; &#x27; align=&#x27;^&#x27; ： &#x27; 10  &#x27;
+println!(&quot;{ten:#^10}&quot;);      // 字面量宽度：fill=&#x27;#&#x27;，居中宽 10：&#x27;####10####&#x27;
+println!(&quot;{:e}&quot;, std::f64::consts::PI);   // 3.141592653589793e0
+}</code></pre>
+</div>
+<p><strong>已编译运行。</strong></p>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">   10
+00010
+10---
+ 10  
+####10####
+3.141592653589793e0</code></pre>
+</div>
+<blockquote>
+<p>完整 spec 的语义：<code>[fill][align][sign][#][0][width][.precision][type]</code>。  
+所有字段都可引用变量，引用语法是名字加 <code>$</code>（如 <code>ws$</code>）。<code>0</code> 是&quot;用零填充&quot;的快捷标志。</p>
+</blockquote>
+<h4 id="同一类型-三种打印-基础end-rs">同一类型，三种打印（<code>基础end.rs</code>）</h4>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">use std::fmt::{Display,Formatter};
+
+#[derive(Debug)]
+struct T{
+    field1:i32,
+    field2:i32
+}
+
+impl Display for T{
+    fn fmt(&amp;self, f: &amp;mut Formatter&lt;&#x27;_&gt;) -&gt; std::fmt::Result {
+        write!(f, &quot;{} {}&quot;,self.field1,self.field2)
+    }
+}
+
+fn main() {
+    let octal = 0o_777_205_162;
+    let binary = 0b_0110_1001_1111_0001;
+    println!(&quot;{:o} {:b}&quot;, octal, binary);
+
+    let p = (1, 2);
+    let mut a = 0;
+    println!(&quot;a = {}&quot;, a);
+    (_, a) = p;
+    println!(&quot;a = {}&quot;, a);
+
+    let ten = 10;
+    let ws = 5;
+    println!(&quot;{ten:&gt;ws$}&quot;);
+    println!(&quot;{ten:&gt;0ws$}&quot;);
+    println!(&quot;{ten:-&lt;ws$}&quot;);
+    println!(&quot;{ten:^ws$}&quot;);
+    println!(&quot;{ten:#^10}&quot;);
+    println!(&quot;{:e}&quot;,std::f64::consts::PI);
+
+    let var = T{field1:2,field2:6};
+    println!(&quot;{} &quot;,var);
+    println!(&quot;{:?} &quot;,var);
+    println!(&quot;{:#?}&quot;,var);
+}</code></pre>
+</div>
+<p><strong>已编译运行（取自 </strong><code>src/Chapter4/基础end.rs</code><strong>）。</strong></p>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">777205162 110100111110001
+a = 0
+a = 2
+   10
+00010
+10---
+ 10  
+......
+3.141592653589793e0
+2 6 
+T { field1: 2, field2: 6 } 
+T {
+    field1: 2,
+    field2: 6,
+}</code></pre>
+</div>
+<p>当一个类型同时实现了 <code>Display</code> 与 <code>Debug</code>，按 spec 选择：</p>
+<table>
+<thead><tr><th>spec</th><th>调用的 trait</th></tr></thead>
+<tbody>
+<tr><td><code>{}</code> / <code>{:.3}</code></td><td><code>Display</code>（必须用户实现）</td></tr>
+<tr><td><code>{:?}</code> / <code>{:#?}</code></td><td><code>Debug</code>（通常 <code>#[derive(Debug)]</code>）</td></tr>
+</tbody>
+</table>
+<blockquote>
+<p>自定义结构体想 <code>{}</code> 可用，<strong>必须</strong>手写 <code>impl Display</code>，不能从 <code>#[derive]</code> 得到。</p>
+</blockquote>
+<h4 id="整数后缀打印-基础end-rs">整数后缀打印（<code>基础end.rs</code>）</h4>
+<p><code>{:o}</code>、<code>{:b}</code>、<code>{:x}</code>、<code>{:X}</code> 分别按八/二/十六进制打印整数：</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+println!(&quot;{:o} {:b}&quot;, 0o_777_205_162, 0b_0110_1001_1111_0001);
+// 777205162 10011001011110001
+}</code></pre>
+</div>
+<p><strong>已编译运行。</strong></p>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">777205162 110100111110001</code></pre>
+</div>
+<h3 id="1-19-3-rust-类型清单">1.19.3 Rust 类型清单</h3>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">标量:  i8/16/32/64/isize   u8/16/32/64/usize   f32/f64   bool   char   ()
+复合:  [T; N]   [T]    (T1, T2, ...)    struct/枚举
+引用:  &amp;T   &amp;mut T   *const T   *mut T
+智能指针: Box&lt;T&gt;   Rc&lt;T&gt;   Arc&lt;T&gt;   RefCell&lt;T&gt;   Mutex&lt;T&gt;   Cow&lt;&#x27;a, T&gt;   Pin&lt;T&gt;
+容器:  Vec&lt;T&gt;   String   HashMap&lt;K,V&gt;   BTreeMap&lt;K,V&gt;   HashSet&lt;T&gt;   BTreeSet&lt;T&gt;   VecDeque&lt;T&gt;   LinkedList&lt;T&gt;   BinaryHeap&lt;T&gt;
+并发:  mpsc::Sender/Receiver&lt;T&gt;   thread::JoinHandle&lt;T&gt;
+其它:  Option&lt;T&gt;   Result&lt;T,E&gt;   fn   &amp;[T]   &amp;str</code></pre>
+</div>
+<h3 id="1-19-4-rust-保留字">1.19.4 Rust 保留字</h3>
+<p><code>as、break、const、continue、crate、else、enum、extern、false、fn、for、if、impl、in、let、loop、match、mod、move、mut、pub、ref、return、self、Self、static、struct、super、trait、true、type、unsafe、use、where、while</code> 加 2024 起的 <code>gen</code>（async 块级生成器提案相关关键字之一）。</p>
+<p>另外关键<strong>严格关键字</strong> <code>dyn</code>（trait object 前缀，1.0+ 已严格）必须出现在 <code>dyn Trait</code> 上下文。</p>
+<h3 id="1-19-5-其他">1.19.5 其他</h3>
+<h4 id="类型擦除-box-dyn-trait">类型擦除：<code>Box&lt;dyn Trait&gt;</code></h4>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">// ===== 字符串1：原理速记 =====
+// Rust 中&quot;字符串&quot;实际是一组层次不同的类型：
+//   &amp;str                  不可变 UTF-8 切片 (fat pointer: ptr+len)；字符串字面量就是它。
+//   String                可增长、堆分配、可变的 UTF-8 字符串，等价 Vec&lt;u8&gt; 保证合法 UTF-8。
+//   &amp;String               自动 deref 成 &amp;str，惯例上传递只读字符串就用 &amp;str。
+//   CStr / CString        与 C 互操作的、以 &#x27;\0&#x27; 结尾的字节串（不要求 UTF-8）。
+//   OsStr / OsString      与操作系统原生字符串（Windows UTF-16、Unix bytes）互操作。
+//   Path / PathBuf        文件系统路径，OS 无关视图。
+//   b&quot;...&quot; / &amp;[u8] / Vec&lt;u8&gt; 字节视图，不校验 UTF-8，适合二进制协议。
+//   Cow&lt;&#x27;_, str&gt;          &quot;写时复制&quot;：有所有权就保留，没有就分配新 String。
+// 取下标时必须按字符边界：&amp;s[0..2] 以字节为单位，遇到非 ASCII 多字节字符会 panic。
+// 应改用 chars()/bytes() 迭代 + take()/skip()/collect() 来切片。
+
+use std::{
+    borrow::Cow,
+    ffi::{CStr, CString, OsStr, OsString},
+    net::{IpAddr, TcpStream},
+    path::{Path, PathBuf},
+    str::FromStr,
+};
+
+// pub fn connect&lt;A: ToSocketAddrs&gt;(addr: A) -&gt; Result&lt;TcpStream&gt;
+// pub trait ToSocketAddrs {
+//     type Iter: Iterator&lt;Item = SocketAddr&gt;;
+
+//     fn to_socket_addrs(&amp;self) -&gt; Result&lt;Self::Iter&gt;;
+// }
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let _ = TcpStream::connect(&quot;192.168.0.1:6000&quot;);
+    let addr_string = &quot;192.168.0.1:6000&quot;.to_string();
+    // .as_str()是只读、不可变、UTF-8 字符串切片，底层字符不允许直接修改
+    let _h = addr_string.as_str();
+    let _ = TcpStream::connect(addr_string.as_str());
+    let _ = TcpStream::connect(&amp;*addr_string);
+    let _string: String = addr_string.into();
+
+    let dog = &quot;taoism&quot;;
+    let taois = &amp;dog[0..5];
+    println!(&quot;{}&quot;, taois);
+
+    let dog = &quot;大智如愚&quot;;
+    // let hachi = &amp;dog[0..2]; // 大 --- 不是像C++ 直接取
+    // .take(k) 的含义：从迭代器取出前 k 个字符
+    // .collect() 是迭代器通用方法，把迭代器所有元素收集、转换成目标容器。
+    let hachi: String = dog.chars().take(1).collect();
+    println!(&quot;{}&quot;, hachi);
+    // .skip(n) 跳过前 n 个字符
+    let hachi: String = dog.chars().skip(1).collect();
+    println!(&quot;{}&quot;, hachi);
+
+    assert_eq!(&quot;你好&quot;.len(), 6); // 2x3
+    assert_eq!(&quot;王者吃鸡&quot;.chars().count(), 4);
+
+    {
+        let taoism = &quot;大智如愚&quot;;
+        for b in taoism.as_bytes() {
+            // 字节数组 字节偏移量
+            print!(&quot;0x{:x} &quot;, b);
+        }
+        println!(&quot;&quot;);
+        for b in taoism.chars() {
+            print!(&quot;{} &quot;, b);
+        }
+        println!(&quot;&quot;);
+    }
+
+    // &amp;str 类似索引访问 不可修改
+    {
+        let taoism = &quot;大智如愚&quot;;
+        let dog = taoism.chars().nth(1).unwrap();
+        println!(&quot;{}&quot;, dog);
+    }
+    {
+        let hello = &quot;Hello&quot;.to_string();
+        let milly = &quot;Milly!&quot;;
+        let hello_world = hello + milly; // String + &amp;str --&gt; String
+        println!(&quot;{}&quot;, hello_world);
+
+        let hello = &quot;Hello&quot;.to_string();
+        let milly = &quot;Milly!&quot;.to_string();
+        let hello_world = hello + &amp;milly; // String + &amp;String --&gt; String
+        println!(&quot;{}&quot;, hello_world);
+    }
+
+    {
+        let method = b&quot;SET&quot;;
+        println!(&quot;{:?}&quot;, method);
+        println!(&quot;{}&quot;, std::str::from_utf8(method).unwrap());
+        assert_eq!(method, &amp;[b&#x27;S&#x27;, b&#x27;E&#x27;, b&#x27;T&#x27;]);
+    }
+
+    // 字符类型装切片
+    {
+        let s = String::from(&quot;hello&quot;);
+        let os_s = OsString::from(&quot;Foo&quot;);
+        let path_s = PathBuf::from(r&quot;/home/matt/.bashrc&quot;);
+        let c_s = CString::new(&quot;CString !&quot;).unwrap();
+        // let c_s = CString::from(&quot;C sdsd &quot;); // 错误
+
+        let _ref_s: &amp;str = &amp;s; // 默认是 通过推到 为String 指定后 为&amp;str
+        let _ref_os_s: &amp;OsStr = &amp;os_s;
+        let _ref_path_s: &amp;Path = &amp;path_s;
+        let _ref_c_s: &amp;CStr = &amp;c_s;
+    }
+
+    // 写时复制
+    {
+        let s = String::from(&quot;Hello&quot;);
+        let _c1 = Cow::from(s);
+        let _c2 = Cow::from(&quot;Milly&quot;);
+
+        let g1 = greet(Some(&quot;Milly&quot;));
+        let g2 = greet(None);
+
+        println!(&quot;{}{}&quot;, g1, g2);
+    }
+
+    // 字符串相关操作
+    {
+        assert!(&quot; ONE&quot;.to_lowercase() == &quot; one&quot;); // 字符取小 变小写
+        assert!(&quot; peanut&quot;.contains(&quot;nut&quot;));
+        println!(&quot;{}&quot;, &quot; peanut&quot;.contains(&quot;nut&quot;)); // 查找
+        println!(&quot;{}&quot;, &quot; peanut&quot;.find(&quot;nut&quot;).unwrap()); // 查找
+
+        assert_eq!(&quot;哈_哈&quot;.replace(&quot;哈&quot;, &quot;呵&quot;), &quot;呵_呵&quot;); // 替代
+        assert_eq!(&quot;clean\n&quot;.trim(), &quot;clean&quot;);
+        for word in &quot;a,b,c,d,erer,over&quot;.split(&quot;,&quot;)
+        //分割
+        {
+            print!(&quot;{} &quot;, word);
+        }
+        assert!(&quot;123456&quot;.starts_with(&quot;1&quot;));
+        assert!(&quot;123456&quot;.ends_with(&quot;6&quot;));
+    }
+
+    {
+        use std::str::FromStr;
+        // 直接转换为 字符 -&gt; 数据
+        assert_eq!(usize::from_str(&quot;3628800&quot;), Ok(3628800));
+        assert_eq!(f64::from_str(&quot;128.5625&quot;), Ok(128.5625));
+        assert_eq!(bool::from_str(&quot;true&quot;), Ok(true));
+        assert!(f64::from_str(&quot;hdjasjhjd&quot;).is_err());
+        assert!(bool::from_str(&quot;TEUE&quot;).is_err());
+
+        assert_eq!(char::from_str(&quot;)&quot;), Ok(&#x27;)&#x27;));
+        assert!(char::from_str(&quot;jhrdals&quot;).is_err());
+    }
+    // 切片
+    {
+        let address = &quot;fe80::0000:3ea9:f4ff:fe34:7a50&quot;.parse::&lt;IpAddr&gt;()?;
+        println!(&quot;解析IP成功: {}&quot;, address);
+    }
+    Ok(())
+}
+
+fn greet(name: Option&lt;&amp;str&gt;) -&gt; Cow&lt;&#x27;static, str&gt; {
+    match name {
+        Some(name) =&gt; Cow::from(format!(&quot;Hello {}!\r\n&quot;, name)),
+        None =&gt; Cow::from(&quot;Hello Human!\r\n&quot;),
+    }
+}
+
+// trait 是行为接口，用来给不同类型定义共享的能力 / 方法，类似 Java / C++ 的接口、抽象类，但功能更强。核心：描述 “这个类型能做什么”，而非描述 “它是什么”。
+// pub trait FromStr: Sized {
+//     type Err;
+//     fn from_str(s: &amp;str) -&gt; Result&lt;Self, Self::Err&gt;;
+// }
+
+fn parse_pair&lt;T: FromStr&gt;(s: &amp;str, separator: char) -&gt; Option&lt;(T, T)&gt; {
+    match s.find(separator) {
+        None =&gt; None,
+        Some(index) =&gt; match (T::from_str(&amp;s[..index]), T::from_str(&amp;s[index + 1..])) {
+            (Ok(l), Ok(r)) =&gt; Some((l, r)),
+            _ =&gt; None,
+        },
+    }
+}</code></pre>
+</div>
+<p><strong>已编译运行（取自 </strong><code>src/Chapter4/字符串1.rs</code><strong>）。</strong></p>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">taois
+大
+智如愚
+0xe5 0xa4 0xa7 0xe6 0x99 0xba 0xe5 0xa6 0x82 0xe6 0x84 0x9a 
+大 智 如 愚 
+智
+HelloMilly!
+......
+SET
+Hello Milly!
+Hello Human!
+
+true
+4
+a b c d erer over 解析IP成功: fe80::3ea9:f4ff:fe34:7a50</code></pre>
+</div>
+<p>当函数不能指定具体错误类型时用 <code>Box&lt;dyn Error&gt;</code> 收敛各类型。<code>字符串1.rs</code> 的 <code>fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt;</code> 正是这种用法。</p>
+<h4 id="闭包与-trait">闭包与 trait</h4>
+<table>
+<thead><tr><th>闭包</th><th>对应 trait</th></tr></thead>
+<tbody>
+<tr><td>`</td><td>x</td><td>x + 1`</td><td><code>Fn(&amp;T) -&gt; R</code>，不消费捕获</td></tr>
+<tr><td>`let mut n = 0;</td><td>x</td><td>{ n += x; }`</td><td><code>FnMut(&amp;T) -&gt; R</code>，可变借用</td></tr>
+<tr><td>`let s = &quot;...&quot;.to_string();</td><td></td><td>drop(s)`</td><td><code>FnOnce() -&gt; R</code>，消耗自身</td></tr>
+</tbody>
+</table>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+fn twice&lt;F: Fn(i32) -&gt; i32&gt;(f: F, x: i32) -&gt; i32 { f(x) + f(x) }
+}</code></pre>
+</div>
+<h4 id="类型推导">类型推导</h4>
+<p>Rust 自带局部类型推导，但在版本约束里：</p>
+<ul>
+<li>函数参数与返回值一般显式；</li>
+<li>闭包参数可用 <code>|x: i32| { x + 1 }</code>；</li>
+<li>结构字段、枚举变体总是显式。</li>
+</ul>
+<h4 id="协程-async">协程 / async</h4>
+<p>新版 Rust 原生支持 <code>async</code>/<code>.await</code>：</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">// ===== 字符串1：原理速记 =====
+// Rust 中&quot;字符串&quot;实际是一组层次不同的类型：
+//   &amp;str                  不可变 UTF-8 切片 (fat pointer: ptr+len)；字符串字面量就是它。
+//   String                可增长、堆分配、可变的 UTF-8 字符串，等价 Vec&lt;u8&gt; 保证合法 UTF-8。
+//   &amp;String               自动 deref 成 &amp;str，惯例上传递只读字符串就用 &amp;str。
+//   CStr / CString        与 C 互操作的、以 &#x27;\0&#x27; 结尾的字节串（不要求 UTF-8）。
+//   OsStr / OsString      与操作系统原生字符串（Windows UTF-16、Unix bytes）互操作。
+//   Path / PathBuf        文件系统路径，OS 无关视图。
+//   b&quot;...&quot; / &amp;[u8] / Vec&lt;u8&gt; 字节视图，不校验 UTF-8，适合二进制协议。
+//   Cow&lt;&#x27;_, str&gt;          &quot;写时复制&quot;：有所有权就保留，没有就分配新 String。
+// 取下标时必须按字符边界：&amp;s[0..2] 以字节为单位，遇到非 ASCII 多字节字符会 panic。
+// 应改用 chars()/bytes() 迭代 + take()/skip()/collect() 来切片。
+
+use std::{
+    borrow::Cow,
+    ffi::{CStr, CString, OsStr, OsString},
+    net::{IpAddr, TcpStream},
+    path::{Path, PathBuf},
+    str::FromStr,
+};
+
+// pub fn connect&lt;A: ToSocketAddrs&gt;(addr: A) -&gt; Result&lt;TcpStream&gt;
+// pub trait ToSocketAddrs {
+//     type Iter: Iterator&lt;Item = SocketAddr&gt;;
+
+//     fn to_socket_addrs(&amp;self) -&gt; Result&lt;Self::Iter&gt;;
+// }
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let _ = TcpStream::connect(&quot;192.168.0.1:6000&quot;);
+    let addr_string = &quot;192.168.0.1:6000&quot;.to_string();
+    // .as_str()是只读、不可变、UTF-8 字符串切片，底层字符不允许直接修改
+    let _h = addr_string.as_str();
+    let _ = TcpStream::connect(addr_string.as_str());
+    let _ = TcpStream::connect(&amp;*addr_string);
+    let _string: String = addr_string.into();
+
+    let dog = &quot;taoism&quot;;
+    let taois = &amp;dog[0..5];
+    println!(&quot;{}&quot;, taois);
+
+    let dog = &quot;大智如愚&quot;;
+    // let hachi = &amp;dog[0..2]; // 大 --- 不是像C++ 直接取
+    // .take(k) 的含义：从迭代器取出前 k 个字符
+    // .collect() 是迭代器通用方法，把迭代器所有元素收集、转换成目标容器。
+    let hachi: String = dog.chars().take(1).collect();
+    println!(&quot;{}&quot;, hachi);
+    // .skip(n) 跳过前 n 个字符
+    let hachi: String = dog.chars().skip(1).collect();
+    println!(&quot;{}&quot;, hachi);
+
+    assert_eq!(&quot;你好&quot;.len(), 6); // 2x3
+    assert_eq!(&quot;王者吃鸡&quot;.chars().count(), 4);
+
+    {
+        let taoism = &quot;大智如愚&quot;;
+        for b in taoism.as_bytes() {
+            // 字节数组 字节偏移量
+            print!(&quot;0x{:x} &quot;, b);
+        }
+        println!(&quot;&quot;);
+        for b in taoism.chars() {
+            print!(&quot;{} &quot;, b);
+        }
+        println!(&quot;&quot;);
+    }
+
+    // &amp;str 类似索引访问 不可修改
+    {
+        let taoism = &quot;大智如愚&quot;;
+        let dog = taoism.chars().nth(1).unwrap();
+        println!(&quot;{}&quot;, dog);
+    }
+    {
+        let hello = &quot;Hello&quot;.to_string();
+        let milly = &quot;Milly!&quot;;
+        let hello_world = hello + milly; // String + &amp;str --&gt; String
+        println!(&quot;{}&quot;, hello_world);
+
+        let hello = &quot;Hello&quot;.to_string();
+        let milly = &quot;Milly!&quot;.to_string();
+        let hello_world = hello + &amp;milly; // String + &amp;String --&gt; String
+        println!(&quot;{}&quot;, hello_world);
+    }
+
+    {
+        let method = b&quot;SET&quot;;
+        println!(&quot;{:?}&quot;, method);
+        println!(&quot;{}&quot;, std::str::from_utf8(method).unwrap());
+        assert_eq!(method, &amp;[b&#x27;S&#x27;, b&#x27;E&#x27;, b&#x27;T&#x27;]);
+    }
+
+    // 字符类型装切片
+    {
+        let s = String::from(&quot;hello&quot;);
+        let os_s = OsString::from(&quot;Foo&quot;);
+        let path_s = PathBuf::from(r&quot;/home/matt/.bashrc&quot;);
+        let c_s = CString::new(&quot;CString !&quot;).unwrap();
+        // let c_s = CString::from(&quot;C sdsd &quot;); // 错误
+
+        let _ref_s: &amp;str = &amp;s; // 默认是 通过推到 为String 指定后 为&amp;str
+        let _ref_os_s: &amp;OsStr = &amp;os_s;
+        let _ref_path_s: &amp;Path = &amp;path_s;
+        let _ref_c_s: &amp;CStr = &amp;c_s;
+    }
+
+    // 写时复制
+    {
+        let s = String::from(&quot;Hello&quot;);
+        let _c1 = Cow::from(s);
+        let _c2 = Cow::from(&quot;Milly&quot;);
+
+        let g1 = greet(Some(&quot;Milly&quot;));
+        let g2 = greet(None);
+
+        println!(&quot;{}{}&quot;, g1, g2);
+    }
+
+    // 字符串相关操作
+    {
+        assert!(&quot; ONE&quot;.to_lowercase() == &quot; one&quot;); // 字符取小 变小写
+        assert!(&quot; peanut&quot;.contains(&quot;nut&quot;));
+        println!(&quot;{}&quot;, &quot; peanut&quot;.contains(&quot;nut&quot;)); // 查找
+        println!(&quot;{}&quot;, &quot; peanut&quot;.find(&quot;nut&quot;).unwrap()); // 查找
+
+        assert_eq!(&quot;哈_哈&quot;.replace(&quot;哈&quot;, &quot;呵&quot;), &quot;呵_呵&quot;); // 替代
+        assert_eq!(&quot;clean\n&quot;.trim(), &quot;clean&quot;);
+        for word in &quot;a,b,c,d,erer,over&quot;.split(&quot;,&quot;)
+        //分割
+        {
+            print!(&quot;{} &quot;, word);
+        }
+        assert!(&quot;123456&quot;.starts_with(&quot;1&quot;));
+        assert!(&quot;123456&quot;.ends_with(&quot;6&quot;));
+    }
+
+    {
+        use std::str::FromStr;
+        // 直接转换为 字符 -&gt; 数据
+        assert_eq!(usize::from_str(&quot;3628800&quot;), Ok(3628800));
+        assert_eq!(f64::from_str(&quot;128.5625&quot;), Ok(128.5625));
+        assert_eq!(bool::from_str(&quot;true&quot;), Ok(true));
+        assert!(f64::from_str(&quot;hdjasjhjd&quot;).is_err());
+        assert!(bool::from_str(&quot;TEUE&quot;).is_err());
+
+        assert_eq!(char::from_str(&quot;)&quot;), Ok(&#x27;)&#x27;));
+        assert!(char::from_str(&quot;jhrdals&quot;).is_err());
+    }
+    // 切片
+    {
+        let address = &quot;fe80::0000:3ea9:f4ff:fe34:7a50&quot;.parse::&lt;IpAddr&gt;()?;
+        println!(&quot;解析IP成功: {}&quot;, address);
+    }
+    Ok(())
+}
+
+fn greet(name: Option&lt;&amp;str&gt;) -&gt; Cow&lt;&#x27;static, str&gt; {
+    match name {
+        Some(name) =&gt; Cow::from(format!(&quot;Hello {}!\r\n&quot;, name)),
+        None =&gt; Cow::from(&quot;Hello Human!\r\n&quot;),
+    }
+}
+
+// trait 是行为接口，用来给不同类型定义共享的能力 / 方法，类似 Java / C++ 的接口、抽象类，但功能更强。核心：描述 “这个类型能做什么”，而非描述 “它是什么”。
+// pub trait FromStr: Sized {
+//     type Err;
+//     fn from_str(s: &amp;str) -&gt; Result&lt;Self, Self::Err&gt;;
+// }
+
+fn parse_pair&lt;T: FromStr&gt;(s: &amp;str, separator: char) -&gt; Option&lt;(T, T)&gt; {
+    match s.find(separator) {
+        None =&gt; None,
+        Some(index) =&gt; match (T::from_str(&amp;s[..index]), T::from_str(&amp;s[index + 1..])) {
+            (Ok(l), Ok(r)) =&gt; Some((l, r)),
+            _ =&gt; None,
+        },
+    }
+}</code></pre>
+</div>
+<p><strong>已编译运行（取自 </strong><code>src/Chapter4/字符串1.rs</code><strong>）。</strong></p>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">taois
+大
+智如愚
+0xe5 0xa4 0xa7 0xe6 0x99 0xba 0xe5 0xa6 0x82 0xe6 0x84 0x9a 
+大 智 如 愚 
+智
+HelloMilly!
+......
+SET
+Hello Milly!
+Hello Human!
+
+true
+4
+a b c d erer over 解析IP成功: fe80::3ea9:f4ff:fe34:7a50</code></pre>
+</div>
+<p><code>Future</code> 是一个 trait——<code>async fn</code> 实质返回 <code>impl Future&lt;Output = T&gt;</code>。</p>
