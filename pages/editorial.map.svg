@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="389" height="296" viewBox="0 0 389 296" font-family="-apple-system,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif">
+<title>创作与审稿制度</title>
+<style>.nd{fill:#fff;stroke:#e4dfd6;rx:8} .rt{fill:#f6efe6;stroke:#d9c9b0}.tx{font-size:13px;fill:#23201c} .lk{cursor:pointer}.lk:hover .nd{stroke:#b4552d;fill:#fff8f2} .ed{fill:none;stroke:#ddd6c9;stroke-width:1.4}</style>
+<g class="edges">
+<path class="ed" d="M149.6 148.0 C172.6 148.0 172.6 34.0 195.6 34.0"/>
+<path class="ed" d="M149.6 148.0 C172.6 148.0 172.6 72.0 195.6 72.0"/>
+<path class="ed" d="M149.6 148.0 C172.6 148.0 172.6 110.0 195.6 110.0"/>
+<path class="ed" d="M149.6 148.0 C172.6 148.0 172.6 148.0 195.6 148.0"/>
+<path class="ed" d="M149.6 148.0 C172.6 148.0 172.6 186.0 195.6 186.0"/>
+<path class="ed" d="M149.6 148.0 C172.6 148.0 172.6 224.0 195.6 224.0"/>
+<path class="ed" d="M149.6 148.0 C172.6 148.0 172.6 262.0 195.6 262.0"/>
+</g>
+<g class="nodes">
+<rect class="nd rt" x="20.0" y="134.0" width="129.6" height="28" rx="8"/><text class="tx" x="30.0" y="153.0">创作与审稿制度</text>
+<a class="lk" href="#/page/editorial/投稿流程与时限" xlink:href="#/page/editorial/投稿流程与时限"><rect class="nd" x="195.6" y="20.0" width="129.6" height="28" rx="8"/><text class="tx" x="205.6" y="39.0">投稿流程与时限</text></a>
+<a class="lk" href="#/page/editorial/审稿标准-按顺序看" xlink:href="#/page/editorial/审稿标准-按顺序看"><rect class="nd" x="195.6" y="58.0" width="174.0" height="28" rx="8"/><text class="tx" x="205.6" y="77.0">审稿标准（按顺序看）</text></a>
+<a class="lk" href="#/page/editorial/署名-版权与许可" xlink:href="#/page/editorial/署名-版权与许可"><rect class="nd" x="195.6" y="96.0" width="144.4" height="28" rx="8"/><text class="tx" x="205.6" y="115.0">署名、版权与许可</text></a>
+<a class="lk" href="#/page/editorial/退稿与修改" xlink:href="#/page/editorial/退稿与修改"><rect class="nd" x="195.6" y="134.0" width="100.0" height="28" rx="8"/><text class="tx" x="205.6" y="153.0">退稿与修改</text></a>
+<a class="lk" href="#/page/editorial/更新与纠错" xlink:href="#/page/editorial/更新与纠错"><rect class="nd" x="195.6" y="172.0" width="100.0" height="28" rx="8"/><text class="tx" x="205.6" y="191.0">更新与纠错</text></a>
+<a class="lk" href="#/page/editorial/内容边界" xlink:href="#/page/editorial/内容边界"><rect class="nd" x="195.6" y="210.0" width="96.0" height="28" rx="8"/><text class="tx" x="205.6" y="229.0">内容边界</text></a>
+<a class="lk" href="#/page/editorial/纠纷与异议" xlink:href="#/page/editorial/纠纷与异议"><rect class="nd" x="195.6" y="248.0" width="100.0" height="28" rx="8"/><text class="tx" x="205.6" y="267.0">纠纷与异议</text></a>
+</g></svg>

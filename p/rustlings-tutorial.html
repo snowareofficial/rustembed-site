@@ -1,0 +1,62 @@
+<h3 id="这是什么">这是什么</h3>
+<p><a href="https://github.com/rust-lang/rustlings" target="_blank" rel="nofollow noopener">rustlings</a> 是 rust-lang 官方组织下的开源入门练习项目，专门用来上手练 Rust。建议配合官方教材阅读，中文读者也可以用 <a href="https://kaisery.github.io/trpl-zh-cn/" target="_blank" rel="nofollow noopener">Rust 程序设计语言中文版</a>。</p>
+<p>它的核心玩法很直接：</p>
+<blockquote>
+<p>每个小题都自带错误、默认编译不过。你读编译器报错、改代码，直到编译或测试通过，再进入下一题。</p>
+</blockquote>
+<p>重点不是“背语法”，而是<strong>习惯看 rustc 的报错</strong>。这是 Rust 学习里最重要的能力之一。</p>
+<h3 id="能练什么">能练什么</h3>
+<p>练习按知识点分组：</p>
+<ul>
+<li>基础语法：变量、类型、函数、<code>if</code>、循环、字符串、数组、<code>Vec</code></li>
+<li>Rust 难点：所有权、借用、生命周期（<code>move_semantics</code>）</li>
+<li>枚举、<code>Option</code>、<code>Result</code>、错误处理</li>
+<li>结构体、<code>trait</code>、模块、包管理</li>
+<li>章节小测验，用来复盘</li>
+</ul>
+<p>它不教你写大型项目，目标更具体：</p>
+<ol>
+<li>熟悉 Rust 语法；</li>
+<li>读懂编译器报错；</li>
+<li>建立所有权、借用的直觉；</li>
+<li>在本地编辑器里写代码，和真实开发环境一致。</li>
+</ol>
+<h3 id="安装与开始">安装与开始</h3>
+<div class="code">
+<div class="code-head"><span>shell</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-shell">cargo install rustlings
+rustlings init
+cd rustlings
+rustlings</code></pre>
+</div>
+<p><code>rustlings init</code> 会拉取练习仓库；也可以直接：</p>
+<div class="code">
+<div class="code-head"><span>shell</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-shell">git clone https://github.com/rust-lang/rustlings.git
+cd rustlings
+rustlings</code></pre>
+</div>
+<p>启动后，终端会显示当前题目和错误位置。下面这题提示不能把值借用为可变：</p>
+<p><img src="assets/posts/rustlings-tutorial/rustlings-error.png" alt="rustlings 终端提示" loading="lazy"></p>
+<p>进入代码文件，题目要求是：</p>
+<blockquote>
+<p>Fix the compiler error in the function without adding any new line.</p>
+</blockquote>
+<p>也就是不加新行，修掉函数里的编译错误。</p>
+<p><img src="assets/posts/rustlings-tutorial/rustlings-code.png" alt="题目要求" loading="lazy"></p>
+<p>这里的 <code>vec</code> 参数默认不可变，而 <code>push</code> 需要可变引用，所以给参数加上 <code>mut</code>：</p>
+<p><img src="assets/posts/rustlings-tutorial/rustlings-fix.png" alt="加上 mut 后修复" loading="lazy"></p>
+<p>回到终端，看到编译检查通过。整个过程不需要手动 <code>cargo build</code>、<code>cargo run</code>，也不会不断生成 <code>target/</code>，对新手很友好。</p>
+<p><img src="assets/posts/rustlings-tutorial/rustlings-pass.png" alt="通过检查" loading="lazy"></p>
+<h3 id="适合谁">适合谁</h3>
+<ul>
+<li>刚看完 Rust 基础语法，想动手验证；</li>
+<li>被所有权、借用卡住，需要大量小题建立直觉；</li>
+<li>想养成“先读报错再改代码”的习惯。</li>
+</ul>
+<p>如果已经能独立写小项目，rustlings 的收益会下降；这时更适合直接做项目、读真实 crate 的源码。</p>
+<h3 id="参考">参考</h3>
+<ul>
+<li><a href="https://github.com/rust-lang/rustlings" target="_blank" rel="nofollow noopener">rust-lang/rustlings</a></li>
+<li><a href="https://kaisery.github.io/trpl-zh-cn/" target="_blank" rel="nofollow noopener">Rust 程序设计语言中文版</a></li>
+</ul>

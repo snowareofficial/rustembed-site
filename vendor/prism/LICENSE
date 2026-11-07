@@ -1,0 +1,31 @@
+Prism.js 1.29.0 许可声明（本目录 prism.js / prism.css 均在其覆盖范围内）
+==================================================================
+
+* prism.js：Prism upstream v1.29.0 组件原样拼接（core / markup / clike / c / cpp /
+  rust / bash / python / json / toml / markdown），许可为 MIT，原文见本文件下半部分。
+  来源：https://github.com/PrismJS/prism
+* prism.js 末尾 GRAMMAR: sml 段：本站自写，随本站同许可发布（见仓库根 LICENSE）。
+* prism.css：本站自写（只沿用 Prism 的 token 类名约定，未复制其官方主题）。
+
+------------------------------------------------------------------
+MIT LICENSE
+
+Copyright (c) 2012 Lea Verou
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.

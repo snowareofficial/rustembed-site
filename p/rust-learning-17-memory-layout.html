@@ -1,0 +1,15 @@
+<p>Rust 默认把所有可确定大小的数据放在栈上，把需要动态分配或可能收缩增长的数据交给堆。这一节与 1.1 节呼应，给一些落地观察：</p>
+<table>
+<thead><tr><th>数据</th><th>在哪分配</th></tr></thead>
+<tbody>
+<tr><td><code>i32</code>、<code>bool</code>、<code>char</code>、结构体局部变量</td><td>栈</td></tr>
+<tr><td><code>[T; N]</code> 数组</td><td>栈</td></tr>
+<tr><td><code>&amp;T</code> / <code>&amp;mut T</code> / <code>&amp;str</code> / <code>&amp;[T]</code></td><td>胖指针在栈，指向处可能是堆、栈、常量段</td></tr>
+<tr><td><code>Box&lt;T&gt;</code></td><td>胖指针在栈，指向堆</td></tr>
+<tr><td><code>Vec&lt;T&gt;</code>、<code>String</code>、<code>HashMap</code></td><td>堆（数据），栈（胖指针）</td></tr>
+<tr><td><code>static</code> / <code>static mut</code></td><td>静态段（<code>.bss</code> / <code>.data</code>），整程序生命周期</td></tr>
+<tr><td><code>const</code></td><td>由编译器内联到使用点，无独立地址</td></tr>
+<tr><td>闭包</td><td>默认栈；<code>move</code> 闭包可能含 <code>Box</code> 堆</td></tr>
+</tbody>
+</table>
+<p><code>std::mem::size_of::&lt;T&gt;()</code> 给出 T 在栈上&quot;胖指针大小&quot;或&quot;对象大小&quot;。可以用它在调试时核对尺寸假设。</p>

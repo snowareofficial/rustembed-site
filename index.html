@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="一个 QQ 群的技术共建博客：嵌入式、Rust，以及把想法做出来的过程">
+<meta name="theme-color" content="#b4552d">
+<meta property="og:title" content="Rust嵌入式探讨">
+<meta property="og:description" content="一个 QQ 群的技术共建博客：嵌入式、Rust，以及把想法做出来的过程">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://rustembed.swebase.cn">
+<link rel="stylesheet" href="fonts.css">
+<link rel="icon" href="favicon.jpg">
+<link rel="apple-touch-icon" href="favicon.jpg">
+<link rel="manifest" href="site.webmanifest">
+<meta property="og:image" content="https://rustembed.swebase.cn/favicon.jpg">
+<title>Rust嵌入式探讨</title>
+<!-- 样式按职责拆到 css/（2026-10-21）；顺序即原 style.css 的级联顺序，增删文件必须保持相对次序 -->
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/content.css">
+<link rel="stylesheet" href="css/pages.css">
+<link rel="stylesheet" href="css/reading.css">
+<link rel="stylesheet" href="css/settings.css">
+<link rel="stylesheet" href="vendor/prism/prism.css">
+<link rel="alternate" type="application/rss+xml" title="RSS" href="feed.xml">
+</head>
+<body data-page="home" data-form="reading">
+
+<header class="topbar">
+  <a class="brand" href="#/home"><img id="brand-avatar" alt="" width="22" height="22"><span id="brand-title">Rust嵌入式探讨</span></a>
+  <span class="topbar-spacer"></span>
+
+  <!-- 桌面端：收起/展开左侧本文目录 -->
+  <button class="panel-btn" id="toc-toggle" type="button" aria-label="收起目录" aria-pressed="false" title="收起/展开目录">
+    <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <path d="M9 4v16" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    </svg>
+  </button>
+
+  <!-- 站点导航：在搜索左边，方形外框 + 指南针图标；<details> 收起为按钮 -->
+  <details class="nav-drawer" id="nav-drawer">
+    <summary class="nav-summary" aria-label="站点导航" title="站点导航">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        <path d="M15.6 8.4l-2.3 5-5 2.3 2.3-5z" fill="currentColor"/>
+      </svg>
+    </summary>
+    <nav class="site-nav" id="site-nav" aria-label="站点导航">
+        <a href="#/library">文章库</a>
+        <a href="#/knowledge">文章知识</a>
+        <a href="#/topics">主题词条</a>
+        <a href="#/projects">项目</a>
+        <a href="#/resources">资源</a>
+        <a href="#/members">成员</a>
+        <a href="#/services">技术互助</a>
+        <a href="#/weekly">周报</a>
+        <a href="#/pages">站文档</a>
+        <a href="#/join">加入我们</a>
+    </nav>
+  </details>
+
+  <form class="search-form" id="search-form" role="search">
+    <input id="q" class="search-input" type="search" placeholder="搜索文章 / 项目 / 成员（回车）" aria-label="搜索站内内容" autocomplete="off">
+    <button class="search-btn" type="submit" aria-label="搜索" title="搜索">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M15.6 15.6L20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </form>
+</header>
+
+<div class="layout">
+
+  <!-- 左栏：只有本文导航（本文目录 + 章节结构），不出现任何站点级入口 -->
+  <aside class="col-left" id="col-left" aria-label="本文导航">
+    <div class="col-left-inner">
+      <p class="col-title">本文目录</p>
+      <nav class="toc" id="toc-nav" aria-label="本文目录"></nav>
+      <p class="col-sub"><button class="map-link" id="map-link" type="button">章节结构与导图 →</button></p>
+    </div>
+  </aside>
+
+  <!-- 主栏：内容，max-width 由 --measure 控制（默认 38rem） -->
+  <main class="col-main" id="main">
+    <details class="mobile-toc" id="mobile-toc">
+      <summary>本页目录</summary>
+      <nav class="toc" id="toc-nav-m" aria-label="本页目录"></nav>
+    </details>
+    <div id="view">
+<section class="home-hero">
+  <img class="home-logo" src="p.qlogo.jpg" alt="" width="56" height="56">
+  <h1 class="home-title">Rust嵌入式探讨</h1>
+  <p class="home-tagline">一个 QQ 群的技术共建博客：嵌入式、Rust，以及把想法做出来的过程</p>
+  <form class="home-search" role="search" action="#/search/">
+    <input class="home-input" type="search" name="q" placeholder="全站搜索：文章 / 项目 / 成员 / 资源（回车）" aria-label="全站搜索">
+    <button class="home-btn" type="submit">搜索</button>
+  </form>
+</section>
+<div class="nav-cards">
+  <a class="nav-card" href="#/library"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18M3 10h18M3 15h12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><b>文章库</b><span>按年份浏览全部文章</span><em>37 项</em></a>
+  <a class="nav-card" href="#/knowledge"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h9l3 3v13H4zM8 9h5M8 12h5M8 15h3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><b>文章知识</b><span>系列 / 标签 / 作者索引</span></a>
+  <a class="nav-card" href="#/topics"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h7v6H3zM10 5h7v6h-7zM3 11h7v6H3zM10 11h7v6h-7z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><b>主题词条</b><span>主题词条与关系图</span><em>2 项</em></a>
+  <a class="nav-card" href="#/projects"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h6l2 2h7v9H3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><b>项目</b><span>仓库元数据与活跃度比较</span><em>10 项</em></a>
+  <a class="nav-card" href="#/resources"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v13H4zM13 4h7v13h-7z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><b>资源</b><span>书 / 教程 / 工具 / 视频</span><em>4 项</em></a>
+  <a class="nav-card" href="#/members"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 18c0-3 3-5 6-5s6 2 6 5M16 8h6M19 5v6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><b>成员</b><span>成员档案与作品</span><em>5 项</em></a>
+  <a class="nav-card" href="#/services"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18v11H3zM3 11h18M9 7v11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><b>技术互助</b><span>技术互助</span><em>1 项</em></a>
+  <a class="nav-card" href="#/weekly"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v15H4zM8 3v4M16 3v4M4 10h16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><b>周报</b><span>周报 / 月刊</span><em>1 项</em></a>
+  <a class="nav-card" href="#/pages"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h9l4 4v14H5zM14 3v5h5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><b>站文档</b><span>制度与写作文档</span><em>14 项</em></a>
+  <a class="nav-card" href="#/join"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21c0-4 3-6 7-6M17 9v6M14 12h6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><b>加入我们</b><span>加入 QQ 群</span></a>
+</div>
+<p class="section-h">最近更新</p>
+<ol class="rows">
+  <li class="row">
+    <span class="row-date">2026-10-25</span>
+    <a class="row-title" href="#/post/rustlings-tutorial">Rustlings：用官方练习跨过 Rust 入门坎</a>
+    <span class="row-words">1020 字</span>
+  </li>
+  <li class="row">
+    <span class="row-date">2026-10-20</span>
+    <a class="row-title" href="#/post/rust-learning-20-misc">1.19 其他</a>
+    <span class="row-words">13995 字</span>
+  </li>
+  <li class="row">
+    <span class="row-date">2026-10-20</span>
+    <a class="row-title" href="#/post/rust-learning-19-std-library">1.18 Rust 标准库</a>
+    <span class="row-words">1499 字</span>
+  </li>
+</ol>
+
+    </div>
+  </main>
+
+</div>
+
+<footer class="footer" id="footer">
+        <span id="license-notice">本站文章、词条与知识库内容默认采用 CC BY-NC-SA 4.0，禁止商业性使用。</span>
+        <span id="license-notice-members">成员档案页的自我介绍、照片与能力信息由成员本人提供，版权归成员本人，本站经授权展示；这些信息仅用于技术协作联系，未经本人同意，不得用于商业招揽、打包售卖或对外培训。购买成员的服务，不等于获得其在本站发表内容的商业授权。</span>
+        <span id="license-notice-site">本站只做技术互助展示，不参与交易撮合、资金托管与交付担保，不对合作结果背书。</span>
+</footer>
+
+<!-- 章节结构 / 导图：内联弹层，不跳页 -->
+<div class="modal" id="modal" hidden>
+  <div class="modal-backdrop" data-close="1"></div>
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-head">
+      <b id="modal-title">章节结构</b>
+      <button class="modal-close" type="button" data-close="1" aria-label="关闭">×</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<!-- 设置面板入口：右侧边缘细长三角形（首页隐藏，首页用扳手）。
+     面板本体是静态节点，由 app.js 在启动时接线；不引外部图标库，内联 SVG。 -->
+<button class="settings-fab" id="settings-fab" type="button"
+        aria-label="打开设置" aria-expanded="false" aria-controls="settings-panel" title="设置">
+  <svg viewBox="0 0 8 22" aria-hidden="true"><path d="M0.5 1 L7.5 11 L0.5 21 Z"/></svg>
+</button>
+
+<aside class="settings-panel" id="settings-panel" role="dialog" aria-label="阅读与站点设置" hidden>
+  <div class="sp-head">
+    <b>设置</b>
+  </div>
+  <div class="sp-tabs" role="tablist" aria-label="设置分类">
+    <button class="sp-tab" id="settings-tab-reading" type="button" role="tab"
+            aria-selected="true" aria-controls="settings-pane-reading">阅读</button>
+    <button class="sp-tab" id="settings-tab-site" type="button" role="tab"
+            aria-selected="false" aria-controls="settings-pane-site">站点</button>
+  </div>
+
+  <div class="sp-pane" id="settings-pane-reading" role="tabpanel" aria-labelledby="settings-tab-reading">
+    <div class="sp-row">
+      <label class="sp-label" for="settings-size">正文字号</label>
+      <span class="sp-val" id="settings-size-val">100%</span>
+    </div>
+    <input class="sp-range" id="settings-size" type="range" min="90" max="120" step="5" value="100"
+           aria-label="正文字号，90% 到 120%">
+    <p class="sp-hint">只作用于正文；代码块字号固定，不随正文变化。</p>
+    <div class="sp-row">
+      <label class="sp-label" for="settings-line">行间距</label>
+      <span class="sp-val" id="settings-line-val">1.8</span>
+    </div>
+    <input class="sp-range" id="settings-line" type="range" min="1.5" max="2.1" step="0.1" value="1.8"
+           aria-label="正文行间距，1.5 到 2.1">
+    <div class="sp-row">
+      <span class="sp-label">恢复默认字号</span>
+      <button class="sp-btn" id="settings-size-reset" type="button">重置</button>
+    </div>
+    <div class="sp-row">
+      <label class="sp-label" for="settings-summary">折叠文章摘要</label>
+      <input class="sp-switch" id="settings-summary" type="checkbox" aria-label="折叠文章摘要">
+    </div>
+    <div class="sp-row">
+      <label class="sp-label" for="settings-toc">收起本文目录</label>
+      <input class="sp-switch" id="settings-toc" type="checkbox" aria-label="收起本文目录">
+    </div>
+    <div class="sp-row">
+      <span class="sp-label">阅读项全部恢复默认</span>
+      <button class="sp-btn" id="settings-reset-all" type="button">恢复默认</button>
+    </div>
+  </div>
+
+  <div class="sp-pane" id="settings-pane-site" role="tabpanel" aria-labelledby="settings-tab-site" hidden>
+    <div class="sp-row">
+      <label class="sp-label" for="settings-theme">主题</label>
+      <select class="sp-select" id="settings-theme" aria-label="主题：跟随系统、浅色或深色">
+        <option value="">跟随系统</option>
+        <option value="light">浅色</option>
+        <option value="dark">深色</option>
+      </select>
+    </div>
+    <p class="sp-hint">默认跟随系统明暗；手动选择后只记在本机浏览器。</p>
+    <div class="sp-row">
+      <label class="sp-label" for="settings-recent">最近更新条数</label>
+      <span class="sp-val" id="settings-recent-val">3</span>
+    </div>
+    <input class="sp-range" id="settings-recent" type="range" min="1" max="15" step="1" value="3"
+           aria-label="最近更新显示条数，1 到 15">
+    <p class="sp-hint">与首页「调整条数」面板共用同一设置。</p>
+    <div class="sp-links" id="settings-links"></div>
+  </div>
+</aside>
+
+<!-- 语法高亮：本地 vendor（MIT），不引 CDN。manual=true 是关键 —— 不设它 core 会在
+     DOMContentLoaded 自己扫一遍全页；本站要等每次路由渲染完由 app.js 主动高亮。 -->
+<script>window.Prism = window.Prism || {}; window.Prism.manual = true;</script>
+<script src="vendor/prism/prism.js"></script>
+<!-- 主题 JS 按职责拆到 js/（2026-10-21）：core 建命名空间 → 各模块挂导出 → app.js 装配并启动。
+     顺序即依赖顺序，增删文件必须保持相对次序（测试也按这个顺序加载）。 -->
+<script src="js/core.js"></script>
+<script src="js/entries.js"></script>
+<script src="js/quote.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/code.js"></script>
+<script src="js/views.js"></script>
+<script src="js/detail.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

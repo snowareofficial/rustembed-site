@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="478" height="258" viewBox="0 0 478 258" font-family="-apple-system,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif">
+<title>能力与合作黄页制度</title>
+<style>.nd{fill:#fff;stroke:#e4dfd6;rx:8} .rt{fill:#f6efe6;stroke:#d9c9b0}.tx{font-size:13px;fill:#23201c} .lk{cursor:pointer}.lk:hover .nd{stroke:#b4552d;fill:#fff8f2} .ed{fill:none;stroke:#ddd6c9;stroke-width:1.4}</style>
+<g class="edges">
+<path class="ed" d="M179.2 129.0 C202.2 129.0 202.2 34.0 225.2 34.0"/>
+<path class="ed" d="M179.2 129.0 C202.2 129.0 202.2 72.0 225.2 72.0"/>
+<path class="ed" d="M179.2 129.0 C202.2 129.0 202.2 110.0 225.2 110.0"/>
+<path class="ed" d="M179.2 129.0 C202.2 129.0 202.2 148.0 225.2 148.0"/>
+<path class="ed" d="M179.2 129.0 C202.2 129.0 202.2 186.0 225.2 186.0"/>
+<path class="ed" d="M179.2 129.0 C202.2 129.0 202.2 224.0 225.2 224.0"/>
+</g>
+<g class="nodes">
+<rect class="nd rt" x="20.0" y="115.0" width="159.2" height="28" rx="8"/><text class="tx" x="30.0" y="134.0">能力与合作黄页制度</text>
+<a class="lk" href="#/page/yellow-pages/这是什么" xlink:href="#/page/yellow-pages/这是什么"><rect class="nd" x="225.2" y="20.0" width="96.0" height="28" rx="8"/><text class="tx" x="235.2" y="39.0">这是什么</text></a>
+<a class="lk" href="#/page/yellow-pages/收录标准" xlink:href="#/page/yellow-pages/收录标准"><rect class="nd" x="225.2" y="58.0" width="96.0" height="28" rx="8"/><text class="tx" x="235.2" y="77.0">收录标准</text></a>
+<a class="lk" href="#/page/yellow-pages/审核项-管理员合并前逐条看" xlink:href="#/page/yellow-pages/审核项-管理员合并前逐条看"><rect class="nd" x="225.2" y="96.0" width="233.2" height="28" rx="8"/><text class="tx" x="235.2" y="115.0">审核项（管理员合并前逐条看）</text></a>
+<a class="lk" href="#/page/yellow-pages/下架" xlink:href="#/page/yellow-pages/下架"><rect class="nd" x="225.2" y="134.0" width="96.0" height="28" rx="8"/><text class="tx" x="235.2" y="153.0">下架</text></a>
+<a class="lk" href="#/page/yellow-pages/申诉入口" xlink:href="#/page/yellow-pages/申诉入口"><rect class="nd" x="225.2" y="172.0" width="96.0" height="28" rx="8"/><text class="tx" x="235.2" y="191.0">申诉入口</text></a>
+<a class="lk" href="#/page/yellow-pages/本站明确不做的事" xlink:href="#/page/yellow-pages/本站明确不做的事"><rect class="nd" x="225.2" y="210.0" width="144.4" height="28" rx="8"/><text class="tx" x="235.2" y="229.0">本站明确不做的事</text></a>
+</g></svg>

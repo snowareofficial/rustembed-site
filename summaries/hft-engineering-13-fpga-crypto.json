@@ -1,0 +1,18 @@
+{
+ "source": "extractive",
+ "one_line": "FPGA 如何突破微秒极限、加密货币高频的新战场，以及云环境里的共址竞速。",
+ "points": [
+  "13.1 突破微秒极限：FPGA 硬件加速",
+  "CPU → FPGA → ASIC 演进",
+  "什么是 FPGA？",
+  "极致优势",
+  "系统中的应用",
+  "代价与风险"
+ ],
+ "keywords": [
+  "hft",
+  "quant",
+  "performance"
+ ],
+ "reading": 9
+}

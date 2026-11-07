@@ -1,0 +1,97 @@
+/* 语法高亮配色 —— 本站自写（token 类名沿用 Prism 的约定），随 vendor/prism/prism.js 一起用。
+ *
+ * 两条原则：
+ *  1. 全部走 CSS 变量：明/暗只换变量值，组件层零特例（与 style.css 同一纪律）；
+ *  2. 没有 Prism 也能读：本文件只给 .token 上色，不影响文本本身的存在与否
+ *     （prism.js 加载失败时正文就是纯文本）。
+ *
+ * 对比度：正文代码块底色是 --surface-3（亮 #ece6dc / 暗 #2b261d），下表每种
+ * token 都对着这两个底色量过 WCAG AA（≥ 4.5:1）——评论/行列摘要这类弱化信息也一样，
+ * 不靠变淡来偷带宽。
+ */
+:root {
+  --code-comment: #5f5a50;
+  --code-punct: #4a443c;
+  --code-keyword: #7b2d6b;
+  --code-string: #2f6349;
+  --code-number: #8a4b12;
+  --code-function: #1c5a86;
+  --code-class: #7a4a12;
+  --code-property: #37527e;
+  --code-variable: #6a4b1f;
+  --code-deleted: #a33030;
+  --code-inserted: #2f6349;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --code-comment: #9c9385;
+    --code-punct: #c3bbae;
+    --code-keyword: #ea9f7b;
+    --code-string: #8fd0a8;
+    --code-number: #e0b070;
+    --code-function: #8ab6e8;
+    --code-class: #dcb98a;
+    --code-property: #a9c6e8;
+    --code-variable: #d8c49a;
+    --code-deleted: #ef9a9a;
+    --code-inserted: #8fd0a8;
+  }
+}
+
+/* 只认 .token：高亮是给 <code> 内部加 <span>，外面的 .code 外壳样式仍在 style.css */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata { color: var(--code-comment); font-style: italic; }
+
+.token.punctuation,
+.token.operator,
+.token.entity { color: var(--code-punct); }
+
+.token.keyword,
+.token.atrule,
+.token.rule,
+.token.selector,
+.token.important,
+.token.directive { color: var(--code-keyword); }
+
+.token.string,
+.token.char,
+.token.attr-value,
+.token.regex,
+.token.inserted { color: var(--code-string); }
+
+.token.number,
+.token.boolean,
+.token.constant,
+.token.symbol,
+.token.unit { color: var(--code-number); }
+
+.token.function,
+.token.function-definition,
+.token.macro-name,
+.token.role { color: var(--code-function); }
+
+.token.class-name,
+.token.tag,
+.token.builtin,
+.token.modifier,
+.token.title { color: var(--code-class); }
+
+.token.property,
+.token.attr-name,
+.token.key,
+.token.table { color: var(--code-property); }
+
+.token.variable,
+.token.fragment,
+.token.parameter { color: var(--code-variable); }
+
+.token.deleted { color: var(--code-deleted); }
+
+.token.bold { font-weight: 600; }
+.token.italic { font-style: italic; }
+
+/* 命名空间（如 SML 的 ns.field / Rust 的 std::mem）弱一格就够，别弱化到读不清 */
+.token.namespace { opacity: .78; }
