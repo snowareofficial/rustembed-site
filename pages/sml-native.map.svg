@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="471" height="258" viewBox="0 0 471 258" font-family="-apple-system,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif">
+<title>SML native 与 include（维护者）</title>
+<style>.nd{fill:#fff;stroke:#e4dfd6;rx:8} .rt{fill:#f6efe6;stroke:#d9c9b0}.tx{font-size:13px;fill:#23201c} .lk{cursor:pointer}.lk:hover .nd{stroke:#b4552d;fill:#fff8f2} .ed{fill:none;stroke:#ddd6c9;stroke-width:1.4}</style>
+<g class="edges">
+<path class="ed" d="M275.4 129.0 C298.4 129.0 298.4 34.0 321.4 34.0"/>
+<path class="ed" d="M275.4 129.0 C298.4 129.0 298.4 72.0 321.4 72.0"/>
+<path class="ed" d="M275.4 129.0 C298.4 129.0 298.4 110.0 321.4 110.0"/>
+<path class="ed" d="M275.4 129.0 C298.4 129.0 298.4 148.0 321.4 148.0"/>
+<path class="ed" d="M275.4 129.0 C298.4 129.0 298.4 186.0 321.4 186.0"/>
+<path class="ed" d="M275.4 129.0 C298.4 129.0 298.4 224.0 321.4 224.0"/>
+</g>
+<g class="nodes">
+<rect class="nd rt" x="20.0" y="115.0" width="255.4" height="28" rx="8"/><text class="tx" x="30.0" y="134.0">SML native 与 include（维护者）</text>
+<a class="lk" href="#/page/sml-native/两套后端" xlink:href="#/page/sml-native/两套后端"><rect class="nd" x="321.4" y="20.0" width="96.0" height="28" rx="8"/><text class="tx" x="331.4" y="39.0">两套后端</text></a>
+<a class="lk" href="#/page/sml-native/上游来源" xlink:href="#/page/sml-native/上游来源"><rect class="nd" x="321.4" y="58.0" width="96.0" height="28" rx="8"/><text class="tx" x="331.4" y="77.0">上游来源</text></a>
+<a class="lk" href="#/page/sml-native/本机编译" xlink:href="#/page/sml-native/本机编译"><rect class="nd" x="321.4" y="96.0" width="96.0" height="28" rx="8"/><text class="tx" x="331.4" y="115.0">本机编译</text></a>
+<a class="lk" href="#/page/sml-native/include-预处理" xlink:href="#/page/sml-native/include-预处理"><rect class="nd" x="321.4" y="134.0" width="129.6" height="28" rx="8"/><text class="tx" x="331.4" y="153.0">include 预处理</text></a>
+<a class="lk" href="#/page/sml-native/安全" xlink:href="#/page/sml-native/安全"><rect class="nd" x="321.4" y="172.0" width="96.0" height="28" rx="8"/><text class="tx" x="331.4" y="191.0">安全</text></a>
+<a class="lk" href="#/page/sml-native/常见错误" xlink:href="#/page/sml-native/常见错误"><rect class="nd" x="321.4" y="210.0" width="96.0" height="28" rx="8"/><text class="tx" x="331.4" y="229.0">常见错误</text></a>
+</g></svg>

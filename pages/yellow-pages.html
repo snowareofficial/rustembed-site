@@ -1,0 +1,48 @@
+<h3 id="这是什么">这是什么</h3>
+<p>「能力与合作」是群友<strong>自愿登记</strong>的黄页：成员把自己可供合作的能力（设计、审查、咨询、小批量制作等）写成条目，放在站点上展示。</p>
+<p>它的性质必须一开始就说清：</p>
+<ul>
+<li><strong>本站只做信息展示</strong>：不参与交易、不担保、不抽成、不经手资金、不介入纠纷；</li>
+<li>条目由 <code>owner</code> 字段对应的成员<strong>本人提供并自负其责</strong>，不代表本站对任何个人或服务的认可或背书；</li>
+<li>联系方式只能引用成员档案（<code>content/members/&lt;id&gt;.sml</code> 的 <code>links</code>）中本人授权公开的字段，本站不代收、不新收集任何个人信息；</li>
+<li>站点默认许可为 <strong>CC BY-NC-SA 4.0（非商业）</strong>，黄页条目同样适用；条目本身不构成商业授权，商用需与当事人另行约定；</li>
+<li>本站<strong>没有</strong>支付、订单、撮合、站内私信、账号体系中的任何一个；谈合作、谈价钱、结算，全部在站外由双方自行完成。</li>
+</ul>
+<h3 id="收录标准">收录标准</h3>
+<p>同时满足以下条件的条目才会被保留：</p>
+<ol>
+<li><code>owner</code> 是已建档成员，且条目经本人同意（自己提 PR，或托管理代投并确认）；</li>
+<li>内容只谈技术能力与合作方向，不夹带广告、拉客、返利、拉人头；</li>
+<li><code>contact</code> 只引用成员档案 <code>links</code> 里已公开的键（<code>blog</code> / <code>homepage</code> / <code>github</code> / <code>gitee</code> / <code>email</code>）；</li>
+<li>字段按契约 <code>Service</code> 填全（<code>name</code> / <code>owner</code> / <code>skills</code> / <code>contact</code> / <code>status</code> / <code>updated</code>），构建校验通过；</li>
+<li>不涉及违法、侵权、危害他人权益的内容。</li>
+</ol>
+<h3 id="审核项-管理员合并前逐条看">审核项（管理员合并前逐条看）</h3>
+<table>
+<thead><tr><th>维度</th><th>看什么</th></tr></thead>
+<tbody>
+<tr><td>身份</td><td><code>owner</code> 是否本人、是否同意上架</td></tr>
+<tr><td>联系方式</td><td>是否只用了本人已公开的 <code>links</code> 字段；有无夹带新的私人联系方式</td></tr>
+<tr><td>表述</td><td>有无夸大、担保性承诺（「保证通过」「百分百」）、与他人比较的贬损性说法</td></tr>
+<tr><td>费用</td><td><code>rate</code> 是自由文本；只要求写清「谁向谁、按什么付」，本站不经手</td></tr>
+<tr><td>状态</td><td><code>status</code> 如实（<code>active</code> / <code>paused</code>）；长期暂停的条目会被提醒或合并下架</td></tr>
+<tr><td>更新</td><td><code>updated</code> 随内容变动维护，避免访客看到过期信息</td></tr>
+</tbody>
+</table>
+<h3 id="下架">下架</h3>
+<p>黄页条目与文章走同一套「下架与申诉制度」（见「下架与申诉制度」页）：</p>
+<ul>
+<li><strong>管理员可先行下架、后说明</strong>：仅限泄露个人信息、未授权转载、严重失实、夹带恶意文件四类情形；下架时必须在 PR 或群里写明<strong>哪条、为什么、谁决定的</strong>；</li>
+<li><strong>本人随时可下架自己的条目</strong>：提 PR 改 <code>status: paused</code> 或删文件，或在群里告知任一管理员，无需理由、不得拖延；恢复同样说一声即可；</li>
+<li>条目信息过期（<code>updated</code> 超过一年且无法联系到本人）时，管理员会先提醒，联系不上则按 <code>paused</code> 处理。</li>
+</ul>
+<h3 id="申诉入口">申诉入口</h3>
+<ul>
+<li>渠道：群里 @ 任意管理员，或提 Issue（标签 <code>制度建议</code>）；</li>
+<li>时限：管理员 <strong>2 个工作日内</strong>回应；</li>
+<li>复核：由未参与原决定的管理员复核；分歧时按「角色与权限制度」的决策方式处理（两名以上管理员同意，必要时群主裁决）；</li>
+<li>每次下架与申诉都在 Issue 留档：时间、条目、理由、决定人、结果，记录不删除。</li>
+</ul>
+<h3 id="本站明确不做的事">本站明确不做的事</h3>
+<p>不设计、不提供、不计划：支付与收款、订单与合同、需求撮合、站内私信、账号体系。
+黄页只是「一块谁都可以看的公告板」，其余一律不归本站管。</p>

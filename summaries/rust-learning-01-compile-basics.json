@@ -1,0 +1,15 @@
+{
+ "source": "extractive",
+ "one_line": "从 cargo new 到 rustc 编译可执行文件和静态库，快速过一遍 Rust 工程与编译流程。",
+ "points": [
+  "创建工程",
+  "单rust编译为可执行",
+  "编译为静态库"
+ ],
+ "keywords": [
+  "rust",
+  "编译",
+  "入门"
+ ],
+ "reading": 2
+}

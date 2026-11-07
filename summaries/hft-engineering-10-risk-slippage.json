@@ -1,0 +1,17 @@
+{
+ "source": "extractive",
+ "one_line": "Pre-Trade 本地拒单链、滑点怎么度量、审计日志与监管报送，以及风控什么时候该故意失效。",
+ "points": [
+  "10.1 Pre-Trade 风控：本地拒单链",
+  "热路径预算",
+  "10.2 滑点度量：执行质量的标尺",
+  "Implementation Shortfall 分解",
+  "10.3 合规：审计日志与监管报送",
+  "10.4 风控降级：什么时候故意失效"
+ ],
+ "keywords": [
+  "hft",
+  "quant"
+ ],
+ "reading": 7
+}

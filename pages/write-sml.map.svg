@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="639" height="258" viewBox="0 0 639 258" font-family="-apple-system,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif">
+<title>SML 写作速查（可选格式）</title>
+<style>.nd{fill:#fff;stroke:#e4dfd6;rx:8} .rt{fill:#f6efe6;stroke:#d9c9b0}.tx{font-size:13px;fill:#23201c} .lk{cursor:pointer}.lk:hover .nd{stroke:#b4552d;fill:#fff8f2} .ed{fill:none;stroke:#ddd6c9;stroke-width:1.4}</style>
+<g class="edges">
+<path class="ed" d="M223.6 129.0 C246.6 129.0 246.6 34.0 269.6 34.0"/>
+<path class="ed" d="M223.6 129.0 C246.6 129.0 246.6 129.0 269.6 129.0"/>
+<path class="ed" d="M223.6 129.0 C246.6 129.0 246.6 224.0 269.6 224.0"/>
+<path class="ed" d="M443.6 129.0 C466.6 129.0 466.6 72.0 489.6 72.0"/>
+<path class="ed" d="M443.6 129.0 C466.6 129.0 466.6 110.0 489.6 110.0"/>
+<path class="ed" d="M443.6 129.0 C466.6 129.0 466.6 148.0 489.6 148.0"/>
+<path class="ed" d="M443.6 129.0 C466.6 129.0 466.6 186.0 489.6 186.0"/>
+</g>
+<g class="nodes">
+<rect class="nd rt" x="20.0" y="115.0" width="203.6" height="28" rx="8"/><text class="tx" x="30.0" y="134.0">SML 写作速查（可选格式）</text>
+<a class="lk" href="#/page/write-sml/什么时候值得用" xlink:href="#/page/write-sml/什么时候值得用"><rect class="nd" x="269.6" y="20.0" width="129.6" height="28" rx="8"/><text class="tx" x="279.6" y="39.0">什么时候值得用</text></a>
+<a class="lk" href="#/page/write-sml/让人觉得舒服的四个点" xlink:href="#/page/write-sml/让人觉得舒服的四个点"><rect class="nd" x="269.6" y="115.0" width="174.0" height="28" rx="8"/><text class="tx" x="279.6" y="134.0">让人觉得舒服的四个点</text></a>
+<a class="lk" href="#/page/write-sml/多行文本直接写" xlink:href="#/page/write-sml/多行文本直接写"><rect class="nd" x="489.6" y="58.0" width="129.6" height="28" rx="8"/><text class="tx" x="499.6" y="77.0">多行文本直接写</text></a>
+<a class="lk" href="#/page/write-sml/裸词即字符串" xlink:href="#/page/write-sml/裸词即字符串"><rect class="nd" x="489.6" y="96.0" width="114.8" height="28" rx="8"/><text class="tx" x="499.6" y="115.0">裸词即字符串</text></a>
+<a class="lk" href="#/page/write-sml/块冒号可省" xlink:href="#/page/write-sml/块冒号可省"><rect class="nd" x="489.6" y="134.0" width="100.0" height="28" rx="8"/><text class="tx" x="499.6" y="153.0">块冒号可省</text></a>
+<a class="lk" href="#/page/write-sml/片段复用" xlink:href="#/page/write-sml/片段复用"><rect class="nd" x="489.6" y="172.0" width="96.0" height="28" rx="8"/><text class="tx" x="499.6" y="191.0">片段复用</text></a>
+<a class="lk" href="#/page/write-sml/本站支持的块" xlink:href="#/page/write-sml/本站支持的块"><rect class="nd" x="269.6" y="210.0" width="114.8" height="28" rx="8"/><text class="tx" x="279.6" y="229.0">本站支持的块</text></a>
+</g></svg>

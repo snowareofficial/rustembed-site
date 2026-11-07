@@ -1,0 +1,86 @@
+<p>Most embedded Rust tutorials end at <code>cargo build</code>. The interesting part starts after that: the probe enumerates, the target answers, and the first log line appears. This note is a condensed record of a weekend bring-up — the commands that worked, the wiring mistakes that did not, and the small checks that turn a silent board into a readable one.</p>
+<p>It assumes you already have a Cortex-M board, a debug probe (ST-Link, J-Link, or a CMSIS-DAP clone), and a <code>cargo</code> installation. Nothing here is board-specific except the chip name; replace it with yours and the rest of the flow stays the same.</p>
+<h3 id="what-you-actually-need">What you actually need</h3>
+<ul>
+<li>a board with a Cortex-M MCU and a exposed SWD header;</li>
+<li>a probe that <code>probe-rs</code> supports;</li>
+<li>four jumper wires: <code>SWDIO</code>, <code>SWCLK</code>, <code>GND</code>, and the target&#x27;s logic voltage;</li>
+<li>a USB cable that carries data, not just power.</li>
+</ul>
+<p>The last point deserves a sentence of its own. A surprising number of &quot;dead boards&quot; are charging cables with no data lines. If the probe never appears in <code>probe-rs list</code>, try a different cable before you try a different probe.</p>
+<h3 id="toolchain-in-three-commands">Toolchain in three commands</h3>
+<div class="code">
+<div class="code-head"><span>bash</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-bash">cargo install probe-rs-tools --locked
+rustup target add thumbv7em-none-eabihf
+probe-rs list</code></pre>
+</div>
+<p>The target name depends on your core. <code>thumbv6m-none-eabi</code> covers Cortex-M0/M0+, <code>thumbv7m-none-eabi</code> covers M3, and <code>thumbv7em-none-eabihf</code> covers M4F/M7F. When in doubt, check the datasheet, not a blog post.</p>
+<p>A healthy <code>probe-rs list</code> prints one line per connected probe:</p>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">[0]: STLink V2-1 (VID: 0483, PID: 374b, Serial: 066EFF..., StLink)</code></pre>
+</div>
+<p>If the list is empty, stop here. No amount of firmware debugging will help until the host can see the probe.</p>
+<h3 id="wiring-slowly">Wiring, slowly</h3>
+<table>
+<thead><tr><th>Probe pin</th><th>Target pin</th><th>Why it matters</th></tr></thead>
+<tbody>
+<tr><td>SWDIO</td><td>SWDIO</td><td>bidirectional data; a loose wire produces intermittent IDs</td></tr>
+<tr><td>SWCLK</td><td>SWCLK</td><td>clock; keep it short if the target is noisy</td></tr>
+<tr><td>GND</td><td>GND</td><td>the reference for every other signal</td></tr>
+<tr><td>3V3</td><td>VDD (logic)</td><td>must match the target&#x27;s I/O voltage</td></tr>
+<tr><td>NRST</td><td>NRST (optional)</td><td>lets the probe reset the core deterministically</td></tr>
+</tbody>
+</table>
+<p>Two rules prevent most damage: <strong>never connect 5 V to a 3.3 V target</strong>, and <strong>connect ground before signal wires</strong>. If the board is self-powered, leave the probe&#x27;s 3V3 pin unconnected and only share ground — unless you have checked that back-powering is safe for your particular board.</p>
+<h3 id="first-contact">First contact</h3>
+<p>With the probe visible, ask it what is on the other end:</p>
+<div class="code">
+<div class="code-head"><span>bash</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-bash">probe-rs info --chip STM32F411CEUx</code></pre>
+</div>
+<p>A correct answer includes the core type, the target voltage, and the flash size. A timeout usually means wiring, a held reset, or a target that is sleeping in a low-power mode. A wrong ID usually means the chip name is wrong — vendors love near-identical part numbers.</p>
+<h3 id="flash-and-run">Flash and run</h3>
+<p>The shortest path is to let the probe act as Cargo&#x27;s runner. Pin it once in <code>.cargo/config.toml</code>:</p>
+<div class="code">
+<div class="code-head"><span>toml</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-toml">[target.thumbv7em-none-eabihf]
+runner = &quot;probe-rs run --chip STM32F411CEUx&quot;</code></pre>
+</div>
+<p>After that, <code>cargo run --release</code> flashes and starts the firmware. The first successful run is usually anticlimactic: a few lines of output, then nothing, because the program is sitting in a loop. That is exactly what you want.</p>
+<h3 id="rtt-instead-of-a-serial-port">RTT instead of a serial port</h3>
+<p>Many boards have no spare UART, and a USB-serial adapter is one more thing to lose. RTT (Real-Time Transfer) uses a small ring buffer in target RAM; the probe reads it while the CPU keeps running. With <code>rtt-target</code>, the firmware side looks like this:</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">#![no_std]
+#![no_main]
+
+use cortex_m_rt::entry;
+use panic_halt as _;
+use rtt_target::{rprintln, rtt_init_print};
+
+#[entry]
+fn main() -&gt; ! {
+    rtt_init_print!();
+    rprintln!(&quot;boot: 72 MHz, 3.3 V&quot;);
+    loop {}
+}</code></pre>
+</div>
+<p>The exact command for reading the buffer depends on the <code>probe-rs</code> version; <code>probe-rs run</code> and <code>probe-rs attach</code> are the two entry points you will use. The important part is that logging becomes a memory write, not an interrupt-driven UART transaction, so timing-sensitive code stays timing-sensitive.</p>
+<h3 id="when-nothing-works">When nothing works</h3>
+<table>
+<thead><tr><th>Symptom</th><th>Likely cause</th><th>Check</th></tr></thead>
+<tbody>
+<tr><td><code>probe-rs list</code> empty</td><td>cable, driver, or permissions</td><td>another cable; device manager; udev rules on Linux</td></tr>
+<tr><td>probe found, target timeout</td><td>wiring or reset</td><td>continuity on SWDIO/SWCLK/GND; release NRST</td></tr>
+<tr><td>target ID mismatch</td><td>wrong chip name</td><td>datasheet part number, not the board name</td></tr>
+<tr><td>flash succeeds, no logs</td><td>RTT not initialized</td><td><code>rtt_init_print!()</code> before the first <code>rprintln!</code></td></tr>
+<tr><td>logs appear once, then stop</td><td>buffer overflow or panic</td><td>larger RTT buffer; check the panic handler</td></tr>
+</tbody>
+</table>
+<p>The most useful habit is to change one variable at a time. Swap the cable, rerun <code>probe-rs list</code>; fix the wiring, rerun <code>probe-rs info</code>; then flash. A bring-up session with three simultaneous changes teaches you nothing.</p>
+<h3 id="what-i-would-do-differently">What I would do differently</h3>
+<p>I would write the wiring table before touching the board, and I would keep a known-good probe and cable in a separate bag. Most of the afternoon went into a cable that charged a phone perfectly and carried no data at all. The second biggest win was pinning the chip name in <code>.cargo/config.toml</code>, which removed a whole class of copy-paste mistakes.</p>
+<h3 id="中文备注">中文备注</h3>
+<p>这篇刻意把英文比例调高，用来检查正文的英文排版：Times New Roman 下的数字、单位（12.8 ms、3.3 V、25 °C）、引号和连字符是否比 MiSans 更整齐；中文仍由 MiSans 子集渲染。技术内容按一次真实的 Cortex-M 烧录与 RTT 日志流程写成，换芯片时只需改 target 和 chip 参数。</p>
