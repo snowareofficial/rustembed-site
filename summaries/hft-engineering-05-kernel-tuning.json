@@ -1,0 +1,17 @@
+{
+ "source": "extractive",
+ "one_line": "上下文切换代价、CPU 隔离与绑核、Kernel Bypass、BIOS 电源与 HugePage 的实操口径。",
+ "points": [
+  "5.1 上下文切换的代价",
+  "5.2 CPU 隔离与核心绑定",
+  "5.3 Kernel Bypass",
+  "5.4 BIOS / 电源：降低 Jitter",
+  "5.5 Huge Pages 与 TLB"
+ ],
+ "keywords": [
+  "hft",
+  "linux",
+  "kernel"
+ ],
+ "reading": 5
+}

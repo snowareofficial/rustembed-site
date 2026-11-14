@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="537" height="220" viewBox="0 0 537 220" font-family="-apple-system,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif">
+<title>投稿其实很简单：写 Markdown 就行</title>
+<style>.nd{fill:#fff;stroke:#e4dfd6;rx:8} .rt{fill:#f6efe6;stroke:#d9c9b0}.tx{font-size:13px;fill:#23201c} .lk{cursor:pointer}.lk:hover .nd{stroke:#b4552d;fill:#fff8f2} .ed{fill:none;stroke:#ddd6c9;stroke-width:1.4}</style>
+<g class="edges">
+<path class="ed" d="M282.8 110.0 C305.8 110.0 305.8 34.0 328.8 34.0"/>
+<path class="ed" d="M282.8 110.0 C305.8 110.0 305.8 72.0 328.8 72.0"/>
+<path class="ed" d="M282.8 110.0 C305.8 110.0 305.8 110.0 328.8 110.0"/>
+<path class="ed" d="M282.8 110.0 C305.8 110.0 305.8 148.0 328.8 148.0"/>
+<path class="ed" d="M282.8 110.0 C305.8 110.0 305.8 186.0 328.8 186.0"/>
+</g>
+<g class="nodes">
+<rect class="nd rt" x="20.0" y="96.0" width="262.8" height="28" rx="8"/><text class="tx" x="30.0" y="115.0">投稿其实很简单：写 Markdown 就行</text>
+<a class="lk" href="#/post/md-writing/为什么不用逼你学-sml" xlink:href="#/post/md-writing/为什么不用逼你学-sml"><rect class="nd" x="328.8" y="20.0" width="188.8" height="28" rx="8"/><text class="tx" x="338.8" y="39.0">1 为什么不用逼你学 SML</text></a>
+<a class="lk" href="#/post/md-writing/文件长什么样" xlink:href="#/post/md-writing/文件长什么样"><rect class="nd" x="328.8" y="58.0" width="129.6" height="28" rx="8"/><text class="tx" x="338.8" y="77.0">2 文件长什么样</text></a>
+<a class="lk" href="#/post/md-writing/正文能写什么" xlink:href="#/post/md-writing/正文能写什么"><rect class="nd" x="328.8" y="96.0" width="129.6" height="28" rx="8"/><text class="tx" x="338.8" y="115.0">3 正文能写什么</text></a>
+<a class="lk" href="#/post/md-writing/附件" xlink:href="#/post/md-writing/附件"><rect class="nd" x="328.8" y="134.0" width="96.0" height="28" rx="8"/><text class="tx" x="338.8" y="153.0">4 附件</text></a>
+<a class="lk" href="#/post/md-writing/最后" xlink:href="#/post/md-writing/最后"><rect class="nd" x="328.8" y="172.0" width="96.0" height="28" rx="8"/><text class="tx" x="338.8" y="191.0">5 最后</text></a>
+</g></svg>

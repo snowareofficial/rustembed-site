@@ -1,0 +1,18 @@
+{
+ "source": "extractive",
+ "one_line": "交换机与网卡硬件、TCP 与 UDP 的取舍、金融应用层协议与数据包的内核路径。",
+ "points": [
+  "6.1 网络硬件与交换机",
+  "网络基础与硬件",
+  "交换机转发模式（延迟关键）",
+  "6.2 TCP 与 UDP",
+  "6.3 金融应用层协议",
+  "协议演进"
+ ],
+ "keywords": [
+  "hft",
+  "network",
+  "performance"
+ ],
+ "reading": 9
+}

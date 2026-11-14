@@ -1,0 +1,28 @@
+<h3 id="总原则">总原则</h3>
+<p>仓库只收<strong>图片等小文件</strong>；大文件、固件、数据集一律用外链，由作者自己提供。
+理由：仓库会随时间膨胀，而外链的责任边界清楚。</p>
+<h3 id="入库的图片">入库的图片</h3>
+<ul>
+<li>放在文章同目录的 <code>assets/</code> 下，正文用相对路径引用（<code>![说明](assets/xxx.png)</code>）；</li>
+<li>类型限于 <code>png / jpg / jpeg / webp / gif / svg</code>；</li>
+<li>单张不超过 <strong>2 MB</strong>，单篇不超过 <strong>20 张</strong>（构建会检查，超限直接报错）；</li>
+<li>发布前请清除照片的 EXIF 地理信息。</li>
+</ul>
+<h3 id="外链附件">外链附件</h3>
+<ul>
+<li>必须是 <code>http(s)</code> 链接，并写名称、类型与体积说明（<code>attachments</code> 字段，<code>kind: link</code>）；</li>
+<li>网盘类写清提取码与有效期；</li>
+<li>链路失效由作者负责，站点只负责展示。</li>
+</ul>
+<h3 id="审核项">审核项</h3>
+<table>
+<thead><tr><th>项</th><th>要求</th></tr></thead>
+<tbody>
+<tr><td>版权</td><td>引用他人图表必须标出处；不放大段未授权转载</td></tr>
+<tr><td>安全</td><td>不接受可执行文件与来历不明的固件</td></tr>
+<tr><td>隐私</td><td>截图抹掉密钥、手机号、内部地址、真实姓名</td></tr>
+<tr><td>命名</td><td><code>&lt;短名&gt;-&lt;序号&gt;-&lt;语义名&gt;.&lt;扩展名&gt;</code></td></tr>
+</tbody>
+</table>
+<h3 id="附件的展示">附件的展示</h3>
+<p>图片随文章一起渲染；外链附件在文章底部列出（名称 / 类型 / 体积），构建期会校验链接格式与必填字段。</p>

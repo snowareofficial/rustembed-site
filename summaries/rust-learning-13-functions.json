@@ -1,0 +1,15 @@
+{
+ "source": "extractive",
+ "one_line": "函数定义与返回、const fn、参数模式解构与提前返回。",
+ "points": [
+  "提早返回",
+  "函数作为返回值",
+  "常量函数（`const fn`）",
+  "模式解构参数"
+ ],
+ "keywords": [
+  "rust",
+  "函数"
+ ],
+ "reading": 12
+}

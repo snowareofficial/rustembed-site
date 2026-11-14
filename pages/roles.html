@@ -1,0 +1,38 @@
+<h3 id="三层权限-互不相干">三层权限，互不相干</h3>
+<p>这个站点有三处权限，<strong>互相独立</strong>：群里的身份（QQ 群管理）不等于仓库权限，仓库权限不等于 CF Pages 发布权限。</p>
+<table>
+<thead><tr><th>角色</th><th>Gitee 仓库（权威源）</th><th>GitHub（只读镜像 + 构建）</th><th>Cloudflare Pages（发布）</th></tr></thead>
+<tbody>
+<tr><td>群主 CXi</td><td>Owner：可改一切、可任免管理员</td><td>—</td><td>—</td></tr>
+<tr><td>管理员（多名）</td><td>Developer：可合并 PR、建分支、改契约与配置</td><td>—</td><td>发布权限（持有 API Token 者）</td></tr>
+<tr><td>贡献者</td><td>Developer（累计 3 篇通过后授予）</td><td>—</td><td>—</td></tr>
+<tr><td>群友</td><td>无写权限：fork + PR，或交给管理员代投</td><td>—</td><td>—</td></tr>
+<tr><td>机器人 / CI</td><td>—</td><td>Actions 用仓库自带 <code>GITHUB_TOKEN</code></td><td>由 Actions 用 Token 发布</td></tr>
+</tbody>
+</table>
+<p>原则：<strong>给最小够用的权限</strong>。GitHub 侧原则上不给人写权限——它是镜像，只由 CI 更新；CF Pages 的 Token 只放在 GitHub Secrets 与管理员本地。</p>
+<h3 id="谁可以做什么">谁可以做什么</h3>
+<ul>
+<li><strong>改内容</strong>（文章、文档页、词条、成员档案、资源、周报）：所有人走 PR；贡献者可直接建分支提 PR；管理员可直接合并。</li>
+<li><strong>改制度与规范</strong>：只有管理员。制度改动必须在 PR 描述里写明「改了哪条、为什么」。</li>
+<li><strong>改契约</strong>（<code>site/content/contracts/*.sml</code>）：只有管理员。契约一改，所有人的校验规则与站文档会同时变，必须单开 PR。</li>
+<li><strong>改引擎</strong>（<code>engine/</code>）与站点配置（<code>site/content/site.sml</code>）：只有管理员。</li>
+<li><strong>发布与回滚</strong>：管理员。回滚步骤见 <code>docs/DEPLOY.md</code>。</li>
+</ul>
+<h3 id="成为贡献者-拿写权限">成为贡献者（拿写权限）</h3>
+<ol>
+<li>以 PR 形式提交并通过 ≥ 3 篇内容（文章或文档页）；</li>
+<li>在群里向任意管理员提出申请，说明想长期参与的方向；</li>
+<li>管理员两人以上无异议即授予仓库 Developer 权限；</li>
+<li>记录在案（成员档案里 <code>role</code> 字段更新）。</li>
+</ol>
+<h3 id="权限回收">权限回收</h3>
+<p>出现下列情形之一即回收写权限，并在群里说明理由：连续 6 个月无有效贡献且本人同意回收、恶意提交、绕过审核直推 master、泄露站点密钥、严重违反内容边界。</p>
+<h3 id="代投与署名">代投与署名</h3>
+<p>管理员代投时必须保留原作者署名（<code>author</code> / <code>co_authors</code> 字段），并在 PR 描述里注明「代投，原作者 @某群成员」。代投不改变版权归属。</p>
+<h3 id="决策方式">决策方式</h3>
+<ul>
+<li>日常事务：任一管理员可决定。</li>
+<li>制度变更、权限授予/回收、下架争议：<strong>两名以上管理员同意</strong>。</li>
+<li>分歧无法收敛时，在群里公开说明两方理由，由群主裁决。</li>
+</ul>

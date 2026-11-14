@@ -1,0 +1,10 @@
+{
+ "source": "extractive",
+ "one_line": "程序运行时的内存布局。",
+ "points": [],
+ "keywords": [
+  "rust",
+  "内存"
+ ],
+ "reading": 1
+}

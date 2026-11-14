@@ -1,0 +1,17 @@
+{
+ "source": "extractive",
+ "one_line": "订单进入交易所后的路径、撮合引擎的三种场景与同价匹配算法，以及本地 Book Builder。",
+ "points": [
+  "3.1 交易所核心功能与订单路径",
+  "订单进入撮合的路径",
+  "3.2 撮合引擎三种基础场景",
+  "最佳价格（Best Price）",
+  "部分成交（Partial Fill）",
+  "无匹配（No Match）"
+ ],
+ "keywords": [
+  "hft",
+  "quant"
+ ],
+ "reading": 7
+}

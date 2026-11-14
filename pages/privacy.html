@@ -1,0 +1,32 @@
+<h3 id="我们不做的事">我们不做的事</h3>
+<ul>
+<li><strong>不接入第三方统计、广告、社交脚本</strong>（没有 Google Analytics、百度统计、埋点 SDK）；</li>
+<li><strong>不设 Cookie</strong> 用于追踪（站点是纯静态页面，构建期生成，运行时只读自己的 <code>manifest.json</code>）；</li>
+<li><strong>字体与静态资源全部自托管</strong>（若使用 MiSans，也是子集化后放在本站，不请求第三方 CDN）；</li>
+<li><strong>不收集</strong>访客的姓名、手机号、邮箱、位置；</li>
+<li><strong>不做用户账号体系</strong>：站点没有登录、没有评论（讨论回 QQ 群）。</li>
+</ul>
+<h3 id="我们会处理的少量数据">我们会处理的少量数据</h3>
+<table>
+<thead><tr><th>数据</th><th>用途</th><th>位置</th></tr></thead>
+<tbody>
+<tr><td>成员联系方式（博客/Gitee/邮箱）</td><td>成员页展示</td><td>由本人在 <code>site/content/members/&lt;id&gt;.sml</code> <strong>自愿提供并授权展示</strong></td></tr>
+<tr><td>文章与附件</td><td>内容发布</td><td>公开仓库（Gitee），随站点构建</td></tr>
+<tr><td>访问日志（IP、UA、时间）</td><td>服务商侧的运维与防滥用</td><td>Cloudflare 侧，站点代码不读取、不存储</td></tr>
+</tbody>
+</table>
+<p>成员若想隐藏邮箱：把 <code>links</code> 里的 <code>email</code> 一行删掉即可，下次构建后生效（历史提交仍可从 Git 记录看到，介意的话请一开始就不要写）。</p>
+<h3 id="图片与个人信息">图片与个人信息</h3>
+<p>投稿前请自查：截图中是否含密钥、内部地址、手机号、真实姓名、身份证件、他人肖像。
+附件规则要求清除照片 EXIF（含地理信息）。发现遗漏请立即提 PR 修正或联系管理员下架。</p>
+<h3 id="密钥">密钥</h3>
+<p>CF Pages Token、Gitee Token 只放在 GitHub Secrets 与管理员本地，不进仓库、不进群聊、不贴截图。
+一旦怀疑泄露：立即通知管理员，当天轮换（见「仓库与分支制度」）。</p>
+<h3 id="安全问题的报告">安全问题的报告</h3>
+<p>发现站点被篡改、被挂马、内容被恶意替换，或有其它安全问题时：</p>
+<ol>
+<li>不要在群里公开细节（避免被利用）；</li>
+<li>私信任一管理员，说明<strong>现象 / 时间 / 可能影响范围</strong>；</li>
+<li>管理员按 <code>docs/DEPLOY.md</code> 的流程处理：先止损（回滚 / 下架）、再定位、最后公开说明。</li>
+</ol>
+<p>我们承诺：善意报告安全问题不会被视为找麻烦；处理结果会以「发生了什么、怎么修的、以后怎么防」三段式说明。</p>

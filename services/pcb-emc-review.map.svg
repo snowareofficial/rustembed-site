@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="378" height="106" viewBox="0 0 378 106" font-family="-apple-system,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif">
+<title>PCB 布局与 EMC 走线复查</title>
+<style>.nd{fill:#fff;stroke:#e4dfd6;rx:8} .rt{fill:#f6efe6;stroke:#d9c9b0}.tx{font-size:13px;fill:#23201c} .lk{cursor:pointer}.lk:hover .nd{stroke:#b4552d;fill:#fff8f2} .ed{fill:none;stroke:#ddd6c9;stroke-width:1.4}</style>
+<g class="edges">
+<path class="ed" d="M216.2 53.0 C239.2 53.0 239.2 34.0 262.2 34.0"/>
+<path class="ed" d="M216.2 53.0 C239.2 53.0 239.2 72.0 262.2 72.0"/>
+</g>
+<g class="nodes">
+<rect class="nd rt" x="20.0" y="39.0" width="196.2" height="28" rx="8"/><text class="tx" x="30.0" y="58.0">PCB 布局与 EMC 走线复查</text>
+<a class="lk" href="#/service/pcb-emc-review/能做什么" xlink:href="#/service/pcb-emc-review/能做什么"><rect class="nd" x="262.2" y="20.0" width="96.0" height="28" rx="8"/><text class="tx" x="272.2" y="39.0">能做什么</text></a>
+<a class="lk" href="#/service/pcb-emc-review/协作方式" xlink:href="#/service/pcb-emc-review/协作方式"><rect class="nd" x="262.2" y="58.0" width="96.0" height="28" rx="8"/><text class="tx" x="272.2" y="77.0">协作方式</text></a>
+</g></svg>

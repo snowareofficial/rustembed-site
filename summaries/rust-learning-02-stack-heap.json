@@ -1,0 +1,15 @@
+{
+ "source": "extractive",
+ "one_line": "栈与堆的区别、栈帧布局，以及 String 与切片的存储方式。",
+ "points": [
+  "关键规律",
+  "栈帧示意",
+  "字符串 vs 切片"
+ ],
+ "keywords": [
+  "rust",
+  "基础",
+  "内存"
+ ],
+ "reading": 3
+}
