@@ -1,0 +1,18 @@
+{
+ "source": "extractive",
+ "one_line": "内核旁路与 mmap、跨数据中心链路、异步日志，以及怎样把延迟测准而不是测出漂亮数字。",
+ "points": [
+  "9.1 内核旁路 (Kernel Bypass)",
+  "传统路径的代价",
+  "Bypass 核心",
+  "9.2 内存映射文件 (mmap) 与 IPC",
+  "9.3 跨数据中心：微波与空芯光纤",
+  "9.4 移出关键路径：异步日志"
+ ],
+ "keywords": [
+  "hft",
+  "performance",
+  "linux"
+ ],
+ "reading": 9
+}

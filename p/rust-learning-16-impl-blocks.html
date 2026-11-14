@@ -1,0 +1,185 @@
+<p><code>impl</code> 是 Rust 在类型上&quot;挂载方法&quot;的语法区。它<strong>不能</strong>在外部包里给别人的类型加方法（孤儿规则），但同包内能扩展自己写的类型。</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+struct Point { x: i32, y: i32 }
+impl Point {
+    fn new(name: &amp;str) -&gt; Point {                          // 关联函数 (关联构造器)
+        println!(&quot;{}&quot;, name);
+        Point { x: 0, y: 0 }
+    }
+    fn set_xy(mut self, x: i32, y: i32) -&gt; Self {          // 链式调用：消耗 self
+        self.x = x; self.y = y; self
+    }
+}
+}</code></pre>
+</div>
+<h4 id="三种-receiver">三种 receiver</h4>
+<table>
+<thead><tr><th>签名</th><th>用法</th></tr></thead>
+<tbody>
+<tr><td><code>fn foo(self)</code></td><td>消耗 self，原调用者失去所有权</td></tr>
+<tr><td><code>fn foo(&amp;self)</code></td><td>只读借用</td></tr>
+<tr><td><code>fn foo(&amp;mut self)</code></td><td>可变借用</td></tr>
+</tbody>
+</table>
+<h4 id="给运算符实现-trait">给运算符实现 trait</h4>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">use std::ops::Mul;
+
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+impl Point {
+    fn new(name: &amp;str) -&gt; Point {
+        println!(&quot;{}&quot;, name);
+        Point { x: 0, y: 0 }
+    }
+    // 方便测试赋值坐标
+    fn set_xy(mut self, x: i32, y: i32) -&gt; Self {
+        self.x = x;
+        self.y = y;
+        self
+    }
+}
+
+impl Mul for Point {
+    type Output = Point;
+    fn mul(self, other: Point) -&gt; Point {
+        println!(&quot;{} {}&quot;, other.x, other.y);
+        // 使用两个点的坐标相乘
+        Point {
+            x: self.x * other.x,
+            y: self.y * other.y,
+        }
+    }
+}
+
+enum Day {
+    Monday,
+    Tuesday,
+    Wednesday,
+    Thursday,
+    Friday,
+    Saturday,
+    Sunday
+}
+
+impl Day {
+    fn mood(&amp;self){
+        // self 类型：&amp;Day（不可变引用
+        // *self 类型：Day（解引用后本体，匹配时会拷贝 / 复制枚举）
+        println!(&quot;{}&quot;,match *self {
+            Day::Monday =&gt; &quot;A&quot;,
+            Day::Tuesday =&gt; &quot;B&quot;,
+            Day::Wednesday =&gt; &quot;C&quot;,
+            Day::Thursday =&gt; &quot;D&quot;,
+            Day::Friday =&gt; &quot;E&quot;,
+            _ =&gt; &quot;周末...&quot;
+        })
+    }
+}
+
+fn main() {
+    let a = Point::new(&quot;hello&quot;).set_xy(7, 8);
+    let b = Point { x: 6, y: 7 };
+    // a * b，等价 a.mul(b)
+    let res = a.mul(b);
+    // let res = a * b; // 也可以
+    println!(&quot;相乘结果 x={}, y={}&quot;, res.x, res.y);
+
+    let today = Day::Tuesday;
+    today.mood();
+}</code></pre>
+</div>
+<p><strong>已编译运行（取自 </strong><code>src/Chapter4/impl代码块.rs</code><strong>）。</strong></p>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">hello
+6 7
+相乘结果 x=42, y=56
+B</code></pre>
+</div>
+<h4 id="给枚举实现方法">给枚举实现方法</h4>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">use std::ops::Mul;
+
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+impl Point {
+    fn new(name: &amp;str) -&gt; Point {
+        println!(&quot;{}&quot;, name);
+        Point { x: 0, y: 0 }
+    }
+    // 方便测试赋值坐标
+    fn set_xy(mut self, x: i32, y: i32) -&gt; Self {
+        self.x = x;
+        self.y = y;
+        self
+    }
+}
+
+impl Mul for Point {
+    type Output = Point;
+    fn mul(self, other: Point) -&gt; Point {
+        println!(&quot;{} {}&quot;, other.x, other.y);
+        // 使用两个点的坐标相乘
+        Point {
+            x: self.x * other.x,
+            y: self.y * other.y,
+        }
+    }
+}
+
+enum Day {
+    Monday,
+    Tuesday,
+    Wednesday,
+    Thursday,
+    Friday,
+    Saturday,
+    Sunday
+}
+
+impl Day {
+    fn mood(&amp;self){
+        // self 类型：&amp;Day（不可变引用
+        // *self 类型：Day（解引用后本体，匹配时会拷贝 / 复制枚举）
+        println!(&quot;{}&quot;,match *self {
+            Day::Monday =&gt; &quot;A&quot;,
+            Day::Tuesday =&gt; &quot;B&quot;,
+            Day::Wednesday =&gt; &quot;C&quot;,
+            Day::Thursday =&gt; &quot;D&quot;,
+            Day::Friday =&gt; &quot;E&quot;,
+            _ =&gt; &quot;周末...&quot;
+        })
+    }
+}
+
+fn main() {
+    let a = Point::new(&quot;hello&quot;).set_xy(7, 8);
+    let b = Point { x: 6, y: 7 };
+    // a * b，等价 a.mul(b)
+    let res = a.mul(b);
+    // let res = a * b; // 也可以
+    println!(&quot;相乘结果 x={}, y={}&quot;, res.x, res.y);
+
+    let today = Day::Tuesday;
+    today.mood();
+}</code></pre>
+</div>
+<p><strong>已编译运行（取自 </strong><code>src/Chapter4/impl代码块.rs</code><strong>）。</strong></p>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">hello
+6 7
+相乘结果 x=42, y=56
+B</code></pre>
+</div>

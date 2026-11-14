@@ -1,0 +1,52 @@
+<h3 id="分支模型-保持极简">分支模型（保持极简）</h3>
+<p>只有一个长期分支 <code>master</code>。<strong>所有改动都经 PR</strong>，包括管理员自己的改动——例外只有：修正错别字、修失效链接、紧急下架。</p>
+<ul>
+<li>个人改动：<code>feat/&lt;简短说明&gt;</code>、<code>fix/&lt;简短说明&gt;</code>、<code>content/&lt;文章短名&gt;</code></li>
+<li>禁止：<code>git push --force</code> 到 <code>master</code>、直接删除他人提交、把 <code>dist/</code> 提交进仓库</li>
+<li>一次 PR 只做一件事：一篇文章 / 一处制度改动 / 一个功能点</li>
+</ul>
+<h3 id="提交信息">提交信息</h3>
+<p>格式：<code>类型: 说明</code>，类型用 <code>feat</code> / <code>fix</code> / <code>docs</code> / <code>content</code> / <code>chore</code> / <code>refactor</code>。</p>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">content: 新增文章《probe-rs 上手》
+docs: 角色与权限制度补充权限回收条款
+fix: 修正附件体积上限描述错误
+chore: 更新仓库元数据缓存</code></pre>
+</div>
+<p>说明用中文写清楚「做了什么」，不要写「update」「修改」这类无信息量的内容。</p>
+<h3 id="pr-要求">PR 要求</h3>
+<p>PR 描述里必须有：</p>
+<ol>
+<li><strong>改了什么</strong>（一句话）；</li>
+<li><strong>为什么</strong>（制度类改动必填）；</li>
+<li><strong>自检结果</strong>：本地跑过 <code>python engine/cli.py test &amp;&amp; python engine/cli.py build &amp;&amp; python engine/cli.py check</code>；</li>
+<li>涉及新字段时：说明是否同步改了契约（<code>site/content/contracts/</code>）。</li>
+</ol>
+<p>审核：至少 1 名管理员通过；机械性改动（错字、链接）可由 1 人快速合并。目标响应时间 <strong>3 个工作日</strong>。</p>
+<h3 id="内容与文件的放置约定">内容与文件的放置约定</h3>
+<table>
+<thead><tr><th>内容</th><th>位置</th></tr></thead>
+<tbody>
+<tr><td>文章</td><td><code>site/content/posts/&lt;年&gt;/[系列/]&lt;英文短名&gt;/index.md</code>（或 <code>.sml</code>），图片同目录 <code>assets/</code></td></tr>
+<tr><td>站文档 / 制度</td><td><code>site/content/pages/*.md</code>（<code>group</code> + <code>order</code> 决定归组与顺序）</td></tr>
+<tr><td>主题词条</td><td><code>site/content/topics/*.md</code></td></tr>
+<tr><td>成员档案</td><td><code>site/content/members/&lt;id&gt;.sml</code>（头像同名 <code>&lt;id&gt;.jpg</code>）</td></tr>
+<tr><td>项目 / 资源 / 周报</td><td>`site/content/projects</td><td>resources</td><td>weekly/`</td></tr>
+<tr><td>契约</td><td><code>site/content/contracts/*.sml</code>（只有管理员改）</td></tr>
+<tr><td>引擎与主题</td><td><code>engine/</code>、<code>site/theme/</code>（只有管理员改）</td></tr>
+</tbody>
+</table>
+<p>命名：目录与文件名一律<strong>小写英文 + 连字符</strong>，不用中文与空格（中文标题写在 <code>title</code> 字段里）。</p>
+<h3 id="标签与流程状态">标签与流程状态</h3>
+<p>Issue 标签：<code>内容投稿</code> / <code>制度建议</code> / <code>站点故障</code> / <code>附件问题</code> / <code>待讨论</code>。
+状态流转：<code>待处理 → 审核中 → 已合并 / 需修改 / 不采纳</code>；「不采纳」必须写理由。</p>
+<h3 id="密钥与安全">密钥与安全</h3>
+<ul>
+<li>CF Pages Token、Gitee Token 只存在于 GitHub Secrets 与管理员的本地环境，<strong>不进仓库、不进群聊、不贴截图</strong>；</li>
+<li>任何人发现密钥可能泄露，立即在群里通知管理员，管理员当天轮换；</li>
+<li>站点不接入第三方统计与广告脚本（见「隐私与数据」）。</li>
+</ul>
+<h3 id="发布与回滚">发布与回滚</h3>
+<p>发布链路：Gitee <code>master</code> →（每 6 小时单向镜像）→ GitHub → Actions 构建 → Cloudflare Pages。
+回滚、紧急下架、故障处理步骤见 <code>docs/DEPLOY.md</code>（仓库内 <code>docs/</code>，仅面向开发者）。</p>

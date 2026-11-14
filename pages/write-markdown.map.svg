@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="352" height="220" viewBox="0 0 352 220" font-family="-apple-system,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif">
+<title>Markdown 写作速查</title>
+<style>.nd{fill:#fff;stroke:#e4dfd6;rx:8} .rt{fill:#f6efe6;stroke:#d9c9b0}.tx{font-size:13px;fill:#23201c} .lk{cursor:pointer}.lk:hover .nd{stroke:#b4552d;fill:#fff8f2} .ed{fill:none;stroke:#ddd6c9;stroke-width:1.4}</style>
+<g class="edges">
+<path class="ed" d="M171.8 110.0 C194.8 110.0 194.8 34.0 217.8 34.0"/>
+<path class="ed" d="M171.8 110.0 C194.8 110.0 194.8 72.0 217.8 72.0"/>
+<path class="ed" d="M171.8 110.0 C194.8 110.0 194.8 110.0 217.8 110.0"/>
+<path class="ed" d="M171.8 110.0 C194.8 110.0 194.8 148.0 217.8 148.0"/>
+<path class="ed" d="M171.8 110.0 C194.8 110.0 194.8 186.0 217.8 186.0"/>
+</g>
+<g class="nodes">
+<rect class="nd rt" x="20.0" y="96.0" width="151.8" height="28" rx="8"/><text class="tx" x="30.0" y="115.0">Markdown 写作速查</text>
+<a class="lk" href="#/page/write-markdown/最小可用模板" xlink:href="#/page/write-markdown/最小可用模板"><rect class="nd" x="217.8" y="20.0" width="114.8" height="28" rx="8"/><text class="tx" x="227.8" y="39.0">最小可用模板</text></a>
+<a class="lk" href="#/page/write-markdown/正文语法" xlink:href="#/page/write-markdown/正文语法"><rect class="nd" x="217.8" y="58.0" width="96.0" height="28" rx="8"/><text class="tx" x="227.8" y="77.0">正文语法</text></a>
+<a class="lk" href="#/page/write-markdown/进阶" xlink:href="#/page/write-markdown/进阶"><rect class="nd" x="217.8" y="96.0" width="96.0" height="28" rx="8"/><text class="tx" x="227.8" y="115.0">进阶</text></a>
+<a class="lk" href="#/page/write-markdown/加资源" xlink:href="#/page/write-markdown/加资源"><rect class="nd" x="217.8" y="134.0" width="96.0" height="28" rx="8"/><text class="tx" x="227.8" y="153.0">加资源</text></a>
+<a class="lk" href="#/page/write-markdown/不会" xlink:href="#/page/write-markdown/不会"><rect class="nd" x="217.8" y="172.0" width="96.0" height="28" rx="8"/><text class="tx" x="227.8" y="191.0">不会</text></a>
+</g></svg>
