@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="654" height="182" viewBox="0 0 654 182" font-family="-apple-system,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif">
+<title>1.8 数组、切片和向量</title>
+<style>.nd{fill:#fff;stroke:#e4dfd6;rx:8} .rt{fill:#f6efe6;stroke:#d9c9b0}.tx{font-size:13px;fill:#23201c} .lk{cursor:pointer}.lk:hover .nd{stroke:#b4552d;fill:#fff8f2} .ed{fill:none;stroke:#ddd6c9;stroke-width:1.4}</style>
+<g class="edges">
+<path class="ed" d="M194.0 91.0 C217.0 91.0 217.0 34.0 240.0 34.0"/>
+<path class="ed" d="M194.0 91.0 C217.0 91.0 217.0 91.0 240.0 91.0"/>
+<path class="ed" d="M194.0 91.0 C217.0 91.0 217.0 148.0 240.0 148.0"/>
+<path class="ed" d="M354.8 91.0 C377.8 91.0 377.8 72.0 400.8 72.0"/>
+<path class="ed" d="M354.8 91.0 C377.8 91.0 377.8 110.0 400.8 110.0"/>
+</g>
+<g class="nodes">
+<rect class="nd rt" x="20.0" y="77.0" width="174.0" height="28" rx="8"/><text class="tx" x="30.0" y="96.0">1.8 数组、切片和向量</text>
+<a class="lk" href="#/post/rust-learning-09-arrays-slices-vectors/1-8-1-数组" xlink:href="#/post/rust-learning-09-arrays-slices-vectors/1-8-1-数组"><rect class="nd" x="240.0" y="20.0" width="114.8" height="28" rx="8"/><text class="tx" x="250.0" y="39.0">1 1.8.1 数组</text></a>
+<a class="lk" href="#/post/rust-learning-09-arrays-slices-vectors/1-8-2-向量" xlink:href="#/post/rust-learning-09-arrays-slices-vectors/1-8-2-向量"><rect class="nd" x="240.0" y="77.0" width="114.8" height="28" rx="8"/><text class="tx" x="250.0" y="96.0">2 1.8.2 向量</text></a>
+<a class="lk" href="#/post/rust-learning-09-arrays-slices-vectors/向量-与切片-的访问方式" xlink:href="#/post/rust-learning-09-arrays-slices-vectors/向量-与切片-的访问方式"><rect class="nd" x="400.8" y="58.0" width="233.2" height="28" rx="8"/><text class="tx" x="410.8" y="77.0">2.1 向量（与切片）的访问方式</text></a>
+<a class="lk" href="#/post/rust-learning-09-arrays-slices-vectors/向量的常用成员方法" xlink:href="#/post/rust-learning-09-arrays-slices-vectors/向量的常用成员方法"><rect class="nd" x="400.8" y="96.0" width="188.8" height="28" rx="8"/><text class="tx" x="410.8" y="115.0">2.2 向量的常用成员方法</text></a>
+<a class="lk" href="#/post/rust-learning-09-arrays-slices-vectors/1-8-3-切片" xlink:href="#/post/rust-learning-09-arrays-slices-vectors/1-8-3-切片"><rect class="nd" x="240.0" y="134.0" width="114.8" height="28" rx="8"/><text class="tx" x="250.0" y="153.0">3 1.8.3 切片</text></a>
+</g></svg>

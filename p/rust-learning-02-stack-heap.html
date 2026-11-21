@@ -1,0 +1,35 @@
+<p>栈（stack）和堆（heap）是 Rust 程序运行时的两个主存区域，理解它们的差异对后面所有内容都至关重要。</p>
+<table>
+<thead><tr><th>区域</th><th>特点</th><th>典型数据</th></tr></thead>
+<tbody>
+<tr><td>栈</td><td>LIFO；连续；分配/释放只是移动指针；大小必须<strong>编译期确定</strong></td><td>标量、<code>&amp;T</code>、长度固定数组 <code>[T; N]</code>、结构体局部变量、函数帧</td></tr>
+<tr><td>堆</td><td>任意顺序；分散；分配/释放要走分配器；大小可运行时决定</td><td><code>String</code>、<code>Vec&lt;T&gt;</code>、<code>Box&lt;T&gt;</code>、哈希表、树节点</td></tr>
+</tbody>
+</table>
+<h3 id="关键规律">关键规律</h3>
+<ol>
+<li>凡是&quot;长度不写进类型&quot;的，几乎一定在堆上；长度能写进类型的，几乎都在栈上。</li>
+<li>引用 <code>&amp;T</code> / <code>&amp;mut T</code> 自身始终是栈上胖指针；它指向的数据可能在栈上，也可能跨过堆边界。</li>
+<li><code>Copy</code> 类型按位复制，复制成本 O(n) 仅与元素数有关，不区分栈/堆；非 <code>Copy</code> 类型 <code>let b = a;</code> 是移动语义，堆上原对象所有权随之转移。</li>
+</ol>
+<h3 id="栈帧示意">栈帧示意</h3>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">调用栈（向上生长）
++------------------------+
+| main 帧                |
+|  s1: &amp;String     -&gt; 堆  |
+|  n : i32               |
+|  arr : [u8; 4]         |
++------------------------+
+        堆（向下扩展）
+        +0x18 &quot;hi&quot;      &lt;- 由 s1 指向</code></pre>
+</div>
+<h3 id="字符串-vs-切片">字符串 vs 切片</h3>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">let s: String = &quot;hello&quot;.to_string();   // 堆区数据
+let r: &amp;str   = &amp;s;                   // 栈上胖指针 (ptr, len, cap of s)
+let r2: &amp;str  = &quot;literal&quot;;            // 栈上胖指针，指向常量段</code></pre>
+</div>
+<p>栈帧里 <code>r</code> 与 <code>r2</code> 大小相同（24 字节，胖指针 + 字面量元数据），但指向的内存区域完全不同：<code>r</code> 指向堆，<code>r2</code> 指向只读常量段。理解&quot;指针在栈 vs 数据在堆&quot;是后续字符串、Vec、引用的根。</p>

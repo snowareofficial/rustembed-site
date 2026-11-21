@@ -1,0 +1,137 @@
+<h3 id="4-1-numa-超线程与缓存金字塔">4.1 NUMA、超线程与缓存金字塔</h3>
+<blockquote>
+<p>本地内存快、HT 引入 Jitter、连续内存命中缓存 — 硬件层三规则</p>
+</blockquote>
+<p>HFT <strong>通常不需定制机</strong> — <strong>现成 X86 服务器</strong> + <strong>配置与代码</strong> 决胜负。</p>
+<h4 id="numa-非统一内存访问">NUMA（非统一内存访问）</h4>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">Socket 0 ── local RAM ── CPU 0,1,…
+    ╲
+     ╲ QPI/UPI（跨 socket 慢）
+    ╱
+Socket 1 ── local RAM ── CPU …</code></pre>
+</div>
+<table>
+<thead><tr><th>规则</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><strong>本地内存快</strong></td><td>访 <strong>远端 socket</strong> 内存 → <strong>高延迟</strong></td></tr>
+<tr><td><strong>HFT 设计</strong></td><td><strong>NIC 收包线程</strong> 与 <strong>网卡</strong> 绑 <strong>同一 NUMA node</strong></td></tr>
+<tr><td><strong>工具</strong></td><td><code>numactl --membind</code> · <code>lstopo</code></td></tr>
+</tbody>
+</table>
+<h4 id="超线程-hyper-threading-陷阱">超线程（Hyper-threading）陷阱</h4>
+<ul>
+<li>硬件 <strong>交替</strong> 两逻辑核共享执行单元 → <strong>吞吐↑</strong></li>
+<li><strong>牺牲</strong> 软件对调度的控制 → <strong>Jitter↑</strong></li>
+<li><strong>BIOS：关 HT</strong> — 热点线程 <strong>一物理核一线程</strong></li>
+</ul>
+<h4 id="缓存金字塔-cache-hierarchy">缓存金字塔（Cache Hierarchy）</h4>
+<table>
+<thead><tr><th>层级</th><th>典型</th><th>延迟量级</th></tr></thead>
+<tbody>
+<tr><td><strong>L1I / L1D</strong></td><td>每核私有</td><td>最快</td></tr>
+<tr><td><strong>L2</strong></td><td>每核</td><td></td></tr>
+<tr><td><strong>L3</strong></td><td>全核共享</td><td></td></tr>
+<tr><td><strong>RAM</strong></td><td>相对 CPU <strong>极慢</strong></td><td></td></tr>
+</tbody>
+</table>
+<p><strong>Cache-friendly 代码：</strong></p>
+<ul>
+<li><strong>连续内存</strong>（vector/ring）&gt; 指针追逐链表</li>
+<li><strong>热数据结构</strong> 控制在 <strong>L1/L2 工作集</strong></li>
+<li><strong>False sharing</strong> — 多线程改 <strong>同一 cache line</strong> → chapter-07</li>
+</ul>
+<p>→ 15-computer-architecture · 09 MikanOS Ch8/19 分页</p>
+<h3 id="4-2-操作系统抽象的代价">4.2 操作系统抽象的代价</h3>
+<blockquote>
+<p>syscall 昂贵 · 上下文切换破坏缓存 · TLB miss · IRQ 打断 — 四大税</p>
+</blockquote>
+<h4 id="user-space-vs-kernel-space">User Space vs Kernel Space</h4>
+<table>
+<thead><tr><th>空间</th><th>权限</th><th>HFT 热点</th></tr></thead>
+<tbody>
+<tr><td><strong>用户态</strong></td><td>低</td><td>Gateway / Book / Strategy</td></tr>
+<tr><td><strong>内核态</strong></td><td>高 — 控硬件</td><td><strong>syscall 进出昂贵</strong></td></tr>
+</tbody>
+</table>
+<p>每次 <strong><code>recv()</code>/<code>send()</code></strong> → <strong>模式切换</strong> + 内核协议栈 — 见 Ch5 <strong>Kernel Bypass</strong> 规避。</p>
+<p>→ 03-linux-userspace-api · MikanOS Ch20 syscall</p>
+<h4 id="上下文切换-context-switch">上下文切换（Context Switch）</h4>
+<p>OS 暂停线程 A、运行 B 时：</p>
+<ol>
+<li><strong>保存</strong> A 寄存器/状态</li>
+<li><strong>加载</strong> B 状态</li>
+<li><strong>清空/污染</strong> CPU 缓存 → B <strong>冷启动 Cache Miss</strong></li>
+</ol>
+<p><strong>对策：</strong> <strong>绑核 + isolcpus</strong> — 热点线程 <strong>独占核</strong>，拒绝公平调度 → chapter-05</p>
+<h4 id="内存管理与大页-huge-pages">内存管理与大页（Huge Pages）</h4>
+<ul>
+<li><strong>页表</strong> 映射 VA→PA</li>
+<li><strong>TLB</strong> 缓存映射 — <strong>Miss</strong> 则 <strong>内存 walk</strong>，极慢</li>
+<li><strong>4KB → 2MB/1GB 大页</strong> — <strong>TLB 覆盖更多内存</strong> → 少 Miss</li>
+</ul>
+<p>原理在此；挂载与 <code>nr_hugepages</code> → chapter-05</p>
+<h4 id="中断-interruption">中断（Interruption）</h4>
+<p>网卡收包 → <strong>硬件 IRQ</strong> → <strong>打断</strong> 用户线程。</p>
+<table>
+<thead><tr><th>模式</th><th>特点</th></tr></thead>
+<tbody>
+<tr><td><strong>中断驱动</strong></td><td>低负载友好 · <strong>高 PPS 时 IRQ 风暴</strong></td></tr>
+<tr><td><strong>NAPI / 轮询（DPDK/OpenOnload）</strong></td><td>用户态 <strong>poll</strong> — 热点 <strong>可预测</strong></td></tr>
+</tbody>
+</table>
+<p>→ chapter-06 网络 · 13-DPDK</p>
+<h3 id="4-3-编译器与链接">4.3 编译器与链接</h3>
+<blockquote>
+<p>-O3 静态链接：编译期榨干，无 PLT 间接跳转</p>
+</blockquote>
+<h4 id="编译期优化">编译期优化</h4>
+<table>
+<thead><tr><th>优化</th><th>作用</th></tr></thead>
+<tbody>
+<tr><td><strong>Loop unrolling</strong></td><td>减分支与循环控制</td></tr>
+<tr><td><strong>Function inlining</strong></td><td>消除 call 开销 · 助 <strong>常量传播</strong></td></tr>
+<tr><td><strong>LTO / -O3 -march=native</strong></td><td>目标 CPU 指令集</td></tr>
+</tbody>
+</table>
+<p><strong>配合 C++：</strong> 模板/CRTP 让 <strong>多态在编译期</strong> — chapter-08 编码规范</p>
+<h4 id="静态链接-vs-动态链接">静态链接 vs 动态链接</h4>
+<table>
+<thead><tr><th></th><th><strong>Static</strong></th><th><strong>Dynamic (.so)</strong></th></tr></thead>
+<tbody>
+<tr><td><strong>部署</strong></td><td>单二进制</td><td>共享库省磁盘</td></tr>
+<tr><td><strong>调用</strong></td><td>直接地址</td><td><strong>PLT 间接跳转</strong></td></tr>
+<tr><td><strong>HFT</strong></td><td><strong>首选</strong> — 跨库 <strong>LTO</strong> · 无运行时解析</td></tr>
+</tbody>
+</table>
+<div class="code">
+<div class="code-head"><span>bash</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-bash">## 示意
+g++ -O3 -static -o gateway main.cpp ...</code></pre>
+</div>
+<h3 id="4-4-硬件选型速查-工程">4.4 硬件选型速查（工程）</h3>
+<blockquote>
+<p>CPU 单核频率 · BIOS 三关 · NIC 硬件时间戳 · FPGA 兜底</p>
+</blockquote>
+<table>
+<thead><tr><th>项</th><th>建议</th></tr></thead>
+<tbody>
+<tr><td><strong>CPU</strong></td><td>高 <strong>单核频率</strong> · 少跨 NUMA</td></tr>
+<tr><td><strong>BIOS</strong></td><td>关 HT / Turbo / C-states</td></tr>
+<tr><td><strong>NIC</strong></td><td>硬件时间戳 · Bypass 生态（Solarflare/DPDK）</td></tr>
+<tr><td><strong>FPGA</strong></td><td>软件 <strong>1–5 μs</strong> 不够时 — ns 级确定性</td></tr>
+</tbody>
+</table>
+<h4 id="fpga-纳秒级">FPGA（纳秒级）</h4>
+<table>
+<thead><tr><th>下沉</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>MD 解码 / 轻量 trigger</td><td>无 OS 调度</td></tr>
+<tr><td>T2T</td><td>可 <strong>&lt;500 ns</strong></td></tr>
+</tbody>
+</table>
+<p>→ 深化：chapter-13 FPGA 与 Crypto（原书 Ch11） · chapter-01 FPGA</p>
+<aside class="admonition note"><p class="adm-title">来源与许可</p>
+<p>本文整理自 CShonor 的学习笔记仓库 <a href="https://github.com/cshonor/hft-embedded-linux-study" target="_blank" rel="nofollow noopener">hft-embedded-linux-study</a> 的 <code>14-hft-engineering</code> 模块（HFT 工程实践；该模块标注了与原书 Ch1–11 的对应关系，Ch10–13 为仓库自扩展章节），经作者授权以 CC BY 4.0 在本站署名发布。</p>
+</aside>

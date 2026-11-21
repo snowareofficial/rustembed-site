@@ -1,0 +1,333 @@
+<p>Rust 的 I/O 体系从 <code>std::io</code> 与 <code>std::fs</code> 出发，与其它系统语言思路类似：尽量用 <code>Result</code> 报告错误，用 <code>BufRead/BufWriter</code> 减少 syscall。</p>
+<h3 id="1-17-1-文本文件">1.17.1 文本文件</h3>
+<p><strong>整文件读</strong>：<code>File::open</code> + <code>read_to_string(&amp;mut s)</code>。</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+use std::fs::File;
+use std::io::Read;
+match File::open(&quot;foo.txt&quot;) {
+    Ok(mut file) =&gt; {
+        let mut content = String::new();
+        file.read_to_string(&amp;mut content).unwrap();
+        println!(&quot;{}&quot;, content);
+    }
+    Err(e) =&gt; println!(&quot;Error opening file {}: {}&quot;, &quot;foo.txt&quot;, e),
+}
+}</code></pre>
+</div>
+<p><strong>已编译运行。</strong></p>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">drfgthyujik
+dcfgvhbjnkml,
+tgyhuijkol</code></pre>
+</div>
+<p><strong>逐行读</strong>：<code>BufReader</code> 提供 <code>BufRead::lines</code> 迭代器：</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+use std::fs::File;
+use std::io::{BufRead, BufReader};
+let file = File::open(&quot;foo.txt&quot;).unwrap();
+let reader = BufReader::new(file);
+for (i, line) in reader.lines().enumerate() {
+    let line = line.unwrap();
+    println!(&quot;index:{} line:{}&quot;, i, line);
+}
+}</code></pre>
+</div>
+<p><strong>已编译运行。</strong></p>
+<div class="code">
+<div class="code-head"><span>latex</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-latex">index:0 line:drfgthyujik
+index:1 line:dcfgvhbjnkml,
+index:2 line:tgyhuijkol</code></pre>
+</div>
+<p><strong>写文件</strong>：<code>File::create</code> 截断创建，<code>write!</code>/<code>writeln!</code> 写。</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+use std::env;
+use std::fs::File;
+use std::io::Write;
+let temp_dir = env::temp_dir();
+let temp_file = temp_dir.join(&quot;file&quot;);
+let mut file = File::create(&amp;temp_file).unwrap();
+writeln!(&amp;mut file, &quot;Hello 王玉！&quot;).unwrap();
+file.write(b&quot;Bytes\n&quot;).unwrap();
+}</code></pre>
+</div>
+<h3 id="1-17-2-二进制文件">1.17.2 二进制文件</h3>
+<p>二进制读写用 <code>byteorder</code> crate 处理端序，比手拆位鲁棒：</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">use byteorder::{ByteOrder, BE, LE, ReadBytesExt, WriteBytesExt};
+use std::fs::File;
+use std::io::prelude::*;
+use std::io::{self, BufReader, BufWriter, Read};
+
+fn main() {
+    let path = &quot;./foo.bin&quot;;
+    write_dummy_protocol(path).expect(&quot;Failed write file&quot;);
+    let payload = read_protocol(path).expect(&quot;Failed to read file&quot;);
+    print!(&quot;The protocol contained the following payload:&quot;);
+    for num in payload{
+        print!(&quot;0x{:X} &quot;,num);
+    }
+    println!();
+}
+
+fn write_dummy_protocol(path: &amp;str) -&gt; io::Result&lt;()&gt; {
+    let file = File::create(path)?;
+    let mut buf_writer = BufWriter::new(file);
+
+    let magic = b&quot;RustProgram&quot;;
+    buf_writer.write_all(magic)?;
+
+    let endian = b&quot;LE&quot;;
+    buf_writer.write_all(endian)?;
+
+    buf_writer.write_u32::&lt;LE&gt;(0xDDDD)?;
+    buf_writer.write_u32::&lt;LE&gt;(0x1111)?;
+
+    Ok(())
+}
+
+fn read_protocol(path: &amp;str) -&gt; io::Result&lt;Vec&lt;u32&gt;&gt; {
+    let file = File::open(path)?;
+    let mut buf_reader = BufReader::new(file);
+
+    let mut start = [0u8; 11];
+    buf_reader.read_exact(&amp;mut start)?;
+    if &amp;start != b&quot;RustProgram&quot; {
+        return Err(io::Error::new(
+            io::ErrorKind::Other,
+            &quot;File didn&#x27;t start with the expected magic string&quot;,
+        ));
+    }
+
+    let mut endian = [0u8; 2];
+    buf_reader.read_exact(&amp;mut endian)?;
+    match &amp;endian {
+        b&quot;LE&quot; =&gt; read_protocol_play::&lt;LE, _&gt;(&amp;mut buf_reader),
+        b&quot;BE&quot; =&gt; read_protocol_play::&lt;BE, _&gt;(&amp;mut buf_reader),
+        _ =&gt; Err(io::Error::new(
+            io::ErrorKind::Other,
+            &quot;Failed to parse endian&quot;,
+        )),
+    }
+}
+
+fn read_protocol_play&lt;E,R&gt;(reader: &amp;mut R) -&gt; io::Result&lt;Vec&lt;u32&gt;&gt;
+where 
+    E: ByteOrder,
+    R: ReadBytesExt,
+{
+    let mut payload = Vec::new();
+    const SIZE_OF_U32: usize = 4;
+    loop{
+        let mut raw_payload = [0;SIZE_OF_U32];
+        match reader.read(&amp;mut raw_payload)? {
+            0 =&gt; return Ok(payload),
+            SIZE_OF_U32 =&gt; {
+                let as_u32 = raw_payload.as_ref().read_u32::&lt;E&gt;()?;
+                payload.push(as_u32)
+            }
+            _ =&gt; {
+                return Err(io::Error::new(io::ErrorKind::UnexpectedEof, &quot;Payload ended unexpectedly&quot;));
+            }
+        }
+    }
+}</code></pre>
+</div>
+<p><strong>（含外部 crate </strong><code>byteorder</code><strong>；通过 </strong><code>cargo run --bin binary_files</code><strong> 或在前文对应的 src/Chapter4 文件直接 </strong><code>cargo run</code><strong> 运行。）</strong></p>
+<p><strong>（教学片段，直接复制 src/Chapter4/ 对应文件即可运行。）</strong></p>
+<p>要点：</p>
+<ol>
+<li>用 <code>BufWriter</code> 包 <code>File</code> 让多次小写合并为一次 syscall。</li>
+<li>端序用 <code>write_u32::&lt;LE/BE&gt;</code> 显式选择，避免跨平台错位。</li>
+<li>读失败用 <code>io::Error</code> 类型丢回去：<code>io::Error::new(io::ErrorKind::Other, &quot;msg&quot;)</code>。</li>
+</ol>
+<h3 id="1-17-3-文件路径">1.17.3 文件路径</h3>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">fn main() {
+use std::path::{Path, PathBuf};
+let mut pb = PathBuf::from(&quot;/home&quot;);
+pb.push(&quot;matt&quot;);
+pb.push(&quot;.bashrc&quot;);             // → /home/matt/.bashrc
+let p: &amp;Path = &amp;pb;             // 自动 deref
+}</code></pre>
+</div>
+<p><code>Path</code> 是 <code>OsStr</code> 切片视图、<code>PathBuf</code> 是其堆分配版本；都跨平台（Windows 用 <code>\\</code>，Unix 用 <code>/</code>）。<code>Home</code> / <code>env::temp_dir()</code> 返回 <code>PathBuf</code>。</p>
+<h3 id="1-17-4-搜索指定扩展名的文件">1.17.4 搜索指定扩展名的文件</h3>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">use walkdir::{WalkDir,DirEntry};
+
+fn main() {
+    println!(&quot;本目录下所有文件路径：&quot;);
+    for entry in WalkDir::new(&quot;.&quot;){
+        if let Ok(entry) = entry{
+            println!(&quot;{} &quot;,entry.path().display());
+        }
+    }
+
+    println!(&quot;本目录下非隐藏文件名：&quot;);
+    WalkDir::new(&quot;./src&quot;)
+        .into_iter()
+        .filter_entry(|entry|!is_hidden(entry))
+        .filter_map(Result::ok)
+        .for_each(|entry|{
+            let name = entry.file_name().to_string_lossy();
+            println!(&quot;{} &quot;,name)
+        });
+
+    println!(&quot;本目录下所有子目录文件夹路径:&quot;);
+    WalkDir::new(&quot;.&quot;)
+    .into_iter()
+    .filter_entry(is_dir)
+    .filter_map(Result::ok)
+    .for_each(|entry|{
+        let path = entry.path().display();
+        println!(&quot;{} &quot;,path)
+    });
+
+    let are_any_readonly = WalkDir::new(&quot;..&quot;)
+    .into_iter().filter_map(Result::ok)
+    .filter(|e|has_file_name(e, &quot;array.rs&quot;))
+    .filter_map(|e|e.metadata().ok())
+    .any(|e|e.permissions().readonly());
+    println!(&quot;Are any the files called &#x27;vector.rs&#x27; readonly?{} &quot;,are_any_readonly);
+}
+
+fn is_hidden(entry: &amp;DirEntry) -&gt; bool {
+    entry
+        .file_name()
+        .to_str()
+        .map(|s| s.starts_with(&#x27;.&#x27;))
+        .unwrap_or(false)
+}
+
+// 这里有问题
+fn is_dir(entry: &amp;DirEntry) -&gt; bool {
+    entry.file_type().is_dir()
+}
+
+fn has_file_name(entry: &amp;DirEntry, name: &amp;str) -&gt; bool {
+    match entry.file_name().to_str() {
+        Some(entry_name) =&gt; entry_name == name,
+        _ =&gt; false,
+    }
+}</code></pre>
+</div>
+<p><strong>（含外部 crate </strong><code>walkdir</code><strong>；通过 </strong><code>cargo run --bin traverse_files</code><strong> 或在前文对应的 src/Chapter4 文件直接 </strong><code>cargo run</code><strong> 运行。）</strong></p>
+<p><strong>（教学片段，直接复制 src/Chapter4/ 对应文件即可运行。）</strong></p>
+<p><code>filter_entry(|e| !is_hidden(e))</code> 在生成树过程中过滤，可整棵剪枝；<code>filter_entry(is_dir)</code> 只保留目录；<code>has_file_name(entry, &quot;x&quot;)</code> 精准匹配子项。</p>
+<p>老办法用 <code>glob</code>（错误处理用 <code>error_chain!</code> 宏）：</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">use walkdir::WalkDir;
+
+fn main() {
+    for entry in WalkDir::new(&quot;.&quot;).into_iter().filter_map(Result::ok) {
+        if entry.path().extension().map(|e| e == &quot;png&quot;).unwrap_or(false) {
+            println!(&quot;{}&quot;, entry.path().display());
+        }
+    }
+    println!(&quot;（递归搜索 .png；等效 glob(&quot;**/*.png&quot;)，但用项目已有的 walkdir 实现。）&quot;);
+}</code></pre>
+</div>
+<p><strong>（含外部 crate </strong><code>walkdir</code><strong>；通过 </strong><code>cargo run --bin traverse_files</code><strong> 或在前文对应的 src/Chapter4 文件直接 </strong><code>cargo run</code><strong> 运行。）</strong></p>
+<p><strong>（教学片段，直接复制 src/Chapter4/ 对应文件即可运行。）</strong></p>
+<h3 id="1-17-5-压缩文件">1.17.5 压缩文件</h3>
+<p><code>flate2 = &quot;0.2&quot;</code> 是 Rust 中封装的 deflate/zlib 库，对 PNG 友好（PNG 用 zlib）。</p>
+<div class="code">
+<div class="code-head"><span>rust</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-rust">use std::io::{self, SeekFrom};
+use std::io::prelude::*;
+
+use flate2::{Compression,FlateReadExt};
+use flate2::write::ZlibEncoder;
+use flate2::read::ZlibDecoder;
+
+use std::fs::{File,OpenOptions};
+use std::io::{BufReader,BufWriter};
+
+fn main(){
+let bytes =b&quot;I have a dream that one day this nation will rise up, \
+    and live out the true meaning of its creed&quot;;
+    println!(&quot;Original:{:?} &quot;, bytes.as_ref() );
+    //压缩某些字节
+    let encoded =encode_bytes(bytes.as_ref() ).expect(&quot;Failed to encode bytes&quot;);
+    println!(&quot;Encoded: {:?}&quot;, encoded);
+    //解压缩
+    let decoded =decode_bytes( &amp;encoded ).expect(&quot;Failed to decode bytes&quot;);
+    println!(&quot;Decoded: {:?} &quot;, decoded);
+
+    //打开要压缩的文件
+    let original =File::open(&quot;/Volumes/CX/下载/RUST开发STM32.png&quot;).expect(&quot;Failed to open file&quot;);
+    let mut original_reader =BufReader::new(original);
+
+    //压缩
+    let data =encode_file( &amp;mut original_reader ).expect(&quot;Failed to encode file&quot;);
+
+    //保存压缩文件到硬盘
+    let encoded =OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .open(&quot;B05117_11_01.png_encoded.zlib&quot;)
+        .expect(&quot;Failed to create encoded file&quot;);
+    let mut encoded_reader =BufReader::new(&amp;encoded);
+    let mut encoded_writer =BufWriter::new(&amp;encoded);
+    encoded_writer
+        .write_all(&amp;data)
+        .expect(&quot;Failed to write encoded file&quot;);
+
+    //返回被压缩文件的开头
+    encoded_reader
+        .seek(SeekFrom::Start(0))
+        .expect(&quot;Failed to reset file&quot;);
+
+    //解压缩
+    let data =decode_file( &amp;mut encoded_reader ).expect(&quot;Failed to decode file&quot;);
+
+    //将解压缩文件到硬盘
+    let mut decoded =File::create(&quot;ferris_decoded.png&quot;).expect(&quot;Failed to create decoded file&quot;);
+    decoded
+        .write_all(&amp;data)
+        .expect(&quot;Failed to write decoded file&quot;);
+}
+
+fn encode_bytes(bytes:&amp;[u8]) -&gt; io::Result&lt;Vec&lt;u8&gt;&gt;{
+    let mut encoder = ZlibEncoder::new(Vec::new(), Compression::Default);
+    encoder.write_all(bytes)?;
+    encoder.finish()
+}
+
+fn decode_bytes(bytes:&amp;[u8]) -&gt; io::Result&lt;Vec&lt;u8&gt;&gt;{
+    let mut encoder = ZlibDecoder::new(bytes);
+    let mut buffer = Vec::new();
+    encoder.read_to_end(&amp;mut buffer)?;
+    Ok(buffer)
+}
+
+fn encode_file(file:&amp;mut impl Read) -&gt; io::Result&lt;Vec&lt;u8&gt;&gt;{
+    let mut encoded = file.zlib_encode(Compression::Best);
+    let mut buffer = Vec::new();
+    encoded.read_to_end(&amp;mut buffer)?;
+    Ok(buffer)
+}
+
+fn decode_file(file: &amp;mut impl Read) -&gt; io::Result&lt;Vec&lt;u8&gt;&gt;
+{
+    let mut buffer = Vec::new();
+    file.zlib_decode().read_to_end(&amp;mut buffer)?;
+    Ok(buffer)
+}</code></pre>
+</div>
+<p><strong>（含外部 crate </strong><code>flate2</code><strong>；通过 </strong><code>cargo run --bin compression</code><strong> 或在前文对应的 src/Chapter4 文件直接 </strong><code>cargo run</code><strong> 运行。）</strong></p>
+<p><strong>（教学片段，直接复制 src/Chapter4/ 对应文件即可运行。）</strong></p>
+<p>文件级：参考 <code>compression.rs</code>，用 <code>flate2::FlateReadExt::zlib_encode</code>/<code>zlib_decode</code> 或手动 <code>ZlibEncoder/Decoder</code>，可以把任意文件压缩后再解压回去。</p>

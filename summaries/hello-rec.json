@@ -1,0 +1,16 @@
+{
+ "source": "extractive",
+ "one_line": "不讲大道理，先把程序烧进去：probe-rs 安装、连接、烧录、打日志的完整最小路径。",
+ "points": [
+  "为什么从工具链讲起",
+  "安装",
+  "烧录与日志",
+  "常见坑"
+ ],
+ "keywords": [
+  "rust",
+  "embedded",
+  "probe-rs"
+ ],
+ "reading": 2
+}

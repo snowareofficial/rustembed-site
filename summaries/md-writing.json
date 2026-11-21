@@ -1,0 +1,17 @@
+{
+ "source": "extractive",
+ "one_line": "不用学 SML。文章用 Markdown 写，front matter 填几个字段，提 PR 即可；SML 只是给需要更强结构的人准备的。",
+ "points": [
+  "为什么不用逼你学 SML",
+  "文件长什么样",
+  "正文能写什么",
+  "附件",
+  "最后"
+ ],
+ "keywords": [
+  "指南",
+  "markdown",
+  "投稿"
+ ],
+ "reading": 3
+}

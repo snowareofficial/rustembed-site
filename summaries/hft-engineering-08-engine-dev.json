@@ -1,0 +1,18 @@
+{
+ "source": "extractive",
+ "one_line": "C++ 内存模型、消除运行时决策、动态内存与异常的禁区，以及一份 FX 高频架构清单。",
+ "points": [
+  "8.1 C++ 内存模型 (Memory Model)",
+  "作用",
+  "内存顺序层级",
+  "8.2 消除运行时决策",
+  "虚函数的代价",
+  "CRTP：静态多态"
+ ],
+ "keywords": [
+  "hft",
+  "cpp",
+  "performance"
+ ],
+ "reading": 14
+}

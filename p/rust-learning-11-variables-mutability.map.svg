@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="779" height="372" viewBox="0 0 779 372" font-family="-apple-system,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif">
+<title>1.10 变量和可变性</title>
+<style>.nd{fill:#fff;stroke:#e4dfd6;rx:8} .rt{fill:#f6efe6;stroke:#d9c9b0}.tx{font-size:13px;fill:#23201c} .lk{cursor:pointer}.lk:hover .nd{stroke:#b4552d;fill:#fff8f2} .ed{fill:none;stroke:#ddd6c9;stroke-width:1.4}</style>
+<g class="edges">
+<path class="ed" d="M171.8 186.0 C194.8 186.0 194.8 34.0 217.8 34.0"/>
+<path class="ed" d="M171.8 186.0 C194.8 186.0 194.8 72.0 217.8 72.0"/>
+<path class="ed" d="M171.8 186.0 C194.8 186.0 194.8 110.0 217.8 110.0"/>
+<path class="ed" d="M171.8 186.0 C194.8 186.0 194.8 148.0 217.8 148.0"/>
+<path class="ed" d="M171.8 186.0 C194.8 186.0 194.8 186.0 217.8 186.0"/>
+<path class="ed" d="M171.8 186.0 C194.8 186.0 194.8 224.0 217.8 224.0"/>
+<path class="ed" d="M171.8 186.0 C194.8 186.0 194.8 281.0 217.8 281.0"/>
+<path class="ed" d="M171.8 186.0 C194.8 186.0 194.8 338.0 217.8 338.0"/>
+<path class="ed" d="M369.6 281.0 C429.6 281.0 429.6 262.0 489.6 262.0"/>
+<path class="ed" d="M369.6 281.0 C429.6 281.0 429.6 300.0 489.6 300.0"/>
+</g>
+<g class="nodes">
+<rect class="nd rt" x="20.0" y="172.0" width="151.8" height="28" rx="8"/><text class="tx" x="30.0" y="191.0">1.10 变量和可变性</text>
+<a class="lk" href="#/post/rust-learning-11-variables-mutability/1-10-1-变量绑定" xlink:href="#/post/rust-learning-11-variables-mutability/1-10-1-变量绑定"><rect class="nd" x="217.8" y="20.0" width="151.8" height="28" rx="8"/><text class="tx" x="227.8" y="39.0">1 1.10.1 变量绑定</text></a>
+<a class="lk" href="#/post/rust-learning-11-variables-mutability/1-10-2-变量" xlink:href="#/post/rust-learning-11-variables-mutability/1-10-2-变量"><rect class="nd" x="217.8" y="58.0" width="122.2" height="28" rx="8"/><text class="tx" x="227.8" y="77.0">2 1.10.2 变量</text></a>
+<a class="lk" href="#/post/rust-learning-11-variables-mutability/1-10-3-可变性" xlink:href="#/post/rust-learning-11-variables-mutability/1-10-3-可变性"><rect class="nd" x="217.8" y="96.0" width="137.0" height="28" rx="8"/><text class="tx" x="227.8" y="115.0">3 1.10.3 可变性</text></a>
+<a class="lk" href="#/post/rust-learning-11-variables-mutability/1-10-4-变量的作用域和遮蔽" xlink:href="#/post/rust-learning-11-variables-mutability/1-10-4-变量的作用域和遮蔽"><rect class="nd" x="217.8" y="134.0" width="225.8" height="28" rx="8"/><text class="tx" x="227.8" y="153.0">4 1.10.4 变量的作用域和遮蔽</text></a>
+<a class="lk" href="#/post/rust-learning-11-variables-mutability/1-10-5-常量和静态全局变量" xlink:href="#/post/rust-learning-11-variables-mutability/1-10-5-常量和静态全局变量"><rect class="nd" x="217.8" y="172.0" width="225.8" height="28" rx="8"/><text class="tx" x="227.8" y="191.0">5 1.10.5 常量和静态全局变量</text></a>
+<a class="lk" href="#/post/rust-learning-11-variables-mutability/1-10-6-别名" xlink:href="#/post/rust-learning-11-variables-mutability/1-10-6-别名"><rect class="nd" x="217.8" y="210.0" width="122.2" height="28" rx="8"/><text class="tx" x="227.8" y="229.0">6 1.10.6 别名</text></a>
+<a class="lk" href="#/post/rust-learning-11-variables-mutability/1-10-7-类型转换" xlink:href="#/post/rust-learning-11-variables-mutability/1-10-7-类型转换"><rect class="nd" x="217.8" y="267.0" width="151.8" height="28" rx="8"/><text class="tx" x="227.8" y="286.0">7 1.10.7 类型转换</text></a>
+<a class="lk" href="#/post/rust-learning-11-variables-mutability/数值强转-as" xlink:href="#/post/rust-learning-11-variables-mutability/数值强转-as"><rect class="nd" x="489.6" y="248.0" width="166.6" height="28" rx="8"/><text class="tx" x="499.6" y="267.0">7.1 数值强转 (`as`)</text></a>
+<a class="lk" href="#/post/rust-learning-11-variables-mutability/数值转型-tryfrom-from" xlink:href="#/post/rust-learning-11-variables-mutability/数值转型-tryfrom-from"><rect class="nd" x="489.6" y="286.0" width="270.2" height="28" rx="8"/><text class="tx" x="499.6" y="305.0">7.2 数值转型 (`TryFrom` / `From`)</text></a>
+<a class="lk" href="#/post/rust-learning-11-variables-mutability/1-10-8-零长度类型" xlink:href="#/post/rust-learning-11-variables-mutability/1-10-8-零长度类型"><rect class="nd" x="217.8" y="324.0" width="166.6" height="28" rx="8"/><text class="tx" x="227.8" y="343.0">8 1.10.8 零长度类型</text></a>
+</g></svg>
