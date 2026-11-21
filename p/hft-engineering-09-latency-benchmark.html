@@ -1,0 +1,167 @@
+<h3 id="9-1-内核旁路-kernel-bypass">9.1 内核旁路 (Kernel Bypass)</h3>
+<blockquote>
+<p>用户态直接 poll NIC ring — 无阻塞、无 IRQ 等待、无 memcpy</p>
+</blockquote>
+<p>← 上一章：chapter-08 C++ 引擎 · 下一节：9.2 mmap 与 IPC</p>
+<h4 id="传统路径的代价">传统路径的代价</h4>
+<p>用户态程序 ↔ <strong>syscall/IRQ</strong> ↔ 内核 ↔ NIC — chapter-06 §4 数据包生命周期：</p>
+<ul>
+<li><strong>上下文切换</strong></li>
+<li><strong>sk_buff 分配 · 头部分解 · socket 队列 · 拷贝</strong></li>
+</ul>
+<h4 id="bypass-核心">Bypass 核心</h4>
+<table>
+<thead><tr><th>机制</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><strong>User-space spinning</strong></td><td>交易线程 <strong>100% poll</strong> NIC ring — <strong>无阻塞 · 无 IRQ 等待</strong></td></tr>
+<tr><td><strong>Zero copy</strong></td><td>DMA 数据 <strong>映射/直达</strong> 用户缓冲 — <strong>无 memcpy</strong></td></tr>
+</tbody>
+</table>
+<table>
+<thead><tr><th>产品（示例）</th><th></th></tr></thead>
+<tbody>
+<tr><td><strong>OpenOnload</strong></td><td>Solarflare / AMD</td></tr>
+<tr><td><strong>VMA</strong></td><td>Mellanox / NVIDIA</td></tr>
+<tr><td><strong>DPDK</strong></td><td>通用 PMD</td></tr>
+</tbody>
+</table>
+<p><strong>效果（书中量级）：</strong> UDP/TCP 读写 <strong>1.5–10 μs → 0.5–2 μs</strong>。</p>
+<p>→ 实操 chapter-05 §3 Kernel Bypass · 13-DPDK</p>
+<p>← 下一节：9.2 mmap 与 IPC · 返回：本章索引</p>
+<h3 id="9-2-内存映射文件-mmap-与-ipc">9.2 内存映射文件 (mmap) 与 IPC</h3>
+<blockquote>
+<p>/dev/shm + 无锁环 — Gateway ↔ Strategy 零拷贝跨进程</p>
+</blockquote>
+<p>← 上一节：9.1 Kernel Bypass · 下一节：9.3 微波与空芯光纤</p>
+<div class="code">
+<div class="code-head"><span>cpp</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-cpp">void* addr = mmap(nullptr, size, PROT_READ|PROT_WRITE,
+                   MAP_SHARED, fd, 0);</code></pre>
+</div>
+<table>
+<thead><tr><th>用途</th><th>HFT</th></tr></thead>
+<tbody>
+<tr><td><strong>持久化</strong></td><td>大文件 <strong>随机访问</strong> 快于 read/write 循环</td></tr>
+<tr><td><strong>非持久化 IPC</strong></td><td><strong><code>/dev/shm</code> 或 memfd</strong> + <strong>无锁环</strong> — Gateway ↔ Strategy <strong>零拷贝</strong></td></tr>
+</tbody>
+</table>
+<p><strong>模式：</strong></p>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">进程 A 写 ring slot → 进程 B acquire/release
+共享区 = mmap 的同一块物理页</code></pre>
+</div>
+<p>→ chapter-07 §2 无锁环 · 03-linux-userspace-api mmap</p>
+<p>← 下一节：9.3 微波与空芯光纤 · 返回：本章索引</p>
+<h3 id="9-3-跨数据中心-微波与空芯光纤">9.3 跨数据中心：微波与空芯光纤</h3>
+<blockquote>
+<p>空气光速比玻璃快 ~50% — 芝加哥 ↔ 纽约买的是物理定律</p>
+</blockquote>
+<p>← 上一节：9.2 mmap 与 IPC · 下一节：9.4 异步日志</p>
+<table>
+<thead><tr><th>介质</th><th>特点</th></tr></thead>
+<tbody>
+<tr><td><strong>Microwave</strong></td><td>空气光速 <strong>&gt; 玻璃 ~50%</strong> · <strong>直线</strong> · <strong>最快</strong> · <strong>带宽低 · 天气敏感</strong></td></tr>
+<tr><td><strong>Hollow fiber</strong></td><td>芯内 <strong>空气通道</strong> · 快于实心光纤 · 常接 <strong>DC ↔ 微波塔</strong>（数百码）</td></tr>
+</tbody>
+</table>
+<p><strong>场景：</strong> 芝加哥 ↔ 纽约 <strong>latency arbitrage</strong> — 与 chapter-03 §4 共址 <strong>互补</strong>（机柜内 μs vs 城际 ms）。</p>
+<p>→ chapter-06 §6 广域链路</p>
+<p>← 下一节：9.4 异步日志 · 返回：本章索引</p>
+<h3 id="9-4-移出关键路径-异步日志">9.4 移出关键路径：异步日志</h3>
+<blockquote>
+<p>printf + sync 写盘 = ms 级阻塞 — 热点只许 memcpy 一个 POD</p>
+</blockquote>
+<p>← 上一节：9.3 微波与空芯光纤 · 下一节：9.5 精确测量与基准压测</p>
+<h4 id="为何同步日志致命">为何同步日志致命</h4>
+<table>
+<thead><tr><th>操作</th><th>问题</th></tr></thead>
+<tbody>
+<tr><td><strong><code>printf</code> / fmt</strong></td><td>字符串格式化 <strong>慢</strong></td></tr>
+<tr><td><strong>sync 写盘</strong></td><td><strong>ms 级</strong> · 可能 <strong>阻塞</strong></td></tr>
+</tbody>
+</table>
+<p><strong>热点路径禁止同步日志。</strong></p>
+<h4 id="异步架构">异步架构</h4>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">Critical Path                    Background Core
+─────────────                    ───────────────
+binary event ──► lock-free ring ──► Logger thread
+  (POD, 固定大小)                      │
+                                       ├─ 格式化
+                                       └─ 批量 fsync</code></pre>
+</div>
+<table>
+<thead><tr><th>要点</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><strong>二进制 blob</strong></td><td>热点只 <strong>memcpy 固定 struct</strong></td></tr>
+<tr><td><strong>无锁环</strong></td><td>chapter-07</td></tr>
+<tr><td><strong>专属核</strong></td><td>Logger <strong>不抢</strong> Gateway/Strategy 核</td></tr>
+<tr><td><strong>mmap 缓冲</strong></td><td>可选 <strong>环形文件映射</strong> 批量刷盘</td></tr>
+</tbody>
+</table>
+<p><strong>原则：</strong> 格式化与磁盘 I/O <strong>永不</strong> 在 T2T 路径上执行。</p>
+<p>← 下一节：9.5 精确测量与基准压测 · 返回：本章索引</p>
+<h3 id="9-5-精确性能测量与基准测试">9.5 精确性能测量与基准测试</h3>
+<blockquote>
+<p>消不掉 jitter 就测不出 p99 — T2T 是终极指标</p>
+</blockquote>
+<p>← 上一节：9.4 异步日志 · 返回：本章索引</p>
+<h4 id="消除非确定性-测前必做">消除非确定性（测前必做）</h4>
+<table>
+<thead><tr><th>层</th><th>关闭/固定</th></tr></thead>
+<tbody>
+<tr><td><strong>BIOS</strong></td><td>Turbo · HT · C-states</td></tr>
+<tr><td><strong>OS</strong></td><td><strong>ASLR</strong>（基准时可关）· 无关 IRQ</td></tr>
+<tr><td><strong>负载</strong></td><td><strong>isolcpus</strong> 与生产一致</td></tr>
+</tbody>
+</table>
+<p>否则 <strong>p99 不可复现</strong> — 优化无从谈起。</p>
+<p>→ chapter-05 · chapter-04 §2</p>
+<h4 id="时间戳工具">时间戳工具</h4>
+<table>
+<thead><tr><th>工具</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><strong><code>gettimeofday</code></strong></td><td>常 <strong>syscall</strong> — 测微基准 <strong>慎用</strong></td></tr>
+<tr><td><strong><code>rdtsc</code> / <code>rdtscp</code></strong></td><td>CPU 周期 — <strong>inline</strong> · 需 <strong>频率校准/invariant TSC</strong></td></tr>
+<tr><td><strong><code>std::chrono::high_resolution_clock</code></strong></td><td>C++11 · 实现可能仍 syscall — <strong>benchmark 验证</strong></td></tr>
+<tr><td><strong>NIC PHC 硬件戳</strong></td><td><strong>TTT 金标准</strong> — chapter-06 §5 PTP</td></tr>
+</tbody>
+</table>
+<div class="code">
+<div class="code-head"><span>cpp</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-cpp">inline uint64_t rdtsc() {
+    unsigned hi, lo;
+    __asm__ volatile(&quot;rdtsc&quot; : &quot;=a&quot;(lo), &quot;=d&quot;(hi));
+    return ((uint64_t)hi &lt;&lt; 32) | lo;
+}</code></pre>
+</div>
+<h4 id="端到端-tick-to-trade-ttt-t2t">端到端 Tick-to-Trade (TTT / T2T)</h4>
+<p><strong>终极指标：</strong> 行情进 NIC → 订单出 NIC。</p>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">t1  NIC RX hardware timestamp
+t2  Gateway parse out
+t3  Book update done
+t4  Strategy signal
+t5  OMS risk pass
+t6  Gateway OUT serialize
+t7  NIC TX submit
+…
+T2T = t7 - t1</code></pre>
+</div>
+<table>
+<thead><tr><th>实践</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><strong>每 hop 探针</strong></td><td>定位 <strong>瓶颈组件</strong></td></tr>
+<tr><td><strong>p50/p99/p999</strong></td><td>尾延迟 · 非仅平均</td></tr>
+<tr><td><strong>Replay 压测</strong></td><td>生产 pcap <strong>离线</strong> — chapter-01 §8 实战</td></tr>
+<tr><td><strong>探针开销</strong></td><td>测量工具 <strong>本身</strong> 要 <strong>inline / 采样</strong></td></tr>
+</tbody>
+</table>
+<p>→ 06.6-Systems-Performance</p>
+<p>返回：本章索引</p>
+<aside class="admonition note"><p class="adm-title">来源与许可</p>
+<p>本文整理自 CShonor 的学习笔记仓库 <a href="https://github.com/cshonor/hft-embedded-linux-study" target="_blank" rel="nofollow noopener">hft-embedded-linux-study</a> 的 <code>14-hft-engineering</code> 模块（HFT 工程实践；该模块标注了与原书 Ch1–11 的对应关系，Ch10–13 为仓库自扩展章节），经作者授权以 CC BY 4.0 在本站署名发布。</p>
+</aside>

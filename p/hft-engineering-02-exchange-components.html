@@ -1,0 +1,150 @@
+<h3 id="2-1-关键路径总览与网关-gateways">2.1 关键路径总览与网关（Gateways）</h3>
+<blockquote>
+<p>T2T = 行情进 → 决策 → 订单出；Gateway IN/OUT 分进程分核</p>
+</blockquote>
+<p>第二章回答：<strong>如何把高频交易策略变成实时软件，并与交易所（或 ECN、暗池）连接、实际下单。</strong></p>
+<table>
+<thead><tr><th>划分</th><th>含义</th></tr></thead>
+<tbody>
+<tr><td><strong>关键路径（Critical Path）</strong></td><td>行情进 → 决策 → 订单出；总延迟 = <strong>Tick-to-Trade（T2T）</strong></td></tr>
+<tr><td><strong>非关键路径</strong></td><td>监控、日志、参数下发 — <strong>不</strong>参与 ns/μs 级下单决策，但 <strong>系统可运维</strong></td></tr>
+</tbody>
+</table>
+<h4 id="关键路径总览">关键路径总览</h4>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">External ──► Gateway IN ──► Book Builder ──► Strategy ──► OMS ──► Gateway OUT ──► Exchange
+  (ECN/暗池)      │              │           Signal/Exec    风控      │
+               协议解析        本地 LOB                         订单+回报</code></pre>
+</div>
+<p><strong>T2T</strong> = 上述链路 <strong>纯处理时间</strong>（常另加 <strong>网络 RTT</strong>）。HFT 优化 <strong>每一跳</strong>。</p>
+<p>→ chapter-09 测量 T2T</p>
+<h4 id="网关">网关</h4>
+<p>交易系统与 <strong>外部流动性场所</strong> 的桥梁。</p>
+<h5 id="gateway-in">Gateway IN</h5>
+<table>
+<thead><tr><th>职责</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><strong>收行情</strong></td><td>从交易所网络接收 <strong>market data</strong></td></tr>
+<tr><td><strong>协议解析</strong></td><td>外部格式（ITCH/FAST/SBE 等）→ <strong>内部统一 Event struct</strong></td></tr>
+<tr><td><strong>时间戳</strong></td><td>尽早 <strong>硬件打戳</strong>（NIC PHC）</td></tr>
+</tbody>
+</table>
+<h5 id="gateway-out">Gateway OUT</h5>
+<table>
+<thead><tr><th>职责</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><strong>发订单</strong></td><td>New / Cancel / Replace</td></tr>
+<tr><td><strong>收回报</strong></td><td>Ack / Fill / Reject — 驱动 <strong>Execution</strong> 与 OMS 状态机</td></tr>
+</tbody>
+</table>
+<p><strong>工程习惯：</strong> IN / OUT <strong>分进程或分核</strong> — 避免收发包、解析 <strong>争用</strong> 同一线程。</p>
+<p>→ chapter-06 协议与传输</p>
+<h3 id="2-2-订单簿构建器-book-builder">2.2 订单簿构建器（Book Builder）</h3>
+<blockquote>
+<p>feed 增量 → 本地 LOB 副本；O(1) 更新 + 预分配数组，策略零 RTT 读 BBO</p>
+</blockquote>
+<p><strong>输入：</strong> Gateway IN 的 add / modify / delete / trade。
+<strong>输出：</strong> 本地 <strong>Limit Order Book（LOB）</strong> — 策略 <strong>零 RTT</strong> 读 BBO/深度。</p>
+<table>
+<thead><tr><th>要求</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><strong>时间复杂度</strong></td><td>插入/改/删 <strong>O(1)</strong> 或接近（按价 <strong>索引</strong>）</td></tr>
+<tr><td><strong>数据结构</strong></td><td><strong>预分配 array/vector</strong> 优于 <strong>链表</strong> — <strong>cache locality</strong></td></tr>
+<tr><td><strong>内存</strong></td><td><strong>Memory pool</strong> 预分配 price level；热点 <strong>无 malloc</strong></td></tr>
+</tbody>
+</table>
+<h4 id="与交易所-lob-的关系">与交易所 LOB 的关系</h4>
+<table>
+<thead><tr><th></th><th><strong>交易所 LOB</strong></th><th><strong>本地 Book Builder</strong></th></tr></thead>
+<tbody>
+<tr><td><strong>权威</strong></td><td>撮合 <strong>真相源</strong></td><td>Feed <strong>重建副本</strong></td></tr>
+<tr><td><strong>策略读谁</strong></td><td>不远程查 — <strong>只读本地</strong></td><td>必须 <strong>与 feed 同步</strong></td></tr>
+</tbody>
+</table>
+<p>→ 实现深化：chapter-03 交易所动态与 LOB</p>
+<h3 id="2-3-策略引擎与-oms">2.3 策略引擎与 OMS</h3>
+<blockquote>
+<p>Strategy = Signal + Execution；OMS 内部风控前置——违规单不出门</p>
+</blockquote>
+<h4 id="策略引擎-strategy">策略引擎（Strategy）</h4>
+<p>系统 <strong>大脑</strong>，两子模块：</p>
+<h5 id="signal-信号">Signal（信号）</h5>
+<ul>
+<li>消费 <strong>Book</strong> 更新</li>
+<li>输出 <strong>交易意图</strong>（方向、价格、量、 urgency）</li>
+</ul>
+<h5 id="execution-执行">Execution（执行）</h5>
+<ul>
+<li>处理 <strong>市场反馈</strong> — 如 <strong>Reject（太慢/价格越界）</strong> 后的 <strong>改价/撤单/放弃</strong></li>
+<li>与 OMS / Gateway OUT <strong>协作</strong>，非「发完即忘」</li>
+</ul>
+<p>| 延迟要点 | 无虚函数热点路径 · 分支可预测 · 与 Book <strong>无锁</strong> 接口 |</p>
+<p>→ chapter-12 策略 · chapter-08 关键路径组件</p>
+<h4 id="订单管理系统-oms">订单管理系统（OMS）</h4>
+<table>
+<thead><tr><th>职责</th><th>T2T 价值</th></tr></thead>
+<tbody>
+<tr><td><strong>生命周期</strong></td><td>Created → Sent → Ack → PartialFill → Done / Cancelled / Rejected</td></tr>
+<tr><td><strong>内部风控</strong></td><td>量/价/频率/敞口 <strong>违规 → 本地拒单</strong></td></tr>
+<tr><td><strong>合规</strong></td><td>不等交易所 <strong>Reject RTT</strong> 即可拦截</td></tr>
+</tbody>
+</table>
+<p><strong>原则：</strong> 可疑订单 <strong>不出 Gateway OUT</strong> — 省 <strong>往返延迟</strong> 与 <strong>交易所罚则风险</strong>。</p>
+<p>→ chapter-10 风控合规</p>
+<h3 id="2-4-网络通信与-api">2.4 网络通信与 API</h3>
+<blockquote>
+<p>订单 TCP · 行情 UDP 组播；协议栈位置、NUMA、PTP 三考量</p>
+</blockquote>
+<table>
+<thead><tr><th>层</th><th>选择</th></tr></thead>
+<tbody>
+<tr><td><strong>API</strong></td><td>交易所指定 <strong>二进制会话 + 序列化格式</strong></td></tr>
+<tr><td><strong>传输</strong></td><td><strong>TCP</strong> — 可靠、有序（订单常 TCP）</td></tr>
+<tr><td></td><td><strong>UDP</strong> — 不保证送达、<strong>更低开销</strong>（行情常 UDP 组播）</td></tr>
+<tr><td><strong>物理</strong></td><td>光纤 vs <strong>微波/空芯</strong> — 跨地域 <strong>延迟套利</strong> 基础设施</td></tr>
+</tbody>
+</table>
+<p><strong>系统设计关键考量：</strong> 协议栈位置（内核 vs <strong>kernel bypass</strong>）、<strong>同 NUMA 绑核</strong>、<strong>PTP 时钟</strong>。</p>
+<p>→ chapter-05 OS · chapter-06</p>
+<h3 id="2-5-非关键路径组件">2.5 非关键路径组件</h3>
+<blockquote>
+<p>C&amp;C · Position Server · Logging · Viewers — 不参与决策但生产必备</p>
+</blockquote>
+<p>不参与 <strong>纳秒级下单决策</strong>，但 <strong>生产必备</strong>：</p>
+<table>
+<thead><tr><th>组件</th><th>作用</th></tr></thead>
+<tbody>
+<tr><td><strong>Command &amp; Control</strong></td><td>交易员 <strong>启停组件、改参数</strong> — 与热点 <strong>隔离</strong></td></tr>
+<tr><td><strong>Position Server</strong></td><td><strong>汇总仓位</strong>；OMS/Strategy <strong>订阅</strong> 防超限</td></tr>
+<tr><td><strong>Logging</strong></td><td>异步 <strong>环形缓冲</strong> 落盘 — <strong>不在热点 sync 写</strong></td></tr>
+<tr><td><strong>Viewers</strong></td><td><strong>只读</strong> 监控订单/成交/告警</td></tr>
+</tbody>
+</table>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">        ┌── Command &amp; Control
+        │
+Hot ────┼── Gateway…Strategy…OMS  ──── Logging (async)
+ path   │
+        └── Position Server ◄── subscribe ── OMS / Strategy
+
+        Viewers (read-only monitor)</code></pre>
+</div>
+<p>→ chapter-11 实盘运维 · chapter-07 无锁日志环</p>
+<h3 id="2-6-撮合原理-策略视角">2.6 撮合原理（策略视角）</h3>
+<blockquote>
+<p>Price-time priority → queue position；更快的 BBO 反应 = latency arb</p>
+</blockquote>
+<table>
+<thead><tr><th>概念</th><th>HFT 含义</th></tr></thead>
+<tbody>
+<tr><td><strong>Price-time priority</strong></td><td>同价 <strong>先到先得</strong> — queue position</td></tr>
+<tr><td><strong>BBO</strong></td><td>Signal 最常消费</td></tr>
+<tr><td><strong>Latency arb</strong></td><td>更快 <strong>看见/行动</strong> BBO 变化</td></tr>
+</tbody>
+</table>
+<p>深入理论 → 19-markets-microstructure · chapter-03 同价匹配算法</p>
+<aside class="admonition note"><p class="adm-title">来源与许可</p>
+<p>本文整理自 CShonor 的学习笔记仓库 <a href="https://github.com/cshonor/hft-embedded-linux-study" target="_blank" rel="nofollow noopener">hft-embedded-linux-study</a> 的 <code>14-hft-engineering</code> 模块（HFT 工程实践；该模块标注了与原书 Ch1–11 的对应关系，Ch10–13 为仓库自扩展章节），经作者授权以 CC BY 4.0 在本站署名发布。</p>
+</aside>

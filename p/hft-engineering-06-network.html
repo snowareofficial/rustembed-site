@@ -1,0 +1,141 @@
+<h3 id="6-1-网络硬件与交换机">6.1 网络硬件与交换机</h3>
+<blockquote>
+<p>机柜内延迟 = 交换机模式 + NIC — 共址后这成了 T2T 预算的大头</p>
+</blockquote>
+<p>← 上一章：chapter-05 OS 调优 · 下一节：6.2 TCP 与 UDP</p>
+<h4 id="网络基础与硬件">网络基础与硬件</h4>
+<p>HFT 主要关注 <strong>OSI 底层 + 传输层</strong>：物理 · 数据链路 · 网络(IPv4) · 传输(TCP/UDP)。</p>
+<table>
+<thead><tr><th>设备</th><th>作用</th><th>HFT 关注点</th></tr></thead>
+<tbody>
+<tr><td><strong>NIC</strong></td><td>主机↔外界</td><td><strong>PCIe 代际</strong> · <strong>10/25/100G</strong> · <strong>光纤口</strong> · <strong>硬件时间戳</strong></td></tr>
+<tr><td><strong>Switch</strong></td><td>LAN 转发</td><td><strong>Cut-through</strong> · <strong>HOL 阻塞</strong> · 端口延迟</td></tr>
+</tbody>
+</table>
+<p><strong>NUMA：</strong> NIC 与 <strong>收包线程同 node</strong> → chapter-04 §1 NUMA</p>
+<h4 id="交换机转发模式-延迟关键">交换机转发模式（延迟关键）</h4>
+<p>出口拥堵 → <strong>排队延迟</strong> · <strong>丢包</strong> · <strong>HOL（Head-of-Line）阻塞</strong>。</p>
+<table>
+<thead><tr><th>模式</th><th>行为</th><th>HFT</th></tr></thead>
+<tbody>
+<tr><td><strong>Store-and-forward</strong></td><td>收 <strong>整帧</strong> + <strong>CRC</strong> 后转发</td><td><strong>慢</strong> — 不适合</td></tr>
+<tr><td><strong>Cut-through</strong></td><td>读 <strong>前若干字节</strong>（如 <strong>目标 MAC 6B</strong> 或 <strong>64B fragment-free</strong>）即转发</td><td><strong>首选</strong></td></tr>
+<tr><td><strong>Layer-1 Switch</strong></td><td>物理层 <strong>跳线</strong>（Arista/Cisco 等）— <strong>不解析修改头部</strong></td><td><strong>极低延迟</strong></td></tr>
+</tbody>
+</table>
+<p><strong>共址机柜内</strong> 交换机选型与 <strong>NIC 延迟</strong> 同为 <strong>T2T 预算</strong> 一部分。</p>
+<p>← 下一节：6.2 TCP 与 UDP · 返回：本章索引</p>
+<h3 id="6-2-tcp-与-udp">6.2 TCP 与 UDP</h3>
+<blockquote>
+<p>订单要可靠有序（TCP 会话），行情要快（UDP 组播）— 各走各路</p>
+</blockquote>
+<p>← 上一节：6.1 网络硬件与交换机 · 下一节：6.3 金融应用层协议</p>
+<table>
+<thead><tr><th></th><th><strong>TCP</strong></th><th><strong>UDP</strong></th></tr></thead>
+<tbody>
+<tr><td><strong>语义</strong></td><td>可靠 · 有序</td><td>无连接 · <strong>不保证送达</strong></td></tr>
+<tr><td><strong>开销</strong></td><td>握手 · 重传</td><td><strong>低</strong></td></tr>
+<tr><td><strong>HFT 分工</strong></td><td><strong>订单 (Orders)</strong> — 关键会话</td><td><strong>行情 (Market Data)</strong> — 常 <strong>Multicast</strong></td></tr>
+<tr><td><strong>趋势</strong></td><td>传统 OUCH 多 TCP</td><td><strong>UFO</strong> 等 — <strong>UDP 发单</strong> 追极致速度</td></tr>
+</tbody>
+</table>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">Market Data:  Exchange ──UDP multicast──► Gateway IN
+Orders:       Gateway OUT ──TCP or UDP──► Exchange</code></pre>
+</div>
+<p>→ chapter-02 Gateway</p>
+<p>← 下一节：6.3 金融应用层协议 · 返回：本章索引</p>
+<h3 id="6-3-金融应用层协议">6.3 金融应用层协议</h3>
+<blockquote>
+<p>二进制固定布局 μs 级解析 — 字符串协议（FIX）只在控制面生存</p>
+</blockquote>
+<p>← 上一节：6.2 TCP 与 UDP · 下一节：6.4 数据包生命周期</p>
+<h4 id="协议演进">协议演进</h4>
+<table>
+<thead><tr><th>协议</th><th>特点</th><th>HFT</th></tr></thead>
+<tbody>
+<tr><td><strong>FIX</strong></td><td><strong>字符串</strong> · 人类可读 · 解析慢</td><td>控制面/legacy</td></tr>
+<tr><td><strong>FAST</strong></td><td>UDP + <strong>压缩/增量</strong> · 解压耗 CPU</td><td>过渡</td></tr>
+<tr><td><strong>二进制（首选）</strong></td><td><strong>ITCH</strong>（行情）· <strong>OUCH</strong>（订单）· <strong>CME SBE</strong></td><td><strong>固定布局 · μs 解析</strong></td></tr>
+</tbody>
+</table>
+<h4 id="gateway-in-解码">Gateway IN 解码</h4>
+<p>wire format → <strong>cast/模板解码</strong> — 避免字符串扫描。</p>
+<p>→ 19-markets-microstructure</p>
+<p>← 下一节：6.4 数据包生命周期 · 返回：本章索引</p>
+<h3 id="6-4-数据包生命周期-kernel-路径">6.4 数据包生命周期（Kernel 路径）</h3>
+<blockquote>
+<p>六步、每步 μs 级累积 + 缓存污染 — 这就是 Kernel Bypass 存在的理由</p>
+</blockquote>
+<p>← 上一节：6.3 金融应用层协议 · 下一节：6.5 监控与时间同步</p>
+<p>交易所数据到达 <strong>NIC</strong> 后的 <strong>传统 Linux 路径</strong>：</p>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">1. NIC DMA → RX ring buffer（内存）
+2. 硬件 IRQ → CPU 打断用户态
+3. 用户态 → 内核态（中断处理）
+4. 分配 sk_buff · 剥 L2/L3/L4 头
+5. 放入 socket 接收队列
+6. 应用 recv() 再拷贝到用户缓冲</code></pre>
+</div>
+<table>
+<thead><tr><th>问题</th><th>每一步 <strong>μs 级</strong> 累积 + <strong>缓存污染</strong></th></tr></thead>
+<tbody>
+</tbody>
+</table>
+<h4 id="这就是为什么需要-kernel-bypass">这就是为什么需要 Kernel Bypass</h4>
+<ul>
+<li><strong>OpenOnload / DPDK</strong> — 用户态 <strong>直接 poll RX ring</strong> · <strong>零拷贝</strong></li>
+<li>详见 chapter-05 §3 Kernel Bypass</li>
+</ul>
+<p>→ 13-DPDK Intro</p>
+<p>← 下一节：6.5 监控与时间同步 · 返回：本章索引</p>
+<h3 id="6-5-监控与时间同步">6.5 监控与时间同步</h3>
+<blockquote>
+<p>监控永不触碰生产路径（TAP 带外）；时间要 ns 级（PTP + NIC 硬件戳）</p>
+</blockquote>
+<p>← 上一节：6.4 数据包生命周期 · 下一节：6.6 广域链路</p>
+<h4 id="抓包-tap">抓包：TAP</h4>
+<table>
+<thead><tr><th>设备</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><strong>Passive TAP</strong></td><td><strong>分光</strong> 复制流量 · <strong>不需电源</strong> · <strong>不增加原链路延迟</strong></td></tr>
+<tr><td>用途</td><td>离线分析 · 对照 <strong>硬件时间戳</strong></td></tr>
+</tbody>
+</table>
+<p><strong>原则：</strong> 监控 <strong>不能</strong> 影响生产路径 — TAP <strong>带外</strong>。</p>
+<h4 id="ptp-精确时间协议">PTP（精确时间协议）</h4>
+<table>
+<thead><tr><th></th><th><strong>NTP</strong></th><th><strong>PTP (IEEE 1588)</strong></th></tr></thead>
+<tbody>
+<tr><td>精度</td><td>ms 级</td><td><strong>ns~ps 级</strong>（硬件打戳）</td></tr>
+<tr><td>HFT</td><td>不够</td><td><strong>T2T / 共址测量基石</strong></td></tr>
+</tbody>
+</table>
+<ul>
+<li>源：<strong>GPS / 原子钟</strong></li>
+<li><strong>NIC PHC</strong> 打戳优于纯软件 <code>clock_gettime</code></li>
+</ul>
+<p>→ chapter-09 T2T 测量</p>
+<p>← 下一节：6.6 广域链路 · 返回：本章索引</p>
+<h3 id="6-6-广域链路">6.6 广域链路</h3>
+<blockquote>
+<p>微波比光纤快 ~1/3 — 跨所延迟套利（CME ↔ NYSE）买的是物理</p>
+</blockquote>
+<p>← 上一节：6.5 监控与时间同步 · 返回：本章索引</p>
+<p>跨数据中心 <strong>Latency Arbitrage</strong>（如 <strong>CME ↔ NYSE</strong>）：</p>
+<table>
+<thead><tr><th>介质</th><th>特点</th></tr></thead>
+<tbody>
+<tr><td><strong>传统光纤</strong></td><td>光在玻璃 <strong>~2/3 c</strong> · 带宽高 · 稳定</td></tr>
+<tr><td><strong>Microwave 微波</strong></td><td>空气 <strong>~c</strong> · <strong>直线</strong> · <strong>最快</strong> · <strong>带宽极低</strong> · <strong>雨/云干扰</strong></td></tr>
+<tr><td><strong>Hollow fiber 空芯光纤</strong></td><td>芯内 <strong>空气通道</strong> · 快于实心 · 常 <strong>DC ↔ 微波塔</strong>（~数百码）</td></tr>
+</tbody>
+</table>
+<p><strong>工程现实：</strong> 容量、天气、许可、成本 — 与 <strong>共址 + Cut-through</strong> 同属基础设施栈。</p>
+<p>→ 详见 chapter-09 §3 微波与空芯光纤</p>
+<p>返回：本章索引</p>
+<aside class="admonition note"><p class="adm-title">来源与许可</p>
+<p>本文整理自 CShonor 的学习笔记仓库 <a href="https://github.com/cshonor/hft-embedded-linux-study" target="_blank" rel="nofollow noopener">hft-embedded-linux-study</a> 的 <code>14-hft-engineering</code> 模块（HFT 工程实践；该模块标注了与原书 Ch1–11 的对应关系，Ch10–13 为仓库自扩展章节），经作者授权以 CC BY 4.0 在本站署名发布。</p>
+</aside>

@@ -1,0 +1,17 @@
+{
+ "source": "extractive",
+ "one_line": "上线门禁清单、监控与报警怎么看、Kill Switch 分级、Capture/Replay 与故障降级矩阵。",
+ "points": [
+  "11.1 上线前检查清单（门禁）",
+  "11.2 监控：看什么、怎么报警",
+  "监控分层",
+  "报警哲学",
+  "关键盲区：静默失败",
+  "11.3 Kill Switch 分级"
+ ],
+ "keywords": [
+  "hft",
+  "performance"
+ ],
+ "reading": 9
+}

@@ -1,0 +1,18 @@
+{
+ "source": "extractive",
+ "one_line": "NUMA、超线程与缓存金字塔对延迟的影响，以及操作系统抽象与编译器链接的代价。",
+ "points": [
+  "4.1 NUMA、超线程与缓存金字塔",
+  "NUMA（非统一内存访问）",
+  "超线程（Hyper-threading）陷阱",
+  "缓存金字塔（Cache Hierarchy）",
+  "4.2 操作系统抽象的代价",
+  "User Space vs Kernel Space"
+ ],
+ "keywords": [
+  "hft",
+  "linux",
+  "performance"
+ ],
+ "reading": 7
+}
