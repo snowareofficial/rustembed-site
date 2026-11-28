@@ -1,0 +1,14 @@
+{
+ "source": "extractive",
+ "one_line": "Rust 标准库的特点与常用模块速查。",
+ "points": [
+  "1.18.1 Rust 标准库的特点",
+  "1.18.2 Rust 标准库模块（速查）",
+  "trait 的设计哲学"
+ ],
+ "keywords": [
+  "rust",
+  "标准库"
+ ],
+ "reading": 5
+}

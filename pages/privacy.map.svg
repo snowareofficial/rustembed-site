@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="360" height="220" viewBox="0 0 360 220" font-family="-apple-system,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif">
+<title>隐私与数据</title>
+<style>.nd{fill:#fff;stroke:#e4dfd6;rx:8} .rt{fill:#f6efe6;stroke:#d9c9b0}.tx{font-size:13px;fill:#23201c} .lk{cursor:pointer}.lk:hover .nd{stroke:#b4552d;fill:#fff8f2} .ed{fill:none;stroke:#ddd6c9;stroke-width:1.4}</style>
+<g class="edges">
+<path class="ed" d="M120.0 110.0 C143.0 110.0 143.0 34.0 166.0 34.0"/>
+<path class="ed" d="M120.0 110.0 C143.0 110.0 143.0 72.0 166.0 72.0"/>
+<path class="ed" d="M120.0 110.0 C143.0 110.0 143.0 110.0 166.0 110.0"/>
+<path class="ed" d="M120.0 110.0 C143.0 110.0 143.0 148.0 166.0 148.0"/>
+<path class="ed" d="M120.0 110.0 C143.0 110.0 143.0 186.0 166.0 186.0"/>
+</g>
+<g class="nodes">
+<rect class="nd rt" x="20.0" y="96.0" width="100.0" height="28" rx="8"/><text class="tx" x="30.0" y="115.0">隐私与数据</text>
+<a class="lk" href="#/page/privacy/我们不做的事" xlink:href="#/page/privacy/我们不做的事"><rect class="nd" x="166.0" y="20.0" width="114.8" height="28" rx="8"/><text class="tx" x="176.0" y="39.0">我们不做的事</text></a>
+<a class="lk" href="#/page/privacy/我们会处理的少量数据" xlink:href="#/page/privacy/我们会处理的少量数据"><rect class="nd" x="166.0" y="58.0" width="174.0" height="28" rx="8"/><text class="tx" x="176.0" y="77.0">我们会处理的少量数据</text></a>
+<a class="lk" href="#/page/privacy/图片与个人信息" xlink:href="#/page/privacy/图片与个人信息"><rect class="nd" x="166.0" y="96.0" width="129.6" height="28" rx="8"/><text class="tx" x="176.0" y="115.0">图片与个人信息</text></a>
+<a class="lk" href="#/page/privacy/密钥" xlink:href="#/page/privacy/密钥"><rect class="nd" x="166.0" y="134.0" width="96.0" height="28" rx="8"/><text class="tx" x="176.0" y="153.0">密钥</text></a>
+<a class="lk" href="#/page/privacy/安全问题的报告" xlink:href="#/page/privacy/安全问题的报告"><rect class="nd" x="166.0" y="172.0" width="129.6" height="28" rx="8"/><text class="tx" x="176.0" y="191.0">安全问题的报告</text></a>
+</g></svg>

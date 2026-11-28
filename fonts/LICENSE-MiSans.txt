@@ -1,0 +1,49 @@
+MiSans 字体许可与来源说明
+======================================================================
+
+本目录（site/fonts/）下的字体文件是从小米 MiSans 字体派生的**构建期子集**，
+不在仓库内保存源字体（见 /.gitignore：site/fonts/src/、*.ttf、*.otf、*.zip）。
+
+  site/fonts/subset/misans-regular.woff   由 MiSans-Regular 子集化
+  site/fonts/subset/misans-bold.woff      由 MiSans-Bold 子集化
+  site/fonts/subset/.stamp.json           子集指纹（决定是否重建）
+
+字体版权
+----------------------------------------------------------------------
+
+MiSans 字体由小米科技（Xiaomi）开发并持有版权。
+小米在 2021 年发布 MiSans 时宣布该字体**面向全社会免费商用**；
+官方「关于」页亦说明「所有公众也都可以免费使用这款字体」。
+
+  官方字体页：   https://hyperos.mi.com/font/zh/
+  官方关于页：   https://hyperos.mi.com/font/zh/about/
+  官方 FAQ：     https://hyperos.mi.com/font/faq
+  官方许可协议（权威正文，PDF）：
+                 https://hyperos.mi.com/font-download/MiSans字体知识产权许可协议.pdf
+
+为什么这里没有附协议全文
+----------------------------------------------------------------------
+
+上游分发的 MiSans 压缩包（MiSans.zip）**不含任何许可或说明文件**
+（已核验：包内 43 个有效条目全部是 woff / ttf / otf / woff2 字体二进制）。
+
+MiSans 的许可协议正文只以 PDF 形式发布在中文字体下载地址上。
+为避免把协议正文抄错——抄错比不抄更糟——此处只给出权威地址，
+**不转载、不改写协议条文**。
+
+如果希望发布产物离线自带完整协议文本，请管理员从上面的 PDF 链接
+取得官方正文后，原样另存为本目录下的：
+
+  site/fonts/LICENSE-MiSans-full.txt
+
+构建脚本会自动把 site/fonts/LICENSE* 拷进产物（engine/build.py 的 build_fonts），
+产物页面 dist/fonts.css 里「字体许可见 fonts/LICENSE-*」指的就是这些文件。
+
+使用与再分发的边界
+----------------------------------------------------------------------
+
+- 本项目是**自托管**字体子集：页面不向任何第三方 CDN 请求字体，
+  与此对应的是站点「隐私与数据」页的承诺（静态资源自托管、不请求第三方 CDN）。
+- 转载、二次分发本字体或其派生文件时，请以小米官方协议为准，
+  并保留本说明中的官方地址。
+- 若小米后续更新协议条款，以官方最新发布为准。

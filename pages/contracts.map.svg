@@ -1,0 +1,256 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="465" height="4096" viewBox="0 0 465 4096" font-family="-apple-system,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif">
+<title>内容契约</title>
+<style>.nd{fill:#fff;stroke:#e4dfd6;rx:8} .rt{fill:#f6efe6;stroke:#d9c9b0}.tx{font-size:13px;fill:#23201c} .lk{cursor:pointer}.lk:hover .nd{stroke:#b4552d;fill:#fff8f2} .ed{fill:none;stroke:#ddd6c9;stroke-width:1.4}</style>
+<g class="edges">
+<path class="ed" d="M116.0 2086.0 C139.0 2086.0 139.0 129.0 162.0 129.0"/>
+<path class="ed" d="M116.0 2086.0 C139.0 2086.0 139.0 623.0 162.0 623.0"/>
+<path class="ed" d="M116.0 2086.0 C139.0 2086.0 139.0 1041.0 162.0 1041.0"/>
+<path class="ed" d="M116.0 2086.0 C139.0 2086.0 139.0 1212.0 162.0 1212.0"/>
+<path class="ed" d="M116.0 2086.0 C139.0 2086.0 139.0 1459.0 162.0 1459.0"/>
+<path class="ed" d="M116.0 2086.0 C139.0 2086.0 139.0 1668.0 162.0 1668.0"/>
+<path class="ed" d="M116.0 2086.0 C139.0 2086.0 139.0 1801.0 162.0 1801.0"/>
+<path class="ed" d="M116.0 2086.0 C139.0 2086.0 139.0 2200.0 162.0 2200.0"/>
+<path class="ed" d="M116.0 2086.0 C139.0 2086.0 139.0 2694.0 162.0 2694.0"/>
+<path class="ed" d="M116.0 2086.0 C139.0 2086.0 139.0 2903.0 162.0 2903.0"/>
+<path class="ed" d="M116.0 2086.0 C139.0 2086.0 139.0 3150.0 162.0 3150.0"/>
+<path class="ed" d="M116.0 2086.0 C139.0 2086.0 139.0 3397.0 162.0 3397.0"/>
+<path class="ed" d="M116.0 2086.0 C139.0 2086.0 139.0 3492.0 162.0 3492.0"/>
+<path class="ed" d="M116.0 2086.0 C139.0 2086.0 139.0 3530.0 162.0 3530.0"/>
+<path class="ed" d="M116.0 2086.0 C139.0 2086.0 139.0 3663.0 162.0 3663.0"/>
+<path class="ed" d="M116.0 2086.0 C139.0 2086.0 139.0 3891.0 162.0 3891.0"/>
+<path class="ed" d="M116.0 2086.0 C139.0 2086.0 139.0 4043.0 162.0 4043.0"/>
+<path class="ed" d="M262.0 129.0 C288.7 129.0 288.7 34.0 315.4 34.0"/>
+<path class="ed" d="M262.0 129.0 C288.7 129.0 288.7 72.0 315.4 72.0"/>
+<path class="ed" d="M262.0 129.0 C288.7 129.0 288.7 110.0 315.4 110.0"/>
+<path class="ed" d="M262.0 129.0 C288.7 129.0 288.7 148.0 315.4 148.0"/>
+<path class="ed" d="M262.0 129.0 C288.7 129.0 288.7 186.0 315.4 186.0"/>
+<path class="ed" d="M262.0 129.0 C288.7 129.0 288.7 224.0 315.4 224.0"/>
+<path class="ed" d="M258.0 623.0 C286.7 623.0 286.7 262.0 315.4 262.0"/>
+<path class="ed" d="M258.0 623.0 C286.7 623.0 286.7 300.0 315.4 300.0"/>
+<path class="ed" d="M258.0 623.0 C286.7 623.0 286.7 338.0 315.4 338.0"/>
+<path class="ed" d="M258.0 623.0 C286.7 623.0 286.7 376.0 315.4 376.0"/>
+<path class="ed" d="M258.0 623.0 C286.7 623.0 286.7 414.0 315.4 414.0"/>
+<path class="ed" d="M258.0 623.0 C286.7 623.0 286.7 452.0 315.4 452.0"/>
+<path class="ed" d="M258.0 623.0 C286.7 623.0 286.7 490.0 315.4 490.0"/>
+<path class="ed" d="M258.0 623.0 C286.7 623.0 286.7 528.0 315.4 528.0"/>
+<path class="ed" d="M258.0 623.0 C286.7 623.0 286.7 566.0 315.4 566.0"/>
+<path class="ed" d="M258.0 623.0 C286.7 623.0 286.7 604.0 315.4 604.0"/>
+<path class="ed" d="M258.0 623.0 C286.7 623.0 286.7 642.0 315.4 642.0"/>
+<path class="ed" d="M258.0 623.0 C286.7 623.0 286.7 680.0 315.4 680.0"/>
+<path class="ed" d="M258.0 623.0 C286.7 623.0 286.7 718.0 315.4 718.0"/>
+<path class="ed" d="M258.0 623.0 C286.7 623.0 286.7 756.0 315.4 756.0"/>
+<path class="ed" d="M258.0 623.0 C286.7 623.0 286.7 794.0 315.4 794.0"/>
+<path class="ed" d="M258.0 623.0 C286.7 623.0 286.7 832.0 315.4 832.0"/>
+<path class="ed" d="M258.0 623.0 C286.7 623.0 286.7 870.0 315.4 870.0"/>
+<path class="ed" d="M258.0 623.0 C286.7 623.0 286.7 908.0 315.4 908.0"/>
+<path class="ed" d="M258.0 623.0 C286.7 623.0 286.7 946.0 315.4 946.0"/>
+<path class="ed" d="M258.0 623.0 C286.7 623.0 286.7 984.0 315.4 984.0"/>
+<path class="ed" d="M258.0 1041.0 C286.7 1041.0 286.7 1022.0 315.4 1022.0"/>
+<path class="ed" d="M258.0 1041.0 C286.7 1041.0 286.7 1060.0 315.4 1060.0"/>
+<path class="ed" d="M258.0 1212.0 C286.7 1212.0 286.7 1098.0 315.4 1098.0"/>
+<path class="ed" d="M258.0 1212.0 C286.7 1212.0 286.7 1136.0 315.4 1136.0"/>
+<path class="ed" d="M258.0 1212.0 C286.7 1212.0 286.7 1174.0 315.4 1174.0"/>
+<path class="ed" d="M258.0 1212.0 C286.7 1212.0 286.7 1212.0 315.4 1212.0"/>
+<path class="ed" d="M258.0 1212.0 C286.7 1212.0 286.7 1250.0 315.4 1250.0"/>
+<path class="ed" d="M258.0 1212.0 C286.7 1212.0 286.7 1288.0 315.4 1288.0"/>
+<path class="ed" d="M258.0 1212.0 C286.7 1212.0 286.7 1326.0 315.4 1326.0"/>
+<path class="ed" d="M269.4 1459.0 C292.4 1459.0 292.4 1364.0 315.4 1364.0"/>
+<path class="ed" d="M269.4 1459.0 C292.4 1459.0 292.4 1402.0 315.4 1402.0"/>
+<path class="ed" d="M269.4 1459.0 C292.4 1459.0 292.4 1440.0 315.4 1440.0"/>
+<path class="ed" d="M269.4 1459.0 C292.4 1459.0 292.4 1478.0 315.4 1478.0"/>
+<path class="ed" d="M269.4 1459.0 C292.4 1459.0 292.4 1516.0 315.4 1516.0"/>
+<path class="ed" d="M269.4 1459.0 C292.4 1459.0 292.4 1554.0 315.4 1554.0"/>
+<path class="ed" d="M258.0 1668.0 C286.7 1668.0 286.7 1592.0 315.4 1592.0"/>
+<path class="ed" d="M258.0 1668.0 C286.7 1668.0 286.7 1630.0 315.4 1630.0"/>
+<path class="ed" d="M258.0 1668.0 C286.7 1668.0 286.7 1668.0 315.4 1668.0"/>
+<path class="ed" d="M258.0 1668.0 C286.7 1668.0 286.7 1706.0 315.4 1706.0"/>
+<path class="ed" d="M258.0 1668.0 C286.7 1668.0 286.7 1744.0 315.4 1744.0"/>
+<path class="ed" d="M258.0 1801.0 C286.7 1801.0 286.7 1782.0 315.4 1782.0"/>
+<path class="ed" d="M258.0 1801.0 C286.7 1801.0 286.7 1820.0 315.4 1820.0"/>
+<path class="ed" d="M258.0 2200.0 C286.7 2200.0 286.7 1858.0 315.4 1858.0"/>
+<path class="ed" d="M258.0 2200.0 C286.7 2200.0 286.7 1896.0 315.4 1896.0"/>
+<path class="ed" d="M258.0 2200.0 C286.7 2200.0 286.7 1934.0 315.4 1934.0"/>
+<path class="ed" d="M258.0 2200.0 C286.7 2200.0 286.7 1972.0 315.4 1972.0"/>
+<path class="ed" d="M258.0 2200.0 C286.7 2200.0 286.7 2010.0 315.4 2010.0"/>
+<path class="ed" d="M258.0 2200.0 C286.7 2200.0 286.7 2048.0 315.4 2048.0"/>
+<path class="ed" d="M258.0 2200.0 C286.7 2200.0 286.7 2086.0 315.4 2086.0"/>
+<path class="ed" d="M258.0 2200.0 C286.7 2200.0 286.7 2124.0 315.4 2124.0"/>
+<path class="ed" d="M258.0 2200.0 C286.7 2200.0 286.7 2162.0 315.4 2162.0"/>
+<path class="ed" d="M258.0 2200.0 C286.7 2200.0 286.7 2200.0 315.4 2200.0"/>
+<path class="ed" d="M258.0 2200.0 C286.7 2200.0 286.7 2238.0 315.4 2238.0"/>
+<path class="ed" d="M258.0 2200.0 C286.7 2200.0 286.7 2276.0 315.4 2276.0"/>
+<path class="ed" d="M258.0 2200.0 C286.7 2200.0 286.7 2314.0 315.4 2314.0"/>
+<path class="ed" d="M258.0 2200.0 C286.7 2200.0 286.7 2352.0 315.4 2352.0"/>
+<path class="ed" d="M258.0 2200.0 C286.7 2200.0 286.7 2390.0 315.4 2390.0"/>
+<path class="ed" d="M258.0 2200.0 C286.7 2200.0 286.7 2428.0 315.4 2428.0"/>
+<path class="ed" d="M258.0 2200.0 C286.7 2200.0 286.7 2466.0 315.4 2466.0"/>
+<path class="ed" d="M258.0 2200.0 C286.7 2200.0 286.7 2504.0 315.4 2504.0"/>
+<path class="ed" d="M258.0 2200.0 C286.7 2200.0 286.7 2542.0 315.4 2542.0"/>
+<path class="ed" d="M258.0 2694.0 C286.7 2694.0 286.7 2580.0 315.4 2580.0"/>
+<path class="ed" d="M258.0 2694.0 C286.7 2694.0 286.7 2618.0 315.4 2618.0"/>
+<path class="ed" d="M258.0 2694.0 C286.7 2694.0 286.7 2656.0 315.4 2656.0"/>
+<path class="ed" d="M258.0 2694.0 C286.7 2694.0 286.7 2694.0 315.4 2694.0"/>
+<path class="ed" d="M258.0 2694.0 C286.7 2694.0 286.7 2732.0 315.4 2732.0"/>
+<path class="ed" d="M258.0 2694.0 C286.7 2694.0 286.7 2770.0 315.4 2770.0"/>
+<path class="ed" d="M258.0 2694.0 C286.7 2694.0 286.7 2808.0 315.4 2808.0"/>
+<path class="ed" d="M258.0 2903.0 C286.7 2903.0 286.7 2846.0 315.4 2846.0"/>
+<path class="ed" d="M258.0 2903.0 C286.7 2903.0 286.7 2884.0 315.4 2884.0"/>
+<path class="ed" d="M258.0 2903.0 C286.7 2903.0 286.7 2922.0 315.4 2922.0"/>
+<path class="ed" d="M258.0 2903.0 C286.7 2903.0 286.7 2960.0 315.4 2960.0"/>
+<path class="ed" d="M258.0 3150.0 C286.7 3150.0 286.7 2998.0 315.4 2998.0"/>
+<path class="ed" d="M258.0 3150.0 C286.7 3150.0 286.7 3036.0 315.4 3036.0"/>
+<path class="ed" d="M258.0 3150.0 C286.7 3150.0 286.7 3074.0 315.4 3074.0"/>
+<path class="ed" d="M258.0 3150.0 C286.7 3150.0 286.7 3112.0 315.4 3112.0"/>
+<path class="ed" d="M258.0 3150.0 C286.7 3150.0 286.7 3150.0 315.4 3150.0"/>
+<path class="ed" d="M258.0 3150.0 C286.7 3150.0 286.7 3188.0 315.4 3188.0"/>
+<path class="ed" d="M258.0 3150.0 C286.7 3150.0 286.7 3226.0 315.4 3226.0"/>
+<path class="ed" d="M258.0 3150.0 C286.7 3150.0 286.7 3264.0 315.4 3264.0"/>
+<path class="ed" d="M258.0 3150.0 C286.7 3150.0 286.7 3302.0 315.4 3302.0"/>
+<path class="ed" d="M258.0 3397.0 C286.7 3397.0 286.7 3340.0 315.4 3340.0"/>
+<path class="ed" d="M258.0 3397.0 C286.7 3397.0 286.7 3378.0 315.4 3378.0"/>
+<path class="ed" d="M258.0 3397.0 C286.7 3397.0 286.7 3416.0 315.4 3416.0"/>
+<path class="ed" d="M258.0 3397.0 C286.7 3397.0 286.7 3454.0 315.4 3454.0"/>
+<path class="ed" d="M258.0 3492.0 C286.7 3492.0 286.7 3492.0 315.4 3492.0"/>
+<path class="ed" d="M258.0 3530.0 C286.7 3530.0 286.7 3530.0 315.4 3530.0"/>
+<path class="ed" d="M258.0 3663.0 C286.7 3663.0 286.7 3568.0 315.4 3568.0"/>
+<path class="ed" d="M258.0 3663.0 C286.7 3663.0 286.7 3606.0 315.4 3606.0"/>
+<path class="ed" d="M258.0 3663.0 C286.7 3663.0 286.7 3644.0 315.4 3644.0"/>
+<path class="ed" d="M258.0 3663.0 C286.7 3663.0 286.7 3682.0 315.4 3682.0"/>
+<path class="ed" d="M258.0 3663.0 C286.7 3663.0 286.7 3720.0 315.4 3720.0"/>
+<path class="ed" d="M258.0 3663.0 C286.7 3663.0 286.7 3758.0 315.4 3758.0"/>
+<path class="ed" d="M258.0 3891.0 C286.7 3891.0 286.7 3796.0 315.4 3796.0"/>
+<path class="ed" d="M258.0 3891.0 C286.7 3891.0 286.7 3834.0 315.4 3834.0"/>
+<path class="ed" d="M258.0 3891.0 C286.7 3891.0 286.7 3872.0 315.4 3872.0"/>
+<path class="ed" d="M258.0 3891.0 C286.7 3891.0 286.7 3910.0 315.4 3910.0"/>
+<path class="ed" d="M258.0 3891.0 C286.7 3891.0 286.7 3948.0 315.4 3948.0"/>
+<path class="ed" d="M258.0 3891.0 C286.7 3891.0 286.7 3986.0 315.4 3986.0"/>
+<path class="ed" d="M258.0 4043.0 C286.7 4043.0 286.7 4024.0 315.4 4024.0"/>
+<path class="ed" d="M258.0 4043.0 C286.7 4043.0 286.7 4062.0 315.4 4062.0"/>
+</g>
+<g class="nodes">
+<a class="lk" href="#/page/contracts" xlink:href="#/page/contracts"><rect class="nd rt" x="20.0" y="2072.0" width="96.0" height="28" rx="8"/><text class="tx" x="30.0" y="2091.0">内容契约</text></a>
+<a class="lk" href="#/page/contracts/contract-Attachment" xlink:href="#/page/contracts/contract-Attachment"><rect class="nd" x="162.0" y="115.0" width="100.0" height="28" rx="8"/><text class="tx" x="172.0" y="134.0">Attachment</text></a>
+<rect class="nd" x="315.4" y="20.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="39.0">name</text>
+<rect class="nd" x="315.4" y="58.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="77.0">kind</text>
+<rect class="nd" x="315.4" y="96.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="115.0">url</text>
+<rect class="nd" x="315.4" y="134.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="153.0">size</text>
+<rect class="nd" x="315.4" y="172.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="191.0">code</text>
+<rect class="nd" x="315.4" y="210.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="229.0">resource</text>
+<a class="lk" href="#/page/contracts/contract-BlogPost" xlink:href="#/page/contracts/contract-BlogPost"><rect class="nd" x="162.0" y="609.0" width="96.0" height="28" rx="8"/><text class="tx" x="172.0" y="628.0">BlogPost</text></a>
+<rect class="nd" x="315.4" y="248.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="267.0">title</text>
+<rect class="nd" x="315.4" y="286.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="305.0">author</text>
+<rect class="nd" x="315.4" y="324.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="343.0">date</text>
+<rect class="nd" x="315.4" y="362.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="381.0">tags</text>
+<rect class="nd" x="315.4" y="400.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="419.0">summary</text>
+<rect class="nd" x="315.4" y="438.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="457.0">updated</text>
+<rect class="nd" x="315.4" y="476.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="495.0">license</text>
+<rect class="nd" x="315.4" y="514.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="533.0">draft</text>
+<rect class="nd" x="315.4" y="552.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="571.0">series</text>
+<rect class="nd" x="315.4" y="590.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="609.0">video</text>
+<rect class="nd" x="315.4" y="628.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="647.0">map</text>
+<rect class="nd" x="315.4" y="666.0" width="107.4" height="28" rx="8"/><text class="tx" x="325.4" y="685.0">attachments</text>
+<rect class="nd" x="315.4" y="704.0" width="100.0" height="28" rx="8"/><text class="tx" x="325.4" y="723.0">co_authors</text>
+<rect class="nd" x="315.4" y="742.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="761.0">body</text>
+<rect class="nd" x="315.4" y="780.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="799.0">panel</text>
+<rect class="nd" x="315.4" y="818.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="837.0">steps</text>
+<rect class="nd" x="315.4" y="856.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="875.0">shot</text>
+<rect class="nd" x="315.4" y="894.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="913.0">gallery</text>
+<rect class="nd" x="315.4" y="932.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="951.0">term</text>
+<rect class="nd" x="315.4" y="970.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="989.0">when</text>
+<a class="lk" href="#/page/contracts/contract-Gallery" xlink:href="#/page/contracts/contract-Gallery"><rect class="nd" x="162.0" y="1027.0" width="96.0" height="28" rx="8"/><text class="tx" x="172.0" y="1046.0">Gallery</text></a>
+<rect class="nd" x="315.4" y="1008.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1027.0">cols</text>
+<rect class="nd" x="315.4" y="1046.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1065.0">items</text>
+<a class="lk" href="#/page/contracts/contract-Member" xlink:href="#/page/contracts/contract-Member"><rect class="nd" x="162.0" y="1198.0" width="96.0" height="28" rx="8"/><text class="tx" x="172.0" y="1217.0">Member</text></a>
+<rect class="nd" x="315.4" y="1084.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1103.0">name</text>
+<rect class="nd" x="315.4" y="1122.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1141.0">role</text>
+<rect class="nd" x="315.4" y="1160.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1179.0">avatar</text>
+<rect class="nd" x="315.4" y="1198.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1217.0">signature</text>
+<rect class="nd" x="315.4" y="1236.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1255.0">skills</text>
+<rect class="nd" x="315.4" y="1274.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1293.0">joined</text>
+<rect class="nd" x="315.4" y="1312.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1331.0">links</text>
+<a class="lk" href="#/page/contracts/contract-MemberLinks" xlink:href="#/page/contracts/contract-MemberLinks"><rect class="nd" x="162.0" y="1445.0" width="107.4" height="28" rx="8"/><text class="tx" x="172.0" y="1464.0">MemberLinks</text></a>
+<rect class="nd" x="315.4" y="1350.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1369.0">blog</text>
+<rect class="nd" x="315.4" y="1388.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1407.0">homepage</text>
+<rect class="nd" x="315.4" y="1426.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1445.0">github</text>
+<rect class="nd" x="315.4" y="1464.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1483.0">gitee</text>
+<rect class="nd" x="315.4" y="1502.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1521.0">gitee_org</text>
+<rect class="nd" x="315.4" y="1540.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1559.0">email</text>
+<a class="lk" href="#/page/contracts/contract-Page" xlink:href="#/page/contracts/contract-Page"><rect class="nd" x="162.0" y="1654.0" width="96.0" height="28" rx="8"/><text class="tx" x="172.0" y="1673.0">Page</text></a>
+<rect class="nd" x="315.4" y="1578.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1597.0">title</text>
+<rect class="nd" x="315.4" y="1616.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1635.0">group</text>
+<rect class="nd" x="315.4" y="1654.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1673.0">order</text>
+<rect class="nd" x="315.4" y="1692.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1711.0">body</text>
+<rect class="nd" x="315.4" y="1730.0" width="100.0" height="28" rx="8"/><text class="tx" x="325.4" y="1749.0">group_link</text>
+<a class="lk" href="#/page/contracts/contract-Panel" xlink:href="#/page/contracts/contract-Panel"><rect class="nd" x="162.0" y="1787.0" width="96.0" height="28" rx="8"/><text class="tx" x="172.0" y="1806.0">Panel</text></a>
+<rect class="nd" x="315.4" y="1768.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1787.0">title</text>
+<rect class="nd" x="315.4" y="1806.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1825.0">text</text>
+<a class="lk" href="#/page/contracts/contract-Project" xlink:href="#/page/contracts/contract-Project"><rect class="nd" x="162.0" y="2186.0" width="96.0" height="28" rx="8"/><text class="tx" x="172.0" y="2205.0">Project</text></a>
+<rect class="nd" x="315.4" y="1844.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1863.0">name</text>
+<rect class="nd" x="315.4" y="1882.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1901.0">one_liner</text>
+<rect class="nd" x="315.4" y="1920.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1939.0">repo</text>
+<rect class="nd" x="315.4" y="1958.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="1977.0">status</text>
+<rect class="nd" x="315.4" y="1996.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="2015.0">host</text>
+<rect class="nd" x="315.4" y="2034.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="2053.0">homepage</text>
+<rect class="nd" x="315.4" y="2072.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="2091.0">docs</text>
+<rect class="nd" x="315.4" y="2110.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="2129.0">license</text>
+<rect class="nd" x="315.4" y="2148.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="2167.0">languages</text>
+<rect class="nd" x="315.4" y="2186.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="2205.0">platforms</text>
+<rect class="nd" x="315.4" y="2224.0" width="129.6" height="28" rx="8"/><text class="tx" x="325.4" y="2243.0">related_series</text>
+<rect class="nd" x="315.4" y="2262.0" width="122.2" height="28" rx="8"/><text class="tx" x="325.4" y="2281.0">related_posts</text>
+<rect class="nd" x="315.4" y="2300.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="2319.0">tags</text>
+<rect class="nd" x="315.4" y="2338.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="2357.0">owner</text>
+<rect class="nd" x="315.4" y="2376.0" width="114.8" height="28" rx="8"/><text class="tx" x="325.4" y="2395.0">contributors</text>
+<rect class="nd" x="315.4" y="2414.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="2433.0">featured</text>
+<rect class="nd" x="315.4" y="2452.0" width="107.4" height="28" rx="8"/><text class="tx" x="325.4" y="2471.0">meta_source</text>
+<rect class="nd" x="315.4" y="2490.0" width="122.2" height="28" rx="8"/><text class="tx" x="325.4" y="2509.0">meta_override</text>
+<rect class="nd" x="315.4" y="2528.0" width="100.0" height="28" rx="8"/><text class="tx" x="325.4" y="2547.0">milestones</text>
+<a class="lk" href="#/page/contracts/contract-Resource" xlink:href="#/page/contracts/contract-Resource"><rect class="nd" x="162.0" y="2680.0" width="96.0" height="28" rx="8"/><text class="tx" x="172.0" y="2699.0">Resource</text></a>
+<rect class="nd" x="315.4" y="2566.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="2585.0">title</text>
+<rect class="nd" x="315.4" y="2604.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="2623.0">kind</text>
+<rect class="nd" x="315.4" y="2642.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="2661.0">url</text>
+<rect class="nd" x="315.4" y="2680.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="2699.0">tags</text>
+<rect class="nd" x="315.4" y="2718.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="2737.0">note</text>
+<rect class="nd" x="315.4" y="2756.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="2775.0">folder</text>
+<rect class="nd" x="315.4" y="2794.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="2813.0">code</text>
+<a class="lk" href="#/page/contracts/contract-Series" xlink:href="#/page/contracts/contract-Series"><rect class="nd" x="162.0" y="2889.0" width="96.0" height="28" rx="8"/><text class="tx" x="172.0" y="2908.0">Series</text></a>
+<rect class="nd" x="315.4" y="2832.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="2851.0">id</text>
+<rect class="nd" x="315.4" y="2870.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="2889.0">order</text>
+<rect class="nd" x="315.4" y="2908.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="2927.0">title</text>
+<rect class="nd" x="315.4" y="2946.0" width="107.4" height="28" rx="8"/><text class="tx" x="325.4" y="2965.0">description</text>
+<a class="lk" href="#/page/contracts/contract-Service" xlink:href="#/page/contracts/contract-Service"><rect class="nd" x="162.0" y="3136.0" width="96.0" height="28" rx="8"/><text class="tx" x="172.0" y="3155.0">Service</text></a>
+<rect class="nd" x="315.4" y="2984.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3003.0">name</text>
+<rect class="nd" x="315.4" y="3022.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3041.0">owner</text>
+<rect class="nd" x="315.4" y="3060.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3079.0">skills</text>
+<rect class="nd" x="315.4" y="3098.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3117.0">wants</text>
+<rect class="nd" x="315.4" y="3136.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3155.0">contact</text>
+<rect class="nd" x="315.4" y="3174.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3193.0">rate</text>
+<rect class="nd" x="315.4" y="3212.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3231.0">status</text>
+<rect class="nd" x="315.4" y="3250.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3269.0">updated</text>
+<rect class="nd" x="315.4" y="3288.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3307.0">body</text>
+<a class="lk" href="#/page/contracts/contract-Shot" xlink:href="#/page/contracts/contract-Shot"><rect class="nd" x="162.0" y="3383.0" width="96.0" height="28" rx="8"/><text class="tx" x="172.0" y="3402.0">Shot</text></a>
+<rect class="nd" x="315.4" y="3326.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3345.0">src</text>
+<rect class="nd" x="315.4" y="3364.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3383.0">alt</text>
+<rect class="nd" x="315.4" y="3402.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3421.0">caption</text>
+<rect class="nd" x="315.4" y="3440.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3459.0">full</text>
+<a class="lk" href="#/page/contracts/contract-Steps" xlink:href="#/page/contracts/contract-Steps"><rect class="nd" x="162.0" y="3478.0" width="96.0" height="28" rx="8"/><text class="tx" x="172.0" y="3497.0">Steps</text></a>
+<rect class="nd" x="315.4" y="3478.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3497.0">items</text>
+<a class="lk" href="#/page/contracts/contract-Term" xlink:href="#/page/contracts/contract-Term"><rect class="nd" x="162.0" y="3516.0" width="96.0" height="28" rx="8"/><text class="tx" x="172.0" y="3535.0">Term</text></a>
+<rect class="nd" x="315.4" y="3516.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3535.0">text</text>
+<a class="lk" href="#/page/contracts/contract-Topic" xlink:href="#/page/contracts/contract-Topic"><rect class="nd" x="162.0" y="3649.0" width="96.0" height="28" rx="8"/><text class="tx" x="172.0" y="3668.0">Topic</text></a>
+<rect class="nd" x="315.4" y="3554.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3573.0">title</text>
+<rect class="nd" x="315.4" y="3592.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3611.0">summary</text>
+<rect class="nd" x="315.4" y="3630.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3649.0">tags</text>
+<rect class="nd" x="315.4" y="3668.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3687.0">posts</text>
+<rect class="nd" x="315.4" y="3706.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3725.0">related</text>
+<rect class="nd" x="315.4" y="3744.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3763.0">body</text>
+<a class="lk" href="#/page/contracts/contract-Weekly" xlink:href="#/page/contracts/contract-Weekly"><rect class="nd" x="162.0" y="3877.0" width="96.0" height="28" rx="8"/><text class="tx" x="172.0" y="3896.0">Weekly</text></a>
+<rect class="nd" x="315.4" y="3782.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3801.0">period</text>
+<rect class="nd" x="315.4" y="3820.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3839.0">title</text>
+<rect class="nd" x="315.4" y="3858.0" width="100.0" height="28" rx="8"/><text class="tx" x="325.4" y="3877.0">highlights</text>
+<rect class="nd" x="315.4" y="3896.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3915.0">merged</text>
+<rect class="nd" x="315.4" y="3934.0" width="114.8" height="28" rx="8"/><text class="tx" x="325.4" y="3953.0">contributors</text>
+<rect class="nd" x="315.4" y="3972.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="3991.0">body</text>
+<a class="lk" href="#/page/contracts/contract-When" xlink:href="#/page/contracts/contract-When"><rect class="nd" x="162.0" y="4029.0" width="96.0" height="28" rx="8"/><text class="tx" x="172.0" y="4048.0">When</text></a>
+<rect class="nd" x="315.4" y="4010.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="4029.0">date</text>
+<rect class="nd" x="315.4" y="4048.0" width="96.0" height="28" rx="8"/><text class="tx" x="325.4" y="4067.0">text</text>
+</g></svg>
