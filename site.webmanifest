@@ -1,0 +1,15 @@
+{
+ "name": "Rust嵌入式探讨",
+ "short_name": "Rust嵌入式探讨",
+ "start_url": "./",
+ "display": "standalone",
+ "background_color": "#fbfaf7",
+ "theme_color": "#b4552d",
+ "icons": [
+  {
+   "src": "favicon.jpg",
+   "sizes": "any",
+   "type": "image/jpeg"
+  }
+ ]
+}

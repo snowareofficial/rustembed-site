@@ -1,0 +1,124 @@
+<h3 id="11-1-上线前检查清单-门禁">11.1 上线前检查清单（门禁）</h3>
+<blockquote>
+<p>「先上了再说」在 HFT 里的代价是真实亏损</p>
+</blockquote>
+<p>← 上一章：chapter-10 风控 · 下一节：11.2 监控与报警</p>
+<table>
+<thead><tr><th>类别</th><th>项</th><th>不达标后果</th></tr></thead>
+<tbody>
+<tr><td><strong>性能</strong></td><td>T2T p99/p999 达标 · 连续 72h 压测无退化、<strong>无内存泄漏</strong>（RSS 平稳）</td><td>尾延迟 = 尾部亏损</td></tr>
+<tr><td><strong>环境</strong></td><td>绑核 / isolcpus / BIOS 设置与压测机 <strong>逐项 diff</strong></td><td>压测结果作废</td></tr>
+<tr><td><strong>风控</strong></td><td>OMS 限参为 <strong>生产值</strong>（不是测试宽松值）· 清仓开关演练过</td><td>上线即裸奔</td></tr>
+<tr><td><strong>数据</strong></td><td>行情/订单 capture 全开，<strong>replay 能还原实盘行为</strong></td><td>出事无法复盘</td></tr>
+<tr><td><strong>网络</strong></td><td>交易所链路 RTT 基线 · 备用线路切换测试</td><td>主线断 = 瞎跑</td></tr>
+<tr><td><strong>权限</strong></td><td>交易账户额度 · 交易所 permit 速率 · 报备文件</td><td>合规事故</td></tr>
+</tbody>
+</table>
+<p><strong>金规则：任何一项不过，不上线。</strong> 「先上了再说」在 HFT 里的代价是真实亏损。</p>
+<p>← 下一节：11.2 监控与报警 · 返回：本章索引</p>
+<h3 id="11-2-监控-看什么-怎么报警">11.2 监控：看什么、怎么报警</h3>
+<blockquote>
+<p>最危险的故障是没有报错的失败 — 静默失败检测</p>
+</blockquote>
+<p>← 上一节：11.1 上线门禁清单 · 下一节：11.3 Kill Switch 分级</p>
+<h4 id="监控分层">监控分层</h4>
+<table>
+<thead><tr><th>层</th><th>指标</th><th>采集方式（不能干扰热路径）</th></tr></thead>
+<tbody>
+<tr><td><strong>系统层</strong></td><td>CPU 占用（独占核应 ~100%）、软中断、网卡丢包（<code>ethtool -S</code>）、RSS/缺页</td><td>冷核上的 agent（node_exporter 等）</td></tr>
+<tr><td><strong>进程层</strong></td><td>心跳（每 N ms 写一个序列号）、线程存活、fd 泄漏</td><td>共享内存心跳序列，冷线程检查</td></tr>
+<tr><td><strong>业务层</strong></td><td>行情流断续（gap 计数）、订单回报延迟、成交率、持仓</td><td>热路径原子计数器 → 冷路径读</td></tr>
+<tr><td><strong>延迟层</strong></td><td>T2T 分段打点（→ chapter-09）</td><td>硬件时间戳优先</td></tr>
+</tbody>
+</table>
+<h4 id="报警哲学">报警哲学</h4>
+<ul>
+<li><strong>报症状不报原因</strong>：「行情 gap &gt; 3」而不是「网卡驱动可能丢包」——症状可执行（立即降级），原因留给排查</li>
+<li><strong>分级</strong>：P1（自动 kill switch）资金风险 / P2（人工介入）性能退化 / P3（记录）统计异常</li>
+<li><strong>报警本身要冗余</strong>：报警通道挂了要有第二通道（交易机 → 手机短信直连）</li>
+</ul>
+<h4 id="关键盲区-静默失败">关键盲区：静默失败</h4>
+<p>最危险的故障是<strong>没有报错的失败</strong>——行情流还在但内容是旧的（TCP 半开）、订单发了但回报永远不来。对策：<strong>每个流都带单调递增序列号 + 期望速率</strong>，冷线程检测「太安静」本身。</p>
+<p>← 下一节：11.3 Kill Switch 分级 · 返回：本章索引</p>
+<h3 id="11-3-kill-switch-分级">11.3 Kill Switch 分级</h3>
+<blockquote>
+<p>L1 停新单 → L2 全撤 → L3 清仓 → L4 断链 — 全系统唯一允许「丑但稳」的模块</p>
+</blockquote>
+<p>← 上一节：11.2 监控与报警 · 下一节：11.4 Capture 与 Replay</p>
+<table>
+<thead><tr><th>级别</th><th>触发</th><th>动作</th><th>恢复</th></tr></thead>
+<tbody>
+<tr><td><strong>L1 停新单</strong></td><td>延迟尖峰 / 策略异常</td><td>停止发新订单，存量单保留</td><td>人工确认后重启</td></tr>
+<tr><td><strong>L2 全撤</strong></td><td>风控越限 / 行情中断</td><td>撤掉全部挂单</td><td>人工</td></tr>
+<tr><td><strong>L3 清仓</strong></td><td>重大事故（账户/合规/系统不可控）</td><td>撤单 + 市价平掉全部持仓</td><td>双人授权</td></tr>
+<tr><td><strong>L4 断链</strong></td><td>最后手段（连撤单都发不出去）</td><td>主动断开交易所连接，靠交易所侧超时撤单</td><td>交易所流程</td></tr>
+</tbody>
+</table>
+<h4 id="工程要点">工程要点</h4>
+<ul>
+<li>Kill switch 代码路径要<strong>最简单、最老、测试最充分</strong>——它是全系统唯一允许「丑但稳」的模块</li>
+<li>触发通道<strong>独立于策略进程</strong>：watchdog 进程持有关联交易进程的权限（<code>SIGUSR</code>/共享内存标志位），策略挂死也能触发 L1/L2</li>
+<li><strong>演练</strong>：上线前每级真实触发一次，包括「热路径线程死循环时 L2 能否生效」</li>
+</ul>
+<p>← 下一节：11.4 Capture 与 Replay · 返回：本章索引</p>
+<h3 id="11-4-capture-replay-复盘的基础">11.4 Capture / Replay：复盘的基础</h3>
+<blockquote>
+<p>回测 = 假设的行情；replay = 真实发生过的自己</p>
+</blockquote>
+<p>← 上一节：11.3 Kill Switch 分级 · 下一节：11.5 故障降级矩阵</p>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">实盘:  行情/信号/订单/回报 ──→ 定长二进制记录 ──→ 冷线程落盘 (与审计流分开)
+复盘:  读记录 ──→ 按时间戳重放行情 ──→ 策略离线跑 ──→ diff 实盘决策</code></pre>
+</div>
+<table>
+<thead><tr><th>要点</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><strong>确定性</strong></td><td>策略逻辑必须是<strong>时间戳驱动</strong>（不用墙钟、不用随机数种子未固定）——否则 replay 结果对不上</td></tr>
+<tr><td><strong>全覆盖</strong></td><td>不只录行情——内部信号、风控参数变更也要录，否则复盘缺上下文</td></tr>
+<tr><td><strong>与回测的区别</strong></td><td>回测 = 假设的行情；replay = <strong>真实发生过的自己</strong>——排查「为什么当时发了这单」的唯一手段</td></tr>
+<tr><td><strong>体积管理</strong></td><td>定长记录 + lz4 压缩 + 按交易日分片，冷路径异步写</td></tr>
+</tbody>
+</table>
+<p>← 下一节：11.5 故障降级矩阵 · 返回：本章索引</p>
+<h3 id="11-5-故障降级矩阵与双机热备">11.5 故障降级矩阵与双机热备</h3>
+<blockquote>
+<p>脑裂比宕机更危险 — 升主前必须先对账</p>
+</blockquote>
+<p>← 上一节：11.4 Capture 与 Replay · 下一节：11.6 运维日常</p>
+<h4 id="故障降级矩阵">故障降级矩阵</h4>
+<table>
+<thead><tr><th>故障</th><th>自动动作</th><th>人工动作</th></tr></thead>
+<tbody>
+<tr><td>行情流中断</td><td>L1（价格带基准冻结，不撤存量单）</td><td>判断是上游断还是本地断</td></tr>
+<tr><td>订单回报超时</td><td>L1 + 报警</td><td>查订单状态（交易所 API 查询）</td></tr>
+<tr><td>热路径线程 CPU 异常</td><td>延迟监控报警</td><td>决定 L2 还是观察</td></tr>
+<tr><td>内存泄漏</td><td>RSS 告警</td><td>计划内重启（低风险时段，先 L2）</td></tr>
+<tr><td>整机宕机</td><td>备机心跳接管（见下）</td><td>事后复盘</td></tr>
+</tbody>
+</table>
+<h4 id="灾备双机模式">灾备双机模式</h4>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">主机: 交易进程（主用）      备机: 交易进程（standby, 只监听不交易）
+       │                          │
+       └──── 心跳共享/专线 ────────┘
+主机心跳消失 N ms → 备机升主（先查交易所未成交单 → 撤 → 再启策略）</code></pre>
+</div>
+<p><strong>注意：</strong> 备机升主前必须先<strong>对账</strong>（拉取交易所订单状态）——否则重复报单。脑裂（两边都以为自己是主）比宕机更危险，心跳判断要留给第三方仲裁（交易所网关连接状态）。</p>
+<p>← 下一节：11.6 运维日常 · 返回：本章索引</p>
+<h3 id="11-6-运维日常">11.6 运维日常</h3>
+<blockquote>
+<p>清单不是写完的，是事故喂出来的</p>
+</blockquote>
+<p>← 上一节：11.5 故障降级矩阵 · 返回：本章索引</p>
+<ul>
+<li><strong>变更纪律</strong>：交易日不改代码不调参；变更走灰度（新版本先跑单进程 shadow 模式——收行情发假单，对比决策）</li>
+<li><strong>日志巡检</strong>：每日开盘前检查前日 P3 统计异常、捕获文件完整性</li>
+<li><strong>容量演练</strong>：季度性演练 L3 清仓 + 备机切换（用小仓位真做，不是纸面推演）</li>
+<li><strong>复盘文化</strong>：每次 P1/P2 事件产出「时间线 + 根因 + 清单项补充」——清单不是写完的，是事故喂出来的</li>
+</ul>
+<p>返回：本章索引</p>
+<aside class="admonition note"><p class="adm-title">来源与许可</p>
+<p>本文整理自 CShonor 的学习笔记仓库 <a href="https://github.com/cshonor/hft-embedded-linux-study" target="_blank" rel="nofollow noopener">hft-embedded-linux-study</a> 的 <code>14-hft-engineering</code> 模块（HFT 工程实践；该模块标注了与原书 Ch1–11 的对应关系，Ch10–13 为仓库自扩展章节），经作者授权以 CC BY 4.0 在本站署名发布。</p>
+</aside>

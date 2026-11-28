@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="739" height="410" viewBox="0 0 739 410" font-family="-apple-system,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif">
+<title>1.19 其他</title>
+<style>.nd{fill:#fff;stroke:#e4dfd6;rx:8} .rt{fill:#f6efe6;stroke:#d9c9b0}.tx{font-size:13px;fill:#23201c} .lk{cursor:pointer}.lk:hover .nd{stroke:#b4552d;fill:#fff8f2} .ed{fill:none;stroke:#ddd6c9;stroke-width:1.4}</style>
+<g class="edges">
+<path class="ed" d="M116.0 176.5 C139.0 176.5 139.0 34.0 162.0 34.0"/>
+<path class="ed" d="M116.0 176.5 C139.0 176.5 139.0 110.0 162.0 110.0"/>
+<path class="ed" d="M116.0 176.5 C139.0 176.5 139.0 186.0 162.0 186.0"/>
+<path class="ed" d="M116.0 176.5 C139.0 176.5 139.0 224.0 162.0 224.0"/>
+<path class="ed" d="M116.0 176.5 C139.0 176.5 139.0 319.0 162.0 319.0"/>
+<path class="ed" d="M373.0 110.0 C396.0 110.0 396.0 72.0 419.0 72.0"/>
+<path class="ed" d="M373.0 110.0 C396.0 110.0 396.0 110.0 419.0 110.0"/>
+<path class="ed" d="M373.0 110.0 C396.0 110.0 396.0 148.0 419.0 148.0"/>
+<path class="ed" d="M284.2 319.0 C351.6 319.0 351.6 262.0 419.0 262.0"/>
+<path class="ed" d="M284.2 319.0 C351.6 319.0 351.6 300.0 419.0 300.0"/>
+<path class="ed" d="M284.2 319.0 C351.6 319.0 351.6 338.0 419.0 338.0"/>
+<path class="ed" d="M284.2 319.0 C351.6 319.0 351.6 376.0 419.0 376.0"/>
+</g>
+<g class="nodes">
+<rect class="nd rt" x="20.0" y="162.5" width="96.0" height="28" rx="8"/><text class="tx" x="30.0" y="181.5">1.19 其他</text>
+<a class="lk" href="#/post/rust-learning-20-misc/1-19-1-下画线" xlink:href="#/post/rust-learning-20-misc/1-19-1-下画线"><rect class="nd" x="162.0" y="20.0" width="137.0" height="28" rx="8"/><text class="tx" x="172.0" y="39.0">1 1.19.1 下画线</text></a>
+<a class="lk" href="#/post/rust-learning-20-misc/1-19-2-字符串格式化输出" xlink:href="#/post/rust-learning-20-misc/1-19-2-字符串格式化输出"><rect class="nd" x="162.0" y="96.0" width="211.0" height="28" rx="8"/><text class="tx" x="172.0" y="115.0">2 1.19.2 字符串格式化输出</text></a>
+<a class="lk" href="#/post/rust-learning-20-misc/宽度-填充字符-对齐-ten-ws-形态-基础end-rs" xlink:href="#/post/rust-learning-20-misc/宽度-填充字符-对齐-ten-ws-形态-基础end-rs"><rect class="nd" x="419.0" y="58.0" width="300.0" height="28" rx="8"/><text class="tx" x="429.0" y="77.0">2.1 宽度、填充字符、对齐：`{ten:&gt;ws$}…</text></a>
+<a class="lk" href="#/post/rust-learning-20-misc/同一类型-三种打印-基础end-rs" xlink:href="#/post/rust-learning-20-misc/同一类型-三种打印-基础end-rs"><rect class="nd" x="419.0" y="96.0" width="300.0" height="28" rx="8"/><text class="tx" x="429.0" y="115.0">2.2 同一类型，三种打印（`基础end.rs`…</text></a>
+<a class="lk" href="#/post/rust-learning-20-misc/整数后缀打印-基础end-rs" xlink:href="#/post/rust-learning-20-misc/整数后缀打印-基础end-rs"><rect class="nd" x="419.0" y="134.0" width="262.8" height="28" rx="8"/><text class="tx" x="429.0" y="153.0">2.3 整数后缀打印（`基础end.rs`）</text></a>
+<a class="lk" href="#/post/rust-learning-20-misc/1-19-3-rust-类型清单" xlink:href="#/post/rust-learning-20-misc/1-19-3-rust-类型清单"><rect class="nd" x="162.0" y="172.0" width="188.8" height="28" rx="8"/><text class="tx" x="172.0" y="191.0">3 1.19.3 Rust 类型清单</text></a>
+<a class="lk" href="#/post/rust-learning-20-misc/1-19-4-rust-保留字" xlink:href="#/post/rust-learning-20-misc/1-19-4-rust-保留字"><rect class="nd" x="162.0" y="210.0" width="174.0" height="28" rx="8"/><text class="tx" x="172.0" y="229.0">4 1.19.4 Rust 保留字</text></a>
+<a class="lk" href="#/post/rust-learning-20-misc/1-19-5-其他" xlink:href="#/post/rust-learning-20-misc/1-19-5-其他"><rect class="nd" x="162.0" y="305.0" width="122.2" height="28" rx="8"/><text class="tx" x="172.0" y="324.0">5 1.19.5 其他</text></a>
+<a class="lk" href="#/post/rust-learning-20-misc/类型擦除-box-dyn-trait" xlink:href="#/post/rust-learning-20-misc/类型擦除-box-dyn-trait"><rect class="nd" x="419.0" y="248.0" width="248.0" height="28" rx="8"/><text class="tx" x="429.0" y="267.0">5.1 类型擦除：`Box&lt;dyn Trait&gt;`</text></a>
+<a class="lk" href="#/post/rust-learning-20-misc/闭包与-trait" xlink:href="#/post/rust-learning-20-misc/闭包与-trait"><rect class="nd" x="419.0" y="286.0" width="144.4" height="28" rx="8"/><text class="tx" x="429.0" y="305.0">5.2 闭包与 trait</text></a>
+<a class="lk" href="#/post/rust-learning-20-misc/类型推导" xlink:href="#/post/rust-learning-20-misc/类型推导"><rect class="nd" x="419.0" y="324.0" width="114.8" height="28" rx="8"/><text class="tx" x="429.0" y="343.0">5.3 类型推导</text></a>
+<a class="lk" href="#/post/rust-learning-20-misc/协程-async" xlink:href="#/post/rust-learning-20-misc/协程-async"><rect class="nd" x="419.0" y="362.0" width="144.4" height="28" rx="8"/><text class="tx" x="429.0" y="381.0">5.4 协程 / async</text></a>
+</g></svg>

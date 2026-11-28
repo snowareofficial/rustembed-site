@@ -1,0 +1,18 @@
+{
+ "source": "extractive",
+ "one_line": "锁为什么不能用、无锁 FIFO 队列怎么写、内存预分配与缓存友好布局的工程手段。",
+ "points": [
+  "7.1 传统锁的致命弱点",
+  "7.2 无锁 FIFO 队列",
+  "SPSC / MPMC",
+  "应用场景",
+  "7.3 内存预分配与缓存友好",
+  "延迟数量级"
+ ],
+ "keywords": [
+  "hft",
+  "cpp",
+  "performance"
+ ],
+ "reading": 9
+}

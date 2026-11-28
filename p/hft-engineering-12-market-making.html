@@ -1,0 +1,134 @@
+<h3 id="12-1-做市核心等式与逆向选择">12.1 做市核心等式与逆向选择</h3>
+<blockquote>
+<p>最愿意让你成交的时刻，往往是你最不该成交的时刻</p>
+</blockquote>
+<p>← 上一章：chapter-11 运维 · 下一节：12.2 库存风险与 A-S 模型</p>
+<h4 id="核心等式">核心等式</h4>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">做市 PnL = 成交量 × 价差（spread 收入）
+          − 逆向选择损失（ adverse selection ）
+          − 库存风险成本（ inventory risk ）</code></pre>
+</div>
+<p>三者的取舍就是全部做市策略。</p>
+<h4 id="逆向选择-为什么成交太快不是好事">逆向选择：为什么成交太快不是好事</h4>
+<p>限价单排队，最愿意让你成交的时刻，往往是你最不该成交的时刻：</p>
+<table>
+<thead><tr><th>事件</th><th>你的单</th><th>结果</th></tr></thead>
+<tbody>
+<tr><td>新信息到达前（大单吃穿盘口）</td><td>排队成交在旧价</td><td><strong>买在天花板 / 卖在地板</strong></td></tr>
+<tr><td>无信息流（噪音单）</td><td>正常轮流成交</td><td>赚价差</td></tr>
+</tbody>
+</table>
+<h4 id="对抗手段">对抗手段</h4>
+<ul>
+<li><strong>报价偏斜（quote skew）</strong>：库存偏多 → 买价下移、卖价上移——用不对称报价让市场帮你减仓</li>
+<li><strong>事件撤单</strong>：检测到大单/盘口异动信号 → <strong>在被打掉之前撤单</strong>。这本质是<strong>延迟竞赛</strong>：<code>行情到达 → 判断 → 撤单指令到达交易所 &lt; 对方吃单到达</code></li>
+<li><strong>快市模式</strong>：波动率突增 → 拉宽报价甚至单边停报（风控联动 → chapter-10 §4）</li>
+</ul>
+<p>← 下一节：12.2 库存风险与 A-S 模型 · 返回：本章索引</p>
+<h3 id="12-2-库存风险管理-avellaneda-stoikov-直觉">12.2 库存风险管理（Avellaneda-Stoikov 直觉）</h3>
+<blockquote>
+<p>最优报价 = 公允价 ± (半价差 + 库存惩罚项) — 模型在冷路径算，热路径只查表</p>
+</blockquote>
+<p>← 上一节：12.1 做市核心等式与逆向选择 · 下一节：12.3 排队位置经济学</p>
+<p>经典模型的工程直觉：<strong>最优报价 = 公允价 ± (半价差 + 库存惩罚项)</strong></p>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">bid = mid − (γ/2)·σ²·(T−t) − δ·inventory     … inventory &gt; 0 时 bid 更低
+ask = mid + (γ/2)·σ²·(T−t) + δ·inventory
+        ↑ 波动率越大，报价越宽（保护自己）
+                          ↑ 持仓越多，越急着卖（偏斜）</code></pre>
+</div>
+<table>
+<thead><tr><th>参数</th><th>冷路径更新（每秒级）</th></tr></thead>
+<tbody>
+<tr><td><code>σ</code>（波动率）</td><td>EWMA 估计，快市检测联动</td></tr>
+<tr><td><code>inventory</code></td><td>热路径原子计数（→ chapter-10 持仓上限）</td></tr>
+<tr><td><code>γ</code>（风险厌恶）</td><td>日内常数，风控下发</td></tr>
+</tbody>
+</table>
+<p><strong>注意</strong>：模型计算全部在冷路径，热路径只执行「查表拿报价 ± tick」——和风控同一个模式（→ chapter-10 §1 热路径预算）。</p>
+<p>← 下一节：12.3 排队位置经济学 · 返回：本章索引</p>
+<h3 id="12-3-排队位置经济学">12.3 排队位置经济学</h3>
+<blockquote>
+<p>改价 1 个 tick 的代价是整个队列位置 — 这就是把 T2T 当 KPI 的原因</p>
+</blockquote>
+<p>← 上一节：12.2 库存风险与 A-S 模型 · 下一节：12.4 延迟套利</p>
+<p>限价单成交概率取决于<strong>队列位置</strong>（→ chapter-03 LOB）：</p>
+<ul>
+<li>早到 = 排前 = 成交概率高 = 但逆向选择暴露也高</li>
+<li><strong>改单 = 撤到队尾</strong>——改价 1 个 tick 的代价是整个队列位置，不是免费操作</li>
+<li>工程含义：<code>撤单→改价→重报</code> 的整链延迟直接决定改单策略可行性——这就是把 T2T 当 KPI 的原因（→ chapter-09 测量）</li>
+</ul>
+<p>← 下一节：12.4 延迟套利 · 返回：本章索引</p>
+<h3 id="12-4-延迟套利-latency-arbitrage">12.4 延迟套利 (Latency Arbitrage)</h3>
+<blockquote>
+<p>你是赚是亏，取决于你的总延迟 vs 对手撤单延迟 — 不是快就好，是比对手快</p>
+</blockquote>
+<p>← 上一节：12.3 排队位置经济学 · 下一节：12.5 跨所套利与腿风险</p>
+<h4 id="原理-慢交易所上的陈旧报价">原理：慢交易所上的陈旧报价</h4>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">交易所 A（快，如期货/领先市场）  价格变动
+        │
+        │  你先看到（低延迟链路）
+        ▼
+交易所 B（慢，报价还停在旧价）→ 你吃掉 B 的陈旧报价 → B 跟随变动 → 你赚差价</code></pre>
+</div>
+<p>本质：<strong>你的信息到达速度 &gt; B 上其他参与者的反应速度</strong>。赚的是「B 的做市商来不及撤单」的钱——所以它是对手方的逆向选择损失（12.1 的另一面）。</p>
+<h4 id="延迟决定可行性">延迟决定可行性</h4>
+<table>
+<thead><tr><th>环节</th><th>典型预算</th></tr></thead>
+<tbody>
+<tr><td>A 行情到达你</td><td>链路 RTT（colo 内 ~μs 级，跨城取决于光速）</td></tr>
+<tr><td>判断（B 报价陈旧）</td><td>本地热路径（→ T2T）</td></tr>
+<tr><td>订单到达 B</td><td>链路 RTT</td></tr>
+<tr><td><strong>窗口</strong></td><td>B 做市商撤单延迟（对手的 T2T）</td></tr>
+</tbody>
+</table>
+<p><strong>你是赚是亏，取决于你的总延迟 vs 对手撤单延迟。</strong> 这不是「快就好」，是「比对手快」——延迟优势的边际价值在对手也提速后归零，所以要持续投入（→ chapter-13 FPGA：ns 级竞争的终点）。</p>
+<p>← 下一节：12.5 跨所套利与腿风险 · 返回：本章索引</p>
+<h3 id="12-5-跨所套利与腿风险管理">12.5 跨所套利与腿风险管理</h3>
+<blockquote>
+<p>第一腿成交、第二腿失败 = 裸敞口 — 双腿原子性是关键工程</p>
+</blockquote>
+<p>← 上一节：12.4 延迟套利 · 下一节：12.6 策略与工程接口</p>
+<h4 id="跨所套利-vs-延迟套利">跨所套利 vs 延迟套利</h4>
+<table>
+<thead><tr><th></th><th>延迟套利</th><th>跨所/跨品种套利</th></tr></thead>
+<tbody>
+<tr><td>持仓</td><td>瞬时（delta 中性对冲后 ~0）</td><td>两腿同时持有</td></tr>
+<tr><td>风险</td><td>腿风险（一腿成交一腿失败）</td><td>价差收敛风险 + 腿风险</td></tr>
+<tr><td>延迟敏感度</td><td>极高（核心资产）</td><td>中（腿间滑点仍关键）</td></tr>
+<tr><td>关键工程</td><td>T2T + 队列位置</td><td><strong>双腿原子性</strong>：A 成交则 B 必须发——腿管理状态机</td></tr>
+</tbody>
+</table>
+<h4 id="腿风险管理">腿风险管理</h4>
+<p>第一腿成交、第二腿失败 = 裸敞口。工程上：第一腿回报到达（热路径）→ 立即补发/对冲第二腿，任何延迟都是风险敞口时间。这也是为什么订单回报处理必须在热路径。</p>
+<p>← 下一节：12.6 策略与工程接口 · 返回：本章索引</p>
+<h3 id="12-6-策略与工程的接口约定">12.6 策略与工程的接口约定</h3>
+<blockquote>
+<p>冷路径算、热路径查 — 策略永远不可信，风控闸门独立存在</p>
+</blockquote>
+<p>← 上一节：12.5 跨所套利与腿风险 · 返回：本章索引</p>
+<p>策略代码跑在热路径上，但它不该做重活——<strong>接口模式与风控/做市参数下发完全一致：</strong></p>
+<div class="code">
+<div class="code-head"><span>text</span><button class="copy" type="button" aria-label="复制代码">复制</button></div>
+<pre><code class="language-text">冷路径（研究/参数计算/慢信号）          热路径（Strategy 线程）
+────────────────────────────          ─────────────────────────
+信号模型（毫秒级重算）    ──无锁环──→  读信号快照（一次 load）
+做市参数（σ、γ、skew）   ──指针切换──→  读参数生成报价
+风控限额                 ──指针切换──→  O(1) 检查（→ Ch10）
+                                      决策 → OMS → Gateway OUT</code></pre>
+</div>
+<h4 id="三条纪律">三条纪律</h4>
+<ol>
+<li>策略热路径代码 <strong>不查慢数据结构</strong>（不遍历、不 hash 大表、不查数据库快照的深字段）</li>
+<li>信号/参数发布 <strong>版本化</strong>——replay 时才能还原当时策略用的参数（→ chapter-11 capture/replay）</li>
+<li>策略 bug 的爆炸半径由 Ch10 风控硬检查兜底——<strong>策略永远不可信，风控闸门独立存在</strong></li>
+</ol>
+<p>返回：本章索引</p>
+<aside class="admonition note"><p class="adm-title">来源与许可</p>
+<p>本文整理自 CShonor 的学习笔记仓库 <a href="https://github.com/cshonor/hft-embedded-linux-study" target="_blank" rel="nofollow noopener">hft-embedded-linux-study</a> 的 <code>14-hft-engineering</code> 模块（HFT 工程实践；该模块标注了与原书 Ch1–11 的对应关系，Ch10–13 为仓库自扩展章节），经作者授权以 CC BY 4.0 在本站署名发布。</p>
+</aside>
